@@ -22,8 +22,7 @@ const Header: React.FC<HeaderProps> = ({ onClick, onToggle }) => {
         <div className="flex items-center justify-between w-full gap-2 px-3 py-3 border-b border-gray-200 dark:border-gray-800 sm:gap-4 lg:justify-normal lg:border-b-0 lg:px-0 lg:py-4">
           <button
             className="block w-10 h-10 text-gray-500 lg:hidden dark:text-gray-400"
-            onClick={onToggle}
-          >
+            onClick={onToggle}>
             {/* Hamburger Icon */}
             <svg
               className={`block`}
@@ -31,8 +30,7 @@ const Header: React.FC<HeaderProps> = ({ onClick, onToggle }) => {
               height="12"
               viewBox="0 0 16 12"
               fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+              xmlns="http://www.w3.org/2000/svg">
               <path
                 fillRule="evenodd"
                 clipRule="evenodd"
@@ -46,8 +44,7 @@ const Header: React.FC<HeaderProps> = ({ onClick, onToggle }) => {
               height="24"
               viewBox="0 0 24 24"
               fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+              xmlns="http://www.w3.org/2000/svg">
               <path
                 fillRule="evenodd"
                 clipRule="evenodd"
@@ -59,16 +56,14 @@ const Header: React.FC<HeaderProps> = ({ onClick, onToggle }) => {
           </button>
           <button
             onClick={onClick}
-            className="items-center justify-center hidden w-10 h-10 text-gray-500 border-gray-200 rounded-lg z-99999 dark:border-gray-800 lg:flex dark:text-gray-400 lg:h-11 lg:w-11 lg:border"
-          >
+            className="items-center justify-center hidden w-10 h-10 text-gray-500 border-gray-200 rounded-lg z-99999 dark:border-gray-800 lg:flex dark:text-gray-400 lg:h-11 lg:w-11 lg:border">
             <svg
               className="hidden fill-current lg:block"
               width="16"
               height="12"
               viewBox="0 0 16 12"
               fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+              xmlns="http://www.w3.org/2000/svg">
               <path
                 fillRule="evenodd"
                 clipRule="evenodd"
@@ -81,27 +76,25 @@ const Header: React.FC<HeaderProps> = ({ onClick, onToggle }) => {
           <Link to="/" className="lg:hidden">
             <img
               className="dark:hidden"
-              src="./images/logo/logo.svg"
+              src="/public/Logo/Artboard 2.png"
               alt="Logo"
             />
             <img
               className="hidden dark:block"
-              src="./images/logo/logo-dark.svg"
+              src="/public/Logo/Artboard 2.png"
               alt="Logo"
             />
           </Link>
 
           <button
             onClick={toggleApplicationMenu}
-            className="flex items-center justify-center w-10 h-10 text-gray-700 rounded-lg z-99999 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 lg:hidden"
-          >
+            className="flex items-center justify-center w-10 h-10 text-gray-700 rounded-lg z-99999 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 lg:hidden">
             <svg
               width="24"
               height="24"
               viewBox="0 0 24 24"
               fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+              xmlns="http://www.w3.org/2000/svg">
               <path
                 fillRule="evenodd"
                 clipRule="evenodd"
@@ -112,7 +105,7 @@ const Header: React.FC<HeaderProps> = ({ onClick, onToggle }) => {
           </button>
 
           <div className="hidden lg:block">
-            <form action="https://formbold.com/s/unique_form_id" method="POST">
+            {/* <form action="https://formbold.com/s/unique_form_id" method="POST">
               <div className="relative">
                 <button className="absolute -translate-y-1/2 left-4 top-1/2">
                   <svg
@@ -121,8 +114,7 @@ const Header: React.FC<HeaderProps> = ({ onClick, onToggle }) => {
                     height="20"
                     viewBox="0 0 20 20"
                     fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
+                    xmlns="http://www.w3.org/2000/svg">
                     <path
                       fillRule="evenodd"
                       clipRule="evenodd"
@@ -142,14 +134,13 @@ const Header: React.FC<HeaderProps> = ({ onClick, onToggle }) => {
                   <span> K </span>
                 </button>
               </div>
-            </form>
+            </form> */}
           </div>
         </div>
         <div
           className={`${
             isApplicationMenuOpen ? "flex" : "hidden"
-          } items-center justify-between w-full gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
-        >
+          } items-center justify-between w-full gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}>
           <div className="flex items-center gap-2 2xsm:gap-3">
             {/* <!-- Dark Mode Toggler --> */}
             <ThemeToggleButton />

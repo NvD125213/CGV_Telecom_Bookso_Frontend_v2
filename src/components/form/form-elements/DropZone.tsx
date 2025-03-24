@@ -1,50 +1,92 @@
 import ComponentCard from "../../common/ComponentCard";
-import { useDropzone } from "react-dropzone";
-// import Dropzone from "react-dropzone";
+import { useDropzone, FileRejection } from "react-dropzone";
+import { useState } from "react";
 
-const DropzoneComponent: React.FC = () => {
-  const onDrop = (acceptedFiles: File[]) => {
-    console.log("Files dropped:", acceptedFiles);
-    // Handle file uploads here
+interface DropzoneComponentProps {
+  onSubmit: (file: File) => void;
+}
+
+const DropzoneComponent: React.FC<DropzoneComponentProps> = ({
+  onSubmit,
+}: {
+  onSubmit: (file: File) => void;
+}) => {
+  const [file, setFile] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const onDrop = (acceptedFiles: File[], fileRejections: FileRejection[]) => {
+    // Kiểm tra nếu tải lên nhiều file
+    if (acceptedFiles.length > 1) {
+      setError("Chỉ được chọn 1 file duy nhất");
+      return;
+    }
+
+    if (fileRejections.length > 0) {
+      const invalidType = fileRejections.some((rejection) =>
+        rejection.errors.some((err) => err.code === "file-invalid-type")
+      );
+      if (invalidType) {
+        setError("Chỉ chấp nhận các tệp .xls và .xlsx");
+      }
+      return;
+    }
+
+    // Kiểm tra định dạng file
+    const validTypes = [
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+      "application/vnd.ms-excel", // .xls
+    ];
+
+    const selectedFile = acceptedFiles[0];
+    if (validTypes.includes(selectedFile.type)) {
+      setFile(selectedFile);
+      setError(null);
+    } else {
+      setError("Định dạng file không hợp lệ");
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setFile(null);
+    setError(null);
+  };
+
+  const handleSubmit = () => {
+    if (file) {
+      onSubmit(file);
+    }
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      "image/png": [],
-      "image/jpeg": [],
-      "image/webp": [],
-      "image/svg+xml": [],
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [], // .xlsx
+      "application/vnd.ms-excel": [], // .xls
     },
+    maxFiles: 1, // Chỉ cho phép chọn 1 file
   });
+
   return (
-    <ComponentCard title="Dropzone">
+    <ComponentCard title="Tải lên file Excel">
       <div className="transition border border-gray-300 border-dashed cursor-pointer dark:hover:border-brand-500 dark:border-gray-700 rounded-xl hover:border-brand-500">
         <form
           {...getRootProps()}
-          className={`dropzone rounded-xl   border-dashed border-gray-300 p-7 lg:p-10
-        ${
-          isDragActive
-            ? "border-brand-500 bg-gray-100 dark:bg-gray-800"
-            : "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
-        }
-      `}
-          id="demo-upload"
-        >
-          {/* Hidden Input */}
+          className={`dropzone rounded-xl border-dashed border-gray-300 p-7 lg:p-10 ${
+            isDragActive
+              ? "border-brand-500 bg-gray-100 dark:bg-gray-800"
+              : "border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
+          }`}
+          id="demo-upload">
           <input {...getInputProps()} />
-
           <div className="dz-message flex flex-col items-center m-0!">
-            {/* Icon Container */}
             <div className="mb-[22px] flex justify-center">
-              <div className="flex h-[68px] w-[68px]  items-center justify-center rounded-full bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400">
+              <div className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400">
                 <svg
                   className="fill-current"
                   width="29"
                   height="28"
                   viewBox="0 0 29 28"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
+                  xmlns="http://www.w3.org/2000/svg">
                   <path
                     fillRule="evenodd"
                     clipRule="evenodd"
@@ -53,22 +95,38 @@ const DropzoneComponent: React.FC = () => {
                 </svg>
               </div>
             </div>
-
-            {/* Text Content */}
             <h4 className="mb-3 font-semibold text-gray-800 text-theme-xl dark:text-white/90">
-              {isDragActive ? "Drop Files Here" : "Drag & Drop Files Here"}
+              {isDragActive ? "Thả tập tin ở đây" : "Kéo & Thả Tập Tin Vào Đây"}
             </h4>
-
-            <span className=" text-center mb-5 block w-full max-w-[290px] text-sm text-gray-700 dark:text-gray-400">
-              Drag and drop your PNG, JPG, WebP, SVG images here or browse
+            <span className="text-center mb-5 block w-full max-w-[290px] text-sm text-gray-700 dark:text-gray-400">
+              Kéo và thả file Excel của bạn vào đây hoặc duyệt
             </span>
-
             <span className="font-medium underline text-theme-sm text-brand-500">
               Browse File
             </span>
           </div>
         </form>
+        {error && <div className="text-red-500 mt-2 text-sm">{error}</div>}
       </div>
+
+      {file && (
+        <div className="mt-4 p-2 border-b flex justify-between items-center">
+          <span>{file.name}</span>
+          <button
+            onClick={handleRemoveFile}
+            className="text-red-500 hover:text-red-700">
+            Xóa
+          </button>
+        </div>
+      )}
+
+      {file && (
+        <button
+          onClick={handleSubmit}
+          className="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+          Submit
+        </button>
+      )}
     </ComponentCard>
   );
 };

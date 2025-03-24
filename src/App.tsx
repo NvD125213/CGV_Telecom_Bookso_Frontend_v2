@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import SignIn from "./pages/AuthPages/SignIn";
 import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
@@ -18,49 +18,62 @@ import Blank from "./pages/Blank";
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
+import ProviderPage from "./pages/ProviderPages/ProviderPage";
+import TypeNumber from "./pages/TypeNumber/TypeNumber";
+import PhoneNumbers from "./pages/PhoneNumbers/PhoneStatus";
+import PhoneNumberFilters from "./pages/PhoneNumbers/PhoneFilter";
+import UploadExcel from "./pages/PhoneNumbers/UploadExcel";
+import { Provider } from "react-redux";
+import { store } from "./store";
+import { PrivateRoute } from "./routes/privateRoutes";
 
 export default function App() {
   return (
-    <>
+    <Provider store={store}>
       <Router>
         <ScrollToTop />
         <Routes>
-          {/* Dashboard Layout */}
-          <Route element={<AppLayout />}>
-            <Route index path="/" element={<Home />} />
-
-            {/* Others Page */}
-            <Route path="/profile" element={<UserProfiles />} />
-            <Route path="/calendar" element={<Calendar />} />
-            <Route path="/blank" element={<Blank />} />
-
-            {/* Forms */}
-            <Route path="/form-elements" element={<FormElements />} />
-
-            {/* Tables */}
-            <Route path="/basic-tables" element={<BasicTables />} />
-
-            {/* Ui Elements */}
-            <Route path="/alerts" element={<Alerts />} />
-            <Route path="/avatars" element={<Avatars />} />
-            <Route path="/badge" element={<Badges />} />
-            <Route path="/buttons" element={<Buttons />} />
-            <Route path="/images" element={<Images />} />
-            <Route path="/videos" element={<Videos />} />
-
-            {/* Charts */}
-            <Route path="/line-chart" element={<LineChart />} />
-            <Route path="/bar-chart" element={<BarChart />} />
-          </Route>
-
-          {/* Auth Layout */}
+          {/* Public routes */}
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
 
+          {/* Protected routes */}
+          <Route element={<PrivateRoute />}>
+            <Route element={<AppLayout />}>
+              <Route index path="/" element={<Home />} />
+              <Route path="/profile" element={<UserProfiles />} />
+              <Route path="/calendar" element={<Calendar />} />
+              <Route path="/blank" element={<Blank />} />
+              <Route path="/form-elements" element={<FormElements />} />
+              <Route path="/basic-tables" element={<BasicTables />} />
+              <Route path="/alerts" element={<Alerts />} />
+              <Route path="/avatars" element={<Avatars />} />
+              <Route path="/badge" element={<Badges />} />
+              <Route path="/buttons" element={<Buttons />} />
+              <Route path="/images" element={<Images />} />
+              <Route path="/videos" element={<Videos />} />
+              <Route path="/line-chart" element={<LineChart />} />
+              <Route path="/bar-chart" element={<BarChart />} />
+              <Route path="/phone-numbers" element={<PhoneNumberFilters />} />
+              <Route
+                path="/phone-numbers-for-status"
+                element={<PhoneNumbers />}
+              />
+              <Route path="/upload-file" element={<UploadExcel />} />
+            </Route>
+          </Route>
+          <Route element={<PrivateRoute requiredRole="1" />}>
+            <Route element={<AppLayout />}>
+              <Route path="/providers" element={<ProviderPage />} />
+              <Route path="/type-numbers" element={<TypeNumber />} />
+            </Route>
+          </Route>
+
           {/* Fallback Route */}
           <Route path="*" element={<NotFound />} />
+          <Route path="/unauthorized" element={<NotFound />} />
         </Routes>
       </Router>
-    </>
+    </Provider>
   );
 }

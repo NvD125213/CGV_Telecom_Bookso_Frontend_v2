@@ -52,6 +52,11 @@ import { ReactComponent as ChatIcon } from "./chat.svg?react";
 import { ReactComponent as MoreDotIcon } from "./moredot.svg?react";
 import { ReactComponent as AlertHexaIcon } from "./alert-hexa.svg?react";
 import { ReactComponent as ErrorHexaIcon } from "./info-hexa.svg?react";
+import { ReactComponent as ServiceIcon } from "./services.svg?react";
+import { ReactComponent as ContactIcon } from "./contacts.svg?react";
+import { ReactComponent as RightArrow } from "./right-arrow.svg?react";
+import { ReactComponent as LeftArrow } from "./left-arrow.svg?react";
+import { ReactComponent as DeleteIcon } from "./delete.svg?react";
 
 export {
   ErrorHexaIcon,
@@ -108,4 +113,9 @@ export {
   HorizontaLDots,
   ChevronUpIcon,
   ChatIcon,
+  ServiceIcon,
+  ContactIcon,
+  RightArrow,
+  LeftArrow,
+  DeleteIcon,
 };

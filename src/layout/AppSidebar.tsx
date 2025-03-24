@@ -1,94 +1,131 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
+import { FaListAlt } from "react-icons/fa";
 
-// Assume these icons are imported from an icon library
 import {
-  BoxCubeIcon,
   CalenderIcon,
   ChevronDownIcon,
   GridIcon,
   HorizontaLDots,
   ListIcon,
-  PageIcon,
-  PieChartIcon,
-  PlugInIcon,
   TableIcon,
   UserCircleIcon,
+  ServiceIcon,
+  ContactIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
-import SidebarWidget from "./SidebarWidget";
+import { FaCloudUploadAlt } from "react-icons/fa";
+import { FaCalendarCheck } from "react-icons/fa";
+import { useSelector } from "react-redux";
+import { RootState } from "../store";
+
+// import SidebarWidget from "./SidebarWidget";
 
 type NavItem = {
   name: string;
   icon: React.ReactNode;
   path?: string;
-  subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
+  subItems?: {
+    name: string;
+    path: string;
+    pro?: boolean;
+    new?: boolean;
+    icon?: React.ReactNode;
+  }[];
 };
 
 const navItems: NavItem[] = [
   {
     icon: <GridIcon />,
     name: "Dashboard",
-    subItems: [{ name: "Ecommerce", path: "/", pro: false }],
+    subItems: [{ name: "Báo cáo thống kê", path: "/", pro: false }],
   },
   {
     icon: <CalenderIcon />,
-    name: "Calendar",
+    name: "Lịch",
     path: "/calendar",
   },
   {
-    icon: <UserCircleIcon />,
-    name: "User Profile",
-    path: "/profile",
+    icon: <ServiceIcon width="1em" height="1em" />,
+    name: "Nhà cung cấp",
+    path: "/providers",
   },
   {
-    name: "Forms",
+    icon: <ContactIcon />,
+    name: "Định dạng số",
+    path: "/type-numbers",
+  },
+  {
+    name: "Số điện thoại",
+    icon: <TableIcon />,
+    subItems: [
+      {
+        name: "Đặt số",
+        path: "/phone-numbers",
+        pro: false,
+        icon: <FaListAlt />,
+      },
+      {
+        name: "Trạng thái số",
+        path: "/phone-numbers-for-status",
+        pro: false,
+        icon: <FaCalendarCheck />,
+      },
+      {
+        name: "Upload File",
+        path: "/upload-file",
+        pro: false,
+        icon: <FaCloudUploadAlt />,
+      },
+    ],
+  },
+  {
+    name: "Mẫu",
     icon: <ListIcon />,
     subItems: [{ name: "Form Elements", path: "/form-elements", pro: false }],
   },
   {
-    name: "Tables",
+    name: "Bảng",
     icon: <TableIcon />,
     subItems: [{ name: "Basic Tables", path: "/basic-tables", pro: false }],
   },
-  {
-    name: "Pages",
-    icon: <PageIcon />,
-    subItems: [
-      { name: "Blank Page", path: "/blank", pro: false },
-      { name: "404 Error", path: "/error-404", pro: false },
-    ],
-  },
+  // {
+  //   name: "Trang",
+  //   icon: <TableIcon />,
+  //   subItems: [
+  //     { name: "Blank Page", path: "/blank", pro: false },
+  //     { name: "Blank Page", path: "/blank", pro: false },
+
+  //     { name: "404 Error", path: "/error-404", pro: false },
+  //   ],
+  // },
 ];
 
 const othersItems: NavItem[] = [
+  // {
+  //   icon: <PieChartIcon />,
+  //   name: "Charts",
+  //   subItems: [
+  //     { name: "Line Chart", path: "/line-chart", pro: false },
+  //     { name: "Bar Chart", path: "/bar-chart", pro: false },
+  //   ],
+  // },
+  // {
+  //   icon: <BoxCubeIcon />,
+  //   name: "UI Elements",
+  //   subItems: [
+  //     { name: "Alerts", path: "/alerts", pro: false },
+  //     { name: "Avatar", path: "/avatars", pro: false },
+  //     { name: "Badge", path: "/badge", pro: false },
+  //     { name: "Buttons", path: "/buttons", pro: false },
+  //     { name: "Images", path: "/images", pro: false },
+  //     { name: "Videos", path: "/videos", pro: false },
+  //   ],
+  // },
   {
-    icon: <PieChartIcon />,
-    name: "Charts",
-    subItems: [
-      { name: "Line Chart", path: "/line-chart", pro: false },
-      { name: "Bar Chart", path: "/bar-chart", pro: false },
-    ],
-  },
-  {
-    icon: <BoxCubeIcon />,
-    name: "UI Elements",
-    subItems: [
-      { name: "Alerts", path: "/alerts", pro: false },
-      { name: "Avatar", path: "/avatars", pro: false },
-      { name: "Badge", path: "/badge", pro: false },
-      { name: "Buttons", path: "/buttons", pro: false },
-      { name: "Images", path: "/images", pro: false },
-      { name: "Videos", path: "/videos", pro: false },
-    ],
-  },
-  {
-    icon: <PlugInIcon />,
-    name: "Authentication",
-    subItems: [
-      { name: "Sign In", path: "/signin", pro: false },
-      { name: "Sign Up", path: "/signup", pro: false },
-    ],
+    icon: <UserCircleIcon />,
+    name: "Hồ sơ cá nhân",
+    path: "/profile",
   },
 ];
 
@@ -96,6 +133,16 @@ const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const location = useLocation();
 
+  // Check info user
+  const user = useSelector((state: RootState) => state.auth.user);
+
+  const filteredNavItems = navItems.filter(
+    (item) =>
+      !(
+        user?.role !== 1 &&
+        (item.path === "/providers" || item.path === "/type-numbers")
+      )
+  );
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";
     index: number;
@@ -114,7 +161,7 @@ const AppSidebar: React.FC = () => {
   useEffect(() => {
     let submenuMatched = false;
     ["main", "others"].forEach((menuType) => {
-      const items = menuType === "main" ? navItems : othersItems;
+      const items = menuType === "main" ? filteredNavItems : othersItems;
       items.forEach((nav, index) => {
         if (nav.subItems) {
           nav.subItems.forEach((subItem) => {
@@ -175,15 +222,13 @@ const AppSidebar: React.FC = () => {
                 !isExpanded && !isHovered
                   ? "lg:justify-center"
                   : "lg:justify-start"
-              }`}
-            >
+              }`}>
               <span
                 className={`menu-item-icon-size  ${
                   openSubmenu?.type === menuType && openSubmenu?.index === index
                     ? "menu-item-icon-active"
                     : "menu-item-icon-inactive"
-                }`}
-              >
+                }`}>
                 {nav.icon}
               </span>
               {(isExpanded || isHovered || isMobileOpen) && (
@@ -206,15 +251,13 @@ const AppSidebar: React.FC = () => {
                 to={nav.path}
                 className={`menu-item group ${
                   isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
-                }`}
-              >
+                }`}>
                 <span
                   className={`menu-item-icon-size ${
                     isActive(nav.path)
                       ? "menu-item-icon-active"
                       : "menu-item-icon-inactive"
-                  }`}
-                >
+                  }`}>
                   {nav.icon}
                 </span>
                 {(isExpanded || isHovered || isMobileOpen) && (
@@ -234,8 +277,7 @@ const AppSidebar: React.FC = () => {
                   openSubmenu?.type === menuType && openSubmenu?.index === index
                     ? `${subMenuHeight[`${menuType}-${index}`]}px`
                     : "0px",
-              }}
-            >
+              }}>
               <ul className="mt-2 space-y-1 ml-9">
                 {nav.subItems.map((subItem) => (
                   <li key={subItem.name}>
@@ -245,8 +287,9 @@ const AppSidebar: React.FC = () => {
                         isActive(subItem.path)
                           ? "menu-dropdown-item-active"
                           : "menu-dropdown-item-inactive"
-                      }`}
-                    >
+                      }`}>
+                      <span>{subItem.icon}</span>
+
                       {subItem.name}
                       <span className="flex items-center gap-1 ml-auto">
                         {subItem.new && (
@@ -255,8 +298,7 @@ const AppSidebar: React.FC = () => {
                               isActive(subItem.path)
                                 ? "menu-dropdown-badge-active"
                                 : "menu-dropdown-badge-inactive"
-                            } menu-dropdown-badge`}
-                          >
+                            } menu-dropdown-badge`}>
                             new
                           </span>
                         )}
@@ -266,8 +308,7 @@ const AppSidebar: React.FC = () => {
                               isActive(subItem.path)
                                 ? "menu-dropdown-badge-active"
                                 : "menu-dropdown-badge-inactive"
-                            } menu-dropdown-badge`}
-                          >
+                            } menu-dropdown-badge`}>
                             pro
                           </span>
                         )}
@@ -296,26 +337,24 @@ const AppSidebar: React.FC = () => {
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+      onMouseLeave={() => setIsHovered(false)}>
       <div
         className={`py-8 flex ${
           !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
-        }`}
-      >
+        }`}>
         <Link to="/">
           {isExpanded || isHovered || isMobileOpen ? (
             <>
               <img
                 className="dark:hidden"
-                src="/images/logo/logo.svg"
+                src="/public/Logo/Logo company.png"
                 alt="Logo"
                 width={150}
                 height={40}
               />
               <img
                 className="hidden dark:block"
-                src="/images/logo/logo-dark.svg"
+                src="/public/Logo/Logo company.png"
                 alt="Logo"
                 width={150}
                 height={40}
@@ -323,10 +362,10 @@ const AppSidebar: React.FC = () => {
             </>
           ) : (
             <img
-              src="/images/logo/logo-icon.svg"
+              src="/public/Logo/Logo company.png"
               alt="Logo"
-              width={32}
-              height={32}
+              width={120}
+              height={120}
             />
           )}
         </Link>
@@ -340,15 +379,14 @@ const AppSidebar: React.FC = () => {
                   !isExpanded && !isHovered
                     ? "lg:justify-center"
                     : "justify-start"
-                }`}
-              >
+                }`}>
                 {isExpanded || isHovered || isMobileOpen ? (
                   "Menu"
                 ) : (
                   <HorizontaLDots className="size-6" />
                 )}
               </h2>
-              {renderMenuItems(navItems, "main")}
+              {renderMenuItems(filteredNavItems, "main")}
             </div>
             <div className="">
               <h2
@@ -356,10 +394,9 @@ const AppSidebar: React.FC = () => {
                   !isExpanded && !isHovered
                     ? "lg:justify-center"
                     : "justify-start"
-                }`}
-              >
+                }`}>
                 {isExpanded || isHovered || isMobileOpen ? (
-                  "Others"
+                  "Cài đặt khác"
                 ) : (
                   <HorizontaLDots />
                 )}
@@ -368,7 +405,7 @@ const AppSidebar: React.FC = () => {
             </div>
           </div>
         </nav>
-        {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null}
+        {/* {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null} */}
       </div>
     </aside>
   );
