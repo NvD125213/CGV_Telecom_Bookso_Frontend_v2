@@ -43,6 +43,10 @@ const TextArea: React.FC<TextareaProps> = ({
         placeholder={placeholder}
         rows={rows}
         value={value}
+        style={{
+          minHeight: "150px",
+          maxHeight: "220px",
+        }}
         onChange={handleChange}
         disabled={disabled}
         className={textareaClasses}

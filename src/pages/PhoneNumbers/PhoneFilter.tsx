@@ -169,7 +169,6 @@ function PhoneNumberFilters() {
       id_phone_numbers: selectedIds,
     };
 
-    console.log("Request body:", JSON.stringify(requestBody));
 
     try {
       const res = await booking(requestBody);

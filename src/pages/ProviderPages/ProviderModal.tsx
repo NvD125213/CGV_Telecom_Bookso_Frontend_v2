@@ -99,7 +99,7 @@ const ModalProvider: React.FC<ProviderModalProps> = ({
         },
         {
           name: "description",
-          label: "Chi tiết",
+          label: "Mô tả",
           type: "textarea",
           value: provider.description || "",
           onChange: (value) => setValue("description", value as string),

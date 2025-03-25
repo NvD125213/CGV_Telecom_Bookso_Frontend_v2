@@ -100,8 +100,16 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
           error: error,
         },
         {
+          name: "booking_expiration",
+          label: "Thời gian chờ triển khai",
+          type: "text",
+          value: typeNumber.booking_expiration || "",
+          onChange: (value) => setValue("description", value as string),
+          placeholder: "Nhập chi tiết",
+        },
+        {
           name: "description",
-          label: "Chi tiết",
+          label: "Mô tả",
           type: "textarea",
           value: typeNumber.description || "",
           onChange: (value) => setValue("description", value as string),

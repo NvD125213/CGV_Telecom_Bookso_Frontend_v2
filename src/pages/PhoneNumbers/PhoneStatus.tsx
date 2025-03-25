@@ -5,6 +5,7 @@ import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
 import Label from "../../components/form/Label";
 import Select from "../../components/form/Select";
+import Input from "../../components/form/input/InputField";
 import { IPhoneNumber } from "../../types";
 
 import { bookingPhoneForOption } from "../../services/phoneNumber";
@@ -32,6 +33,8 @@ function PhoneNumbers() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [openModal, setOpenModal] = useState(false);
   const [selectedPhone, setselectedPhone] = useState<IPhoneNumber | null>(null);
+  const [search, setSearch] = useState<string>("");
+  const [safeData, setSafeData] = useState<IPhoneNumber[]>([]);
 
   // Get value from query parameter or set default value
   const [quantity, setQuantity] = useState(
@@ -56,7 +59,7 @@ function PhoneNumbers() {
         offset: offset, // change offset to zero based
       });
       setData(response.data as PhoneNumberProps);
-
+      setSafeData(response.data.phone_numbers);
       // Update query params on URL
       setSearchParams({
         quantity: quantity.toString(),
@@ -79,7 +82,6 @@ function PhoneNumbers() {
     setOffset(0); // Reset offset when change status
     fetchData(quantity, value, 0);
   };
-  const safeData = data?.phone_numbers ?? [];
 
   // Get description number
   const getDataDetail = (row: IPhoneNumber) => {
@@ -91,13 +93,45 @@ function PhoneNumbers() {
       alert("Số đã được đặt");
       return;
     }
-
-    console.log("handleBookNumber:", item);
   };
+
+
+  const onChangeInputSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+    setSearch(value);
+    if (value === "") {
+      setSafeData(data?.phone_numbers);
+      return;
+    }
+  }
+
+
+    // Hàm xử lý tìm kiếm
+    const handleSearch = (term) => {
+      let regexPattern = term.replace(/\*/g, '.*');
+      const regex = new RegExp(`^${regexPattern}$`, 'i');
+      return data?.phone_numbers.filter((phone) => regex.test(phone.phone_number));
+    };
+  
+  const handleOnKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      if (search === "") {
+        setSafeData(data?.phone_numbers);
+        return;
+      } else {
+        let result = handleSearch(search);
+        setSafeData(result);
+      }
+    }
+  }
+
+
+    
+
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Đặt số điện thoại" />
+      <PageBreadcrumb pageTitle="Trạng thái số" />
 
       <div className="space-y-6">
         <ComponentCard>
@@ -108,12 +142,17 @@ function PhoneNumbers() {
                 options={[
                   { label: "Có sẵn", value: "available" },
                   { label: "Đã đặt", value: "booked" },
+                  { label: "Đã triển khai", value: "released" },
                 ]}
                 placeholder="Lựa chọn trạng thái"
                 onChange={handleChangeStatus}
                 defaultValue={"available"}
                 className="dark:bg-dark-900"
               />
+            </div>
+            <div>
+              <Label>Tìm kiếm theo số điện thoại</Label>
+              <Input placeholder="Nhập vào số điện thoại tìm kiếm..." name="search" value={search} onChange={onChangeInputSearch} onKeyDown={handleOnKeyDown}/>
             </div>
           </div>
 
@@ -128,11 +167,11 @@ function PhoneNumbers() {
                   onClick: getDataDetail,
                   className: "bg-blue-400 text-white",
                 },
-                {
-                  icon: <IoIosCall />,
-                  onClick: handleBookNumber,
-                  className: "bg-green-500 text-white",
-                },
+                // {
+                //   icon: <IoIosCall />,
+                //   onClick: handleBookNumber,
+                //   className: "bg-green-500 text-white",
+                // },
               ]}
             />
           ) : (
