@@ -12,16 +12,16 @@ import { getProviders } from "../../services/provider";
 import useSelectData from "../../hooks/useSelectData";
 import ReusableTable from "../../components/common/ReusableTable";
 import { FiEye } from "react-icons/fi";
-
+import { formatDate } from "../../helper/formatDateToISOString";
 import {
   booking,
   bookingPhone,
   deletePhone,
   IBookPhoneNumber,
+  getPhoneByID,
 } from "../../services/phoneNumber";
 import Pagination from "../../components/pagination/pagination";
 import PhoneModalDetail from "./PhoneModalDetail";
-import { getPhoneByID } from "../../services/phoneNumber";
 
 import Swal from "sweetalert2";
 
@@ -107,7 +107,17 @@ function PhoneNumberFilters() {
         search: search || "",
         signal: controller.signal,
       });
+      const formattedData = response.data.phone_numbers.map(
+        (phone: IPhoneNumber) => ({
+          ...phone,
+          book_until: phone.booked_until ? formatDate(phone.booked_until) : "0", // Format book_until
+        })
+      );
 
+      setData({
+        ...response.data,
+        phone_numbers: formattedData,
+      });
       // Check status mount after set state
       if (isMounted) {
         setData(response.data);
@@ -153,16 +163,18 @@ function PhoneNumberFilters() {
     fetchData(); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [offset, quantity, provider]);
 
-  // Get description number
-  // const getDataDetail = (row: IPhoneNumber) => {
-  //   setselectedPhone(row);
-  //   setOpenModalDetail(true);
-  // };
   const handleGetById = async (id: number) => {
     try {
       const res = await getPhoneByID(id);
-      setselectedPhone(res?.data);
-      setOpenModalDetail(true);
+      if (res?.data) {
+        const { type_number_id, ...rest } = res.data;
+        const modifiedData = {
+          ...rest,
+          type_id: type_number_id, // change key name
+        };
+        setselectedPhone(modifiedData);
+        setOpenModalDetail(true);
+      }
     } catch (error) {
       console.error("Failed to fetch phone data:", error);
       Swal.fire("Lỗi", "Không thể tải dữ liệu chi tiết", "error");
@@ -196,7 +208,6 @@ function PhoneNumberFilters() {
       console.error("Lỗi khi gọi API:", err);
     }
   };
-  console.log("phone", data);
 
   const handleDelete = async (id: any) => {
     if (typeof id !== "number" || isNaN(id)) {
@@ -218,11 +229,14 @@ function PhoneNumberFilters() {
 
       if (result.isConfirmed) {
         const res = await deletePhone(id);
-        console.log(res);
-        await Swal.fire({
-          title: "Xóa thành công!",
-          icon: "success",
-        });
+        if (res?.status === 200) {
+          Swal.fire({
+            title: "Xóa thành công!",
+            text: `${res?.data.message}`,
+            icon: "success",
+          });
+          fetchData();
+        }
       }
     } catch (error: any) {
       Swal.fire("Lỗi", `${error.response?.data?.detail || "Đã xảy ra lỗi"}`);
@@ -322,6 +336,7 @@ function PhoneNumberFilters() {
       <PhoneNumberModal
         isOpen={openModal}
         onCloseModal={() => setOpenModal(false)}
+        onSuccess={fetchData}
       />
       <PhoneModalDetail
         isOpen={openModalDetail}

@@ -3,6 +3,7 @@ import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
 import TextArea from "../../components/form/input/TextArea";
+
 interface Option {
   label: string;
   value: string;
@@ -18,7 +19,9 @@ interface Field {
     | "number"
     | "date"
     | "email"
+    | "fee"
     | "password";
+
   value: string | number;
   onChange: (value: string | number) => void;
   options?: Option[];
@@ -111,7 +114,8 @@ const CustomModal: React.FC<CustomModalProps> = ({
                   ) : (
                     <Input
                       type={field.type}
-                      value={field.value || field.defaultValue || ""}
+                      value={field.value || ""}
+                      min="0"
                       onChange={(e) => {
                         if (field.type === "number") {
                           field.onChange(Number(e.target.value));

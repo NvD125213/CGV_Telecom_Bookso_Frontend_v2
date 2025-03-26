@@ -10,8 +10,9 @@ import { IProvider } from "../../types";
 import ReusableTable from "../../components/common/ReusableTable";
 
 const columns: { key: keyof IProvider; label: string }[] = [
-  { key: "id", label: "STT" },
+  { key: "id", label: "ID" },
   { key: "name", label: "Nhà cung cấp" },
+  {key: "description", label: "Mô tả"},
 ];
 
 const ProviderPage = () => {

@@ -9,9 +9,23 @@ import ModalTypeNumber from "./TypeNumberModal";
 import ModalSwalAction from "../../hooks/useModalSwal";
 import ReusableTable from "../../components/common/ReusableTable";
 
+function convertSecondsToTime(seconds: any) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  // Format lại chuỗi trả về: ví dụ 2h 05m 09s
+  const formattedHours = hours > 0 ? hours + "h " : "";
+  const formattedMinutes = (minutes < 10 ? "0" : "") + minutes + "m ";
+  const formattedSeconds = (secs < 10 ? "0" : "") + secs + "s";
+
+  return formattedHours + formattedMinutes + formattedSeconds;
+}
+
 const columns: { key: keyof ITypeNumber; label: string }[] = [
   { key: "id", label: "STT" },
   { key: "name", label: "Định dạng số" },
+  { key: "booking_expiration", label: "Thời hạn chờ triển khai" },
 ];
 
 const TypeNumberPages = () => {
@@ -27,7 +41,12 @@ const TypeNumberPages = () => {
     try {
       const res = await getTypeNumber();
       if (res?.length > 0) {
-        setTypes(res);
+        const formatData = res.map((item: any) => ({
+          ...item,
+          booking_expiration: convertSecondsToTime(item.booking_expiration),
+        }));
+        setTypes(formatData);
+        // setTypes(res);
       } else {
         setError("Không có dữ liệu");
       }
@@ -37,7 +56,7 @@ const TypeNumberPages = () => {
       setLoading(false);
     }
   };
-
+  console.log(types);
   useEffect(() => {
     getAllData();
   }, []);

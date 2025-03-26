@@ -10,15 +10,18 @@ import { getProviders } from "../../services/provider";
 import { getTypeNumber } from "../../services/typeNumber";
 import useSelectData from "../../hooks/useSelectData";
 import { validatePhoneNumber } from "../../validate/phoneNumber";
+import { formatNumber, parseNumber } from "../../helper/formatCurrencyVND";
 
 interface PhoneNumberProps {
   isOpen: boolean;
   onCloseModal: () => void;
+  onSuccess: () => void;
 }
 
 const PhoneNumberModal: React.FC<PhoneNumberProps> = ({
   isOpen,
   onCloseModal,
+  onSuccess,
 }) => {
   const [phone, setPhone] = useState<IPhoneNumber>(initialPhoneNumber);
   const [errors, setErrors] = useState<
@@ -26,10 +29,25 @@ const PhoneNumberModal: React.FC<PhoneNumberProps> = ({
   >({});
   const [errorDetail, setErrorDetail] = useState("");
   const setValue = (name: keyof IPhoneNumber, value: string | number) => {
+    let finalValue: string | number = value;
+    if (
+      ["installation_fee", "maintenance_fee", "vanity_number_fee"].includes(
+        name
+      )
+    ) {
+      const stringValue = value.toString().replace(/\./g, "");
+      if (/[^0-9]/.test(stringValue)) {
+        alert("Không được nhập chữ trong phần giá");
+        return;
+      }
+      finalValue = parseNumber(value.toString());
+    }
+
     setPhone((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: finalValue,
     }));
+
     setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
   const { data: providers } = useSelectData<IProvider>({
@@ -50,8 +68,15 @@ const PhoneNumberModal: React.FC<PhoneNumberProps> = ({
     try {
       const res = await createPhoneNumber(data);
       if (res.status === 200) {
-        Swal.fire("Thêm thành công!", "", "success");
+        Swal.fire({
+          title: "Thêm thành công!",
+          icon: "success",
+        });
+        setPhone(initialPhoneNumber);
+        setErrors({});
+        setErrorDetail("");
         onCloseModal();
+        onSuccess();
       }
     } catch (error: any) {
       setErrorDetail(error.response?.data?.detail);
@@ -93,7 +118,7 @@ const PhoneNumberModal: React.FC<PhoneNumberProps> = ({
           name: "type_id",
           label: "Loại số",
           type: "select",
-          value: phone.type_id,
+          value: phone.type_number_id,
           options: [
             { label: "Chọn loại số", value: "", key: "default" },
             ...typeNumbers.map((type) => ({
@@ -103,29 +128,29 @@ const PhoneNumberModal: React.FC<PhoneNumberProps> = ({
             })),
           ],
           onChange: (value) => setValue("type_id", value),
-          error: errors.type_id,
+          error: errors.type_number_id,
         },
         {
           name: "installation_fee",
-          label: "Phí khởi tạo",
-          type: "number",
-          value: phone.installation_fee || "",
+          label: "Phí yêu cầu",
+          type: "text", // Đổi sang text
+          value: formatNumber(phone.installation_fee?.toString() || "0"), // Giá trị định dạng
           onChange: (value) => setValue("installation_fee", value),
           error: errors.installation_fee,
         },
         {
           name: "maintenance_fee",
           label: "Phí duy trì",
-          type: "number",
-          value: phone.maintenance_fee || "",
+          type: "text", // Đổi sang text
+          value: formatNumber(phone.maintenance_fee?.toString() || "0"), // Giá trị định dạng
           onChange: (value) => setValue("maintenance_fee", value),
           error: errors.maintenance_fee,
         },
         {
           name: "vanity_number_fee",
           label: "Phí số đẹp",
-          type: "number",
-          value: phone.vanity_number_fee || "",
+          type: "text", // Đổi sang text
+          value: formatNumber(phone.vanity_number_fee?.toString() || "0"), // Giá trị định dạng
           onChange: (value) => setValue("vanity_number_fee", value),
           error: errors.vanity_number_fee,
         },

@@ -7,7 +7,6 @@ import {
   ChevronDownIcon,
   GridIcon,
   HorizontaLDots,
-  ListIcon,
   TableIcon,
   UserCircleIcon,
   ServiceIcon,
@@ -79,16 +78,16 @@ const navItems: NavItem[] = [
       },
     ],
   },
-  {
-    name: "Mẫu",
-    icon: <ListIcon />,
-    subItems: [{ name: "Form Elements", path: "/form-elements", pro: false }],
-  },
-  {
-    name: "Bảng",
-    icon: <TableIcon />,
-    subItems: [{ name: "Basic Tables", path: "/basic-tables", pro: false }],
-  },
+  // {
+  //   name: "Mẫu",
+  //   icon: <ListIcon />,
+  //   subItems: [{ name: "Form Elements", path: "/form-elements", pro: false }],
+  // },
+  // {
+  //   name: "Bảng",
+  //   icon: <TableIcon />,
+  //   subItems: [{ name: "Basic Tables", path: "/basic-tables", pro: false }],
+  // },
   // {
   //   name: "Trang",
   //   icon: <TableIcon />,
