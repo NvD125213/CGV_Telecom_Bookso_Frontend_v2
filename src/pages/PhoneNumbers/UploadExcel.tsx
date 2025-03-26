@@ -11,6 +11,9 @@ const UploadExcel = () => {
   >("");
 
   const upLoadFileExcel = async (file: File) => {
+    // Reset errors khi bắt đầu upload file mới
+    setErrors("");
+
     try {
       const res = await uploadFile(file);
       if (res.status === 200) {
@@ -20,7 +23,7 @@ const UploadExcel = () => {
             <label for="message" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
               Danh sách số trùng lặp:
             </label>
-            <textarea id="message" rows="4" class="block w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 px-[10px]">${
+            <textarea id="message" rows="4" class="block max-h-[200px] w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 px-[10px]">${
               res.update_error.length > 0
                 ? res.update_error.join(", ")
                 : "Không có giá trị trùng lặp"

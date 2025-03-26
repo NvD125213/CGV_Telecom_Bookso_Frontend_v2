@@ -34,9 +34,9 @@ const columns: { key: keyof IPhoneNumber; label: string }[] = [
   { key: "phone_number", label: "Số điện thoại" },
   { key: "provider_name" as "provider_id", label: "Nhà cung cấp" },
   { key: "type_name" as "type_number_id", label: "Loại số" },
-  { key: "installation_fee", label: "Phí lắp đặt" },
-  { key: "maintenance_fee", label: "Phí duy trì" },
-  { key: "vanity_number_fee", label: "Phí số đẹp" },
+  { key: "installation_fee", label: "Phí lắp đặt (đ)" },
+  { key: "maintenance_fee", label: "Phí duy trì (đ)" },
+  { key: "vanity_number_fee", label: "Phí số đẹp (đ)" },
   { key: "status", label: "Trạng thái" },
 ];
 
@@ -107,20 +107,26 @@ function PhoneNumberFilters() {
         search: search || "",
         signal: controller.signal,
       });
+      const formatNumber = (num: any) => {
+        return num?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") || "0";
+      };
       const formattedData = response.data.phone_numbers.map(
         (phone: IPhoneNumber) => ({
           ...phone,
-          book_until: phone.booked_until ? formatDate(phone.booked_until) : "0", // Format book_until
+          booked_until: phone.booked_until
+            ? formatDate(phone.booked_until)
+            : "0",
+          installation_fee: formatNumber(phone?.installation_fee),
+          maintenance_fee: formatNumber(phone?.maintenance_fee),
+          vanity_number_fee: formatNumber(phone?.vanity_number_fee),
         })
       );
 
-      setData({
-        ...response.data,
-        phone_numbers: formattedData,
-      });
-      // Check status mount after set state
       if (isMounted) {
-        setData(response.data);
+        setData({
+          ...response.data,
+          phone_numbers: formattedData,
+        });
         setSelectedIds([]);
 
         setSearchParams((prev) => {
@@ -143,9 +149,9 @@ function PhoneNumberFilters() {
     }
 
     return () => {
-      isMounted = false; //  Status when unmount
+      isMounted = false;
       if (controllerRef.current) {
-        controllerRef.current.abort(); // Cleanup controller khi unmount
+        controllerRef.current.abort();
       }
     };
   }, [search, provider, quantity, offset, setSearchParams]);
@@ -242,6 +248,7 @@ function PhoneNumberFilters() {
       Swal.fire("Lỗi", `${error.response?.data?.detail || "Đã xảy ra lỗi"}`);
     }
   };
+  console.log(">>", safeData);
 
   return (
     <>

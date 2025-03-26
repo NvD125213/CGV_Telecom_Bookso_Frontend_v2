@@ -71,10 +71,12 @@ export const formatBookingExpiration = (value: string | number): string => {
   )}`;
 };
 
-// Parse chuỗi HH.MM.SS thành số
 export const parseBookingExpiration = (value: string): number => {
-  // Loại bỏ tất cả dấu chấm và chuyển thành số
-  return Number(value.replace(/\./g, ""));
-};
+  // Tách chuỗi thành mảng dựa trên dấu chấm
+  const [hours, minutes, seconds] = value.split(".").map(Number);
 
-// Ví dụ sử dụng:
+  // Tính tổng số giây
+  const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+
+  return totalSeconds;
+};

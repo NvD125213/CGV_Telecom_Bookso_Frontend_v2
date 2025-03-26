@@ -162,7 +162,7 @@ const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
         },
         {
           name: "installation_fee",
-          label: "Phí yêu cầu",
+          label: "Phí yêu cầu (đ)",
           type: "text", // Đổi sang text
           value: formatNumber(phone.installation_fee?.toString() || "0"), // Giá trị định dạng
           onChange: (value) => setValue("installation_fee", value),
@@ -170,7 +170,7 @@ const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
         },
         {
           name: "maintenance_fee",
-          label: "Phí duy trì",
+          label: "Phí duy trì (đ)",
           type: "text", // Đổi sang text
           value: formatNumber(phone.maintenance_fee?.toString() || "0"), // Giá trị định dạng
           onChange: (value) => setValue("maintenance_fee", value),
@@ -178,7 +178,7 @@ const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
         },
         {
           name: "vanity_number_fee",
-          label: "Phí số đẹp",
+          label: "Phí số đẹp (đ)",
           type: "text", // Đổi sang text
           value: formatNumber(phone.vanity_number_fee?.toString() || "0"), // Giá trị định dạng
           onChange: (value) => setValue("vanity_number_fee", value),

@@ -16,6 +16,7 @@ import Swal from "sweetalert2";
 interface TypeNumberModal {
   isOpen: boolean;
   data?: ITypeNumber;
+  oldData?: ITypeNumber;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -102,13 +103,14 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
           text: `Thêm thành công nhà cung cấp ${res.data.name}!`,
           icon: "success",
         });
+
         onClose();
         onSuccess();
       }
     } else {
       const res = await updateTypeNumber(typeNumber.id, submitData);
+      console.log(res);
       if (res?.status === 200) {
-        console.log(res);
         Swal.fire({
           title: "Cập nhật thành công!",
           text: `Cập nhật thành công nhà cung cấp ${res.data.name}!`,
@@ -119,6 +121,7 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
       }
     }
   };
+
   return (
     <CustomModal
       isOpen={isOpen}
@@ -136,7 +139,7 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
         },
         {
           name: "booking_expiration",
-          label: "Thời gian chờ triển khai (Nhập số giây)",
+          label: `Thời gian chờ triển khai (Nhập số giây)`,
           type: "text",
           value: typeNumber.booking_expiration || "00.00.00",
           onChange: (value) => setValue("booking_expiration", value as string),

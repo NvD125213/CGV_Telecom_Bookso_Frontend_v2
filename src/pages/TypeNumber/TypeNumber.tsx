@@ -46,7 +46,6 @@ const TypeNumberPages = () => {
           booking_expiration: convertSecondsToTime(item.booking_expiration),
         }));
         setTypes(formatData);
-        // setTypes(res);
       } else {
         setError("Không có dữ liệu");
       }
@@ -56,7 +55,6 @@ const TypeNumberPages = () => {
       setLoading(false);
     }
   };
-  console.log(types);
   useEffect(() => {
     getAllData();
   }, []);

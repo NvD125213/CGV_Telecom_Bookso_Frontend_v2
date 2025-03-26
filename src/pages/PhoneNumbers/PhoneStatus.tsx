@@ -30,9 +30,9 @@ const columns: { key: keyof IPhoneNumber; label: string }[] = [
   { key: "phone_number", label: "Số điện thoại" },
   { key: "provider_name" as "provider_id", label: "Nhà cung cấp" },
   { key: "type_name" as "type_number_id", label: "Loại số" },
-  { key: "installation_fee", label: "Phí lắp đặt" },
-  { key: "maintenance_fee", label: "Phí duy trì" },
-  { key: "vanity_number_fee", label: "Phí số đẹp" },
+  { key: "installation_fee", label: "Phí lắp đặt (đ)" },
+  { key: "maintenance_fee", label: "Phí duy trì (đ)" },
+  { key: "vanity_number_fee", label: "Phí số đẹp (đ)" },
   { key: "booked_until", label: "Hạn đặt" },
 ];
 
@@ -67,12 +67,18 @@ function PhoneNumbers() {
         offset, // change offset to zero based
       });
 
+      const formatNumber = (num: any) => {
+        return num?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") || "0";
+      };
       const formattedData = response.data.phone_numbers.map(
         (phone: IPhoneNumber) => ({
           ...phone,
           booked_until: phone.booked_until
             ? formatDate(phone.booked_until)
-            : "-", // Format date
+            : "0",
+          installation_fee: formatNumber(phone?.installation_fee),
+          maintenance_fee: formatNumber(phone?.maintenance_fee),
+          vanity_number_fee: formatNumber(phone?.vanity_number_fee),
         })
       );
 
