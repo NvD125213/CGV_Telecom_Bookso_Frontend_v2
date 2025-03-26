@@ -11,6 +11,7 @@ import { bookingPhoneForOption } from "../../services/phoneNumber";
 import ReusableTable from "../../components/common/ReusableTable";
 import Pagination from "../../components/pagination/pagination";
 import PhoneModalDetail from "./PhoneModalDetail";
+import { formatDate } from "../../helper/formatDateToISOString";
 import { FiEye } from "react-icons/fi";
 import { IoIosCall } from "react-icons/io";
 
@@ -22,9 +23,11 @@ interface PhoneNumberProps {
 const columns: { key: keyof IPhoneNumber; label: string }[] = [
   { key: "phone_number", label: "Số điện thoại" },
   { key: "provider_name" as "provider_id", label: "Nhà cung cấp" },
-  { key: "type_name" as "type_id", label: "Loại số" },
+  { key: "type_name" as "type_number_id", label: "Loại số" },
   { key: "installation_fee", label: "Phí lắp đặt" },
-  { key: "status", label: "Trạng thái" },
+  { key: "maintenance_fee", label: "Phí duy trì" },
+  { key: "booked_until", label: "Hạn đặt" },
+  { key: "vanity_number_fee", label: "Phí số đẹp" },
 ];
 
 function PhoneNumbers() {
@@ -55,7 +58,17 @@ function PhoneNumbers() {
         status,
         offset: offset, // change offset to zero based
       });
-      setData(response.data as PhoneNumberProps);
+      const formattedData = response.data.phone_numbers.map(
+        (item: IPhoneNumber) => ({
+          ...item,
+          booked_until: formatDate(item.booked_until),
+        })
+      );
+
+      setData({
+        total_pages: response.data.total_pages,
+        phone_numbers: formattedData,
+      });
 
       // Update query params on URL
       setSearchParams({
@@ -91,8 +104,6 @@ function PhoneNumbers() {
       alert("Số đã được đặt");
       return;
     }
-
-    console.log("handleBookNumber:", item);
   };
 
   return (
@@ -154,6 +165,7 @@ function PhoneNumbers() {
           />
         </ComponentCard>
         <PhoneModalDetail
+          onSuccess={() => fetchData}
           isOpen={openModal}
           onCloseModal={() => setOpenModal(false)}
           data={selectedPhone}

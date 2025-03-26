@@ -7,7 +7,6 @@ import {
 } from "../ui/table";
 import { PencilIcon } from "../../icons";
 import { RiDeleteBinLine } from "react-icons/ri";
-import { useState } from "react";
 
 interface Action<T> {
   icon?: React.ReactNode;
@@ -26,6 +25,10 @@ interface Props<T> {
   onDelete?: (id: string | number) => void;
   actions?: Action<T>[];
   onCheck?: (selectedIds: (string | number)[]) => void;
+
+  // ✅ Dùng dấu ? để cho phép giá trị undefined
+  selectedIds?: (string | number)[];
+  setSelectedIds?: React.Dispatch<React.SetStateAction<number[]>>;
 }
 
 const ReusableTable = <T extends { id: string | number }>({
@@ -35,34 +38,46 @@ const ReusableTable = <T extends { id: string | number }>({
   onDelete,
   actions = [],
   onCheck,
+  selectedIds,
+  setSelectedIds,
 }: Props<T>) => {
-  const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
-
   const hasActionColumn = onEdit || onDelete || actions.length > 0;
 
   // ✅ Xử lý chọn/bỏ chọn tất cả
   const handleSelectAll = () => {
-    if (selectedIds.length === data.length) {
+    if (!setSelectedIds) return;
+    if (!selectedIds) return;
+
+    if (data.every((item) => selectedIds.includes(item.id))) {
       setSelectedIds([]);
       onCheck?.([]);
     } else {
-      const allIds = data.map((item) => item.id);
+      const allIds = data
+        .map((item) => Number(item.id)) // Ép kiểu về number
+        .filter((id) => !isNaN(id)); // Lọc ra các giá trị không phải số
       setSelectedIds(allIds);
       onCheck?.(allIds);
     }
   };
 
-  // ✅ Xử lý chọn/bỏ chọn từng hàng
+  // ✅ Xử lý chọn/bỏ chọn hàng cụ thể
   const handleSelectRow = (id: string | number) => {
+    if (!setSelectedIds) return; // Không làm gì nếu không có setSelectedIds
+    if (!selectedIds) return; // Không làm gì nếu không có selectedIds
+
     if (selectedIds.includes(id)) {
       const updatedSelection = selectedIds.filter(
         (selectedId) => selectedId !== id
       );
-      setSelectedIds(updatedSelection);
+      setSelectedIds(
+        updatedSelection.map((id) => Number(id)).filter((id) => !isNaN(id))
+      );
       onCheck?.(updatedSelection);
     } else {
       const updatedSelection = [...selectedIds, id];
-      setSelectedIds(updatedSelection);
+      setSelectedIds(
+        updatedSelection.map((id) => Number(id)).filter((id) => !isNaN(id))
+      );
       onCheck?.(updatedSelection);
     }
   };
@@ -75,16 +90,17 @@ const ReusableTable = <T extends { id: string | number }>({
             {/* Table Header */}
             <TableHeader>
               <TableRow>
-                {/* ✅ Checkbox All */}
                 <TableCell
                   isHeader
                   className="px-5 py-3 text-base font-semibold text-gray-500 text-start">
                   <input
                     type="checkbox"
+                    className="w-[18px] h-[18px]"
                     checked={
-                      selectedIds.length === data.length && data.length > 0
+                      selectedIds?.length === data.length && data.length > 0
                     }
                     onChange={handleSelectAll}
+                    disabled={!setSelectedIds} // ✅ Vô hiệu hóa nếu không có setSelectedIds
                   />
                 </TableCell>
                 {columns.map((col) => (
@@ -109,12 +125,13 @@ const ReusableTable = <T extends { id: string | number }>({
             <TableBody>
               {data.map((item) => (
                 <TableRow key={item.id}>
-                  {/* ✅ Checkbox cho từng hàng */}
                   <TableCell className="px-5 py-3">
                     <input
                       type="checkbox"
-                      checked={selectedIds.includes(item.id)}
+                      className="w-[18px] h-[18px]"
+                      checked={selectedIds?.includes(item.id)}
                       onChange={() => handleSelectRow(item.id)}
+                      disabled={!setSelectedIds} // ✅ Vô hiệu hóa nếu không có setSelectedIds
                     />
                   </TableCell>
                   {columns.map((col) => (

@@ -4,9 +4,33 @@ import StatisticsChart from "../../components/ecommerce/StatisticsChart";
 import MonthlyTarget from "../../components/ecommerce/MonthlyTarget";
 import RecentOrders from "../../components/ecommerce/RecentOrders";
 import DemographicCard from "../../components/ecommerce/DemographicCard";
+// import PieChart from "../../components/ecommerce/Report/PieChartOption";
 import PageMeta from "../../components/common/PageMeta";
+// import { getDetailReportByRole } from "../../services/report";
+// import { useEffect, useState } from "react";
 
 export default function Home() {
+  // const [reportData, setReportData] = useState<any>(null);
+  // const fetchReport = async () => {
+  //   try {
+  //     const res = await getDetailReportByRole({
+  //       option: "available",
+  //       limit: 20,
+  //       offset: 0,
+  //       year: 2025,
+  //       month: 4,
+  //     });
+  //     setReportData(reportData.data);
+  //     console.log("Report data:", res.data);
+  //   } catch (error) {
+  //     console.error("Error fetching report:", error);
+  //   }
+  // };
+
+  // useEffect(() => {
+  //   fetchReport();
+  // }, []);
+  // const options = {};
   return (
     <>
       <PageMeta

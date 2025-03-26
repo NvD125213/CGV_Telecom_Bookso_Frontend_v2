@@ -14,9 +14,7 @@ axiosInstance.interceptors.request.use(
     }
     return config;
   },
-  (err) => {
-    return Promise.reject(err);
-  }
+  (err) => Promise.reject(err)
 );
 
 axiosInstance.interceptors.response.use(
@@ -24,15 +22,16 @@ axiosInstance.interceptors.response.use(
   async (err) => {
     const originalRequest = err.config;
 
-    console.log(">>", err.response?.status);
     if (err.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      const refreshToken = Cookies.get("refreshToken") || "";
-
+      const refreshToken = Cookies.get("refreshToken");
       if (!refreshToken) {
         return Promise.reject(err);
       }
+
+      // Xóa token cũ ngay lập tức
+      Cookies.remove("token");
 
       try {
         const res = await axios.get(
@@ -44,21 +43,25 @@ axiosInstance.interceptors.response.use(
           }
         );
 
-        const newAccessToken = res.data?.access_token || "";
-        Cookies.set("token", newAccessToken);
-        // Gửi lại request cũ với token mới
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        const newAccessToken = res.data?.access_token;
+        if (!newAccessToken) {
+          throw new Error("Không nhận được access token mới");
+        }
+
+        // Lưu token mới
+        Cookies.set("token", newAccessToken, {
+          sameSite: "None",
+          secure: true,
+        });
+        originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
         return axiosInstance(originalRequest);
-      } catch (refreshErr) {
-        if (refreshErr.response?.data.detail === "Token has expired") {
+      } catch (refreshErr: any) {
+        Cookies.remove("refreshToken");
+        Cookies.remove("user");
+        if (refreshErr.response?.data?.detail === "Token has expired") {
           document.location.href = "/signin";
         }
 
-        console.log(refreshErr);
-
-        Cookies.remove("token");
-        Cookies.remove("user");
-        Cookies.remove("refreshToken");
         return Promise.reject(refreshErr);
       }
     }

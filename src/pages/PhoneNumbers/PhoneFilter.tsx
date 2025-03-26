@@ -11,14 +11,18 @@ import { IPhoneNumber, IProvider } from "../../types";
 import { getProviders } from "../../services/provider";
 import useSelectData from "../../hooks/useSelectData";
 import ReusableTable from "../../components/common/ReusableTable";
+import { FiEye } from "react-icons/fi";
+
 import {
   booking,
   bookingPhone,
+  deletePhone,
   IBookPhoneNumber,
 } from "../../services/phoneNumber";
 import Pagination from "../../components/pagination/pagination";
-import { FiEye } from "react-icons/fi";
 import PhoneModalDetail from "./PhoneModalDetail";
+import { getPhoneByID } from "../../services/phoneNumber";
+
 import Swal from "sweetalert2";
 
 interface PhoneNumberProps {
@@ -29,8 +33,10 @@ interface PhoneNumberProps {
 const columns: { key: keyof IPhoneNumber; label: string }[] = [
   { key: "phone_number", label: "Số điện thoại" },
   { key: "provider_name" as "provider_id", label: "Nhà cung cấp" },
-  { key: "type_name" as "type_id", label: "Loại số" },
+  { key: "type_name" as "type_number_id", label: "Loại số" },
   { key: "installation_fee", label: "Phí lắp đặt" },
+  { key: "maintenance_fee", label: "Phí duy trì" },
+  { key: "vanity_number_fee", label: "Phí số đẹp" },
   { key: "status", label: "Trạng thái" },
 ];
 
@@ -38,6 +44,7 @@ function PhoneNumberFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [openModal, setOpenModal] = useState(false);
   const [openModalDetail, setOpenModalDetail] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const [search, setSearch] = useState<string>(
     searchParams.get("search") || ""
@@ -104,8 +111,8 @@ function PhoneNumberFilters() {
       // Check status mount after set state
       if (isMounted) {
         setData(response.data);
+        setSelectedIds([]);
 
-        // ✅ Cập nhật searchParams
         setSearchParams((prev) => {
           const newParams = new URLSearchParams(prev);
           newParams.set("quantity", quantity.toString());
@@ -147,15 +154,24 @@ function PhoneNumberFilters() {
   }, [offset, quantity, provider]);
 
   // Get description number
-  const getDataDetail = (row: IPhoneNumber) => {
-    setselectedPhone(row);
-    setOpenModalDetail(true);
+  // const getDataDetail = (row: IPhoneNumber) => {
+  //   setselectedPhone(row);
+  //   setOpenModalDetail(true);
+  // };
+  const handleGetById = async (id: number) => {
+    try {
+      const res = await getPhoneByID(id);
+      setselectedPhone(res?.data);
+      setOpenModalDetail(true);
+    } catch (error) {
+      console.error("Failed to fetch phone data:", error);
+      Swal.fire("Lỗi", "Không thể tải dữ liệu chi tiết", "error");
+    }
   };
 
   const safeData = data?.phone_numbers ?? [];
 
   // Handle Book Number
-  const [selectedIds, setSelectedIds] = useState([]);
   const getIds = (data: any) => {
     setSelectedIds(data);
   };
@@ -169,18 +185,50 @@ function PhoneNumberFilters() {
       id_phone_numbers: selectedIds,
     };
 
-    console.log("Request body:", JSON.stringify(requestBody));
-
     try {
       const res = await booking(requestBody);
       if (res.status === 200) {
         Swal.fire("Book thành công!", "", "success");
         fetchData();
+        setSelectedIds([]);
       }
     } catch (err) {
       console.error("Lỗi khi gọi API:", err);
     }
   };
+  console.log("phone", data);
+
+  const handleDelete = async (id: any) => {
+    if (typeof id !== "number" || isNaN(id)) {
+      console.error("Invalid ID:", id);
+      Swal.fire("Lỗi", "ID không hợp lệ");
+      return;
+    }
+
+    try {
+      const result = await Swal.fire({
+        title: "Bạn có chắc chắn muốn xóa số này?",
+        text: "Dữ liệu sẽ không thể khôi phục nếu xóa",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Xóa!",
+      });
+
+      if (result.isConfirmed) {
+        const res = await deletePhone(id);
+        console.log(res);
+        await Swal.fire({
+          title: "Xóa thành công!",
+          icon: "success",
+        });
+      }
+    } catch (error: any) {
+      Swal.fire("Lỗi", `${error.response?.data?.detail || "Đã xảy ra lỗi"}`);
+    }
+  };
+
   return (
     <>
       <PageBreadcrumb pageTitle="Đặt số điện thoại" />
@@ -240,14 +288,17 @@ function PhoneNumberFilters() {
             title="Danh sách số điện thoại"
             data={safeData}
             onCheck={(selectedIds) => getIds(selectedIds)}
+            setSelectedIds={setSelectedIds}
+            selectedIds={selectedIds}
             columns={columns}
             actions={[
               {
                 icon: <FiEye />,
-                onClick: getDataDetail,
+                onClick: (row) => handleGetById(Number(row.id)),
                 className: "bg-blue-400 text-white",
               },
             ]}
+            onDelete={(id) => handleDelete(Number(id))}
           />
 
           {/* Pagination */}
@@ -276,6 +327,7 @@ function PhoneNumberFilters() {
         isOpen={openModalDetail}
         onCloseModal={() => setOpenModalDetail(false)}
         data={selectedPhone}
+        onSuccess={fetchData}
       />
     </>
   );

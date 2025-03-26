@@ -5,7 +5,7 @@ export const initialPhoneNumber: IPhoneNumber = {
   id: 0,
   phone_number: "",
   provider_id: 0,
-  type_id: 0,
+  type_number_id: 0,
   installation_fee: 0,
   maintenance_fee: 0,
   vanity_number_fee: 0,
@@ -77,4 +77,33 @@ export const bookingPhone = async ({
 export const booking = async (data: IBookPhoneNumber) => {
   const res = await axiosInstance.post("/api/v1/booking", data);
   return res;
+};
+
+export const updatePhone = async (id: number, data: IPhoneNumber) => {
+  try {
+    const res = await axiosInstance.put(`/api/v1/phone?phone_id=${id}`, data);
+    return res;
+  } catch (error) {
+    console.error("Failed to update phone number:", error);
+  }
+};
+
+export const deletePhone = async (id: number) => {
+  try {
+    const res = await axiosInstance.delete(`/api/v1/phone?phone_id=${id}`);
+    return res;
+  } catch (error) {
+    console.error("Failed to update phone number:", error);
+  }
+};
+
+export const getPhoneByID = async (id: number) => {
+  try {
+    const res = await axiosInstance.get(
+      `http://13.229.236.236:8000/api/v1/phone/by-id?phone_id=${id}`
+    );
+    return res;
+  } catch (error) {
+    console.error("Failed to get phone number:", error);
+  }
 };

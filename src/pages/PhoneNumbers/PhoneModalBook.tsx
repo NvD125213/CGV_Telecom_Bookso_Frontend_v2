@@ -49,7 +49,7 @@ const PhoneModalBook: React.FC<PhoneNumberProps> = ({
 
   const handleSubmit = async (data: IBookPhoneNumber) => {
     try {
-      const res = await booking(data); // Gửi dữ liệu với key đã đúng
+      const res = await booking(data);
       if (res.status === 200) {
         Swal.fire({
           title: "Book thành công !",

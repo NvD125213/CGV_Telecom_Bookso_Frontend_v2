@@ -26,6 +26,7 @@ interface Field {
   defaultValue?: string | number;
   disabled?: boolean;
   error?: string;
+  selected?: string;
 }
 
 interface CustomModalProps {
@@ -101,11 +102,6 @@ const CustomModal: React.FC<CustomModalProps> = ({
                           ? "opacity-50 cursor-not-allowed"
                           : ""
                       } ${field.error ? "border-red-500" : ""}`}>
-                      {field.placeholder && (
-                        <option value="" disabled>
-                          {field.placeholder}
-                        </option>
-                      )}
                       {field.options.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}

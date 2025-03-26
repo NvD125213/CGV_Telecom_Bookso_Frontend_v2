@@ -15,14 +15,17 @@ const Pagination: React.FC<PaginationProps> = ({
   onPageChange,
   onLimitChange,
 }) => {
+  // Với yêu cầu offset = 0, 1, 2..., currentPage = offset + 1
+  const currentPage = offset + 1;
+
   const handleNextPage = () => {
-    if (offset < totalPages) {
+    if (currentPage < totalPages) {
       onPageChange(limit, offset + 1);
     }
   };
 
   const handlePrevPage = () => {
-    if (offset > 1) {
+    if (currentPage > 1) {
       onPageChange(limit, offset - 1);
     }
   };
@@ -30,25 +33,28 @@ const Pagination: React.FC<PaginationProps> = ({
   const handleLimitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newLimit = Number(e.target.value);
     onLimitChange(newLimit);
-    onPageChange(newLimit, 0); // Reset về trang đầu
+    onPageChange(newLimit, 0); // Reset về offset 0 khi đổi limit
   };
 
-  // Hiển thị tối đa 5 trang gần vị trí hiện tại
+  const handlePageChange = (page: number) => {
+    // Với yêu cầu này, offset = page - 1
+    const newOffset = page - 1;
+    onPageChange(limit, newOffset);
+  };
+
   const getVisiblePages = () => {
     const visiblePages: number[] = [];
-    const start = Math.max(1, offset - 2);
-    const end = Math.min(totalPages, offset + 2);
+    const start = Math.max(1, currentPage - 2);
+    const end = Math.min(totalPages, currentPage + 2);
 
     for (let i = start; i <= end; i++) {
       visiblePages.push(i);
     }
-
     return visiblePages;
   };
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">
-      {/* Dropdown cho limit */}
       <div className="flex items-center">
         <select
           value={limit}
@@ -63,16 +69,14 @@ const Pagination: React.FC<PaginationProps> = ({
         <span className="ml-2 text-gray-600">/ page</span>
       </div>
 
-      {/* Navigation */}
       <nav aria-label="Pagination">
         <ul className="flex items-center gap-1">
-          {/* Nút Trước */}
           <li>
             <button
               onClick={handlePrevPage}
-              disabled={offset <= 1}
+              disabled={currentPage <= 1}
               className={`px-3 py-2 border rounded-md ${
-                offset <= 1
+                currentPage <= 1
                   ? "text-gray-400 cursor-not-allowed bg-gray-100"
                   : "text-gray-700 hover:bg-gray-100"
               }`}>
@@ -80,13 +84,12 @@ const Pagination: React.FC<PaginationProps> = ({
             </button>
           </li>
 
-          {/* Hiển thị các trang */}
           {getVisiblePages().map((page) => (
             <li key={page}>
               <button
-                onClick={() => onPageChange(limit, page)}
+                onClick={() => handlePageChange(page)}
                 className={`px-3 py-2 border rounded-md ${
-                  offset === page
+                  currentPage === page
                     ? "bg-blue-500 text-white"
                     : "hover:bg-gray-100 text-gray-700"
                 }`}>
@@ -95,13 +98,12 @@ const Pagination: React.FC<PaginationProps> = ({
             </li>
           ))}
 
-          {/* Nút Sau */}
           <li>
             <button
               onClick={handleNextPage}
-              disabled={offset >= totalPages}
+              disabled={currentPage >= totalPages}
               className={`px-3 py-2 border rounded-md ${
-                offset >= totalPages
+                currentPage >= totalPages
                   ? "text-gray-400 cursor-not-allowed bg-gray-100"
                   : "text-gray-700 hover:bg-gray-100"
               }`}>
