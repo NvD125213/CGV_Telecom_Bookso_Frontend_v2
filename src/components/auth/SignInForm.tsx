@@ -10,8 +10,6 @@ import * as Yup from "yup";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "../../store";
 import { useNavigate } from "react-router";
-import { useSelector } from "react-redux";
-import { RootState } from "../../store";
 import { login } from "../../store/authSlice";
 // Validate Schema SignIn
 const SignInSchema = Yup.object().shape({
@@ -39,18 +37,17 @@ export default function SignInForm() {
   const [apiError, setApiError] = useState<string | null>(null);
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const { error } = useSelector((state: RootState) => state.auth);
 
   const handleSubmit = async (values: SignInValues) => {
     try {
       setApiError(null);
-      const result = await dispatch(login(values)).unwrap(); // Chờ action hoàn thành
+      const result = await dispatch(login(values)).unwrap();
       if (result.token) {
         navigate("/");
       }
     } catch (err: any) {
       console.error("Login failed:", err);
-      setApiError(error);
+      setApiError(err);
     }
   };
 
@@ -67,7 +64,7 @@ export default function SignInForm() {
             </p>
           </div>
           {apiError && (
-            <div className="mb-4 text-sm text-red-500 ">{apiError}</div>
+            <div className="mb-4 text-sm text-red-500 ">Lỗi: {apiError}</div>
           )}
 
           <Formik
