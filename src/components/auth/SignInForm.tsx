@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Link } from "react-router";
+// import { Link } from "react-router";
 import { EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
-import Checkbox from "../form/input/Checkbox";
+// import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
@@ -33,7 +33,7 @@ export default function SignInForm() {
   // Show password
   const [showPassword, setShowPassword] = useState(false);
   // Click button save password
-  const [isChecked, setIsChecked] = useState(false);
+  // const [isChecked, setIsChecked] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
@@ -125,7 +125,7 @@ export default function SignInForm() {
                   </div>
 
                   {/* Remember me & Forgot Password */}
-                  <div className="flex items-center justify-between">
+                  {/* <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Checkbox
                         checked={isChecked}
@@ -140,7 +140,7 @@ export default function SignInForm() {
                       className="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400">
                       Quên mật khẩu?
                     </Link>
-                  </div>
+                  </div> */}
 
                   {/* Submit Button */}
                   <div>
@@ -157,7 +157,7 @@ export default function SignInForm() {
             )}
           </Formik>
           {/* Navigate to SignUpForm */}
-          <div className="mt-5">
+          {/* <div className="mt-5">
             <p className="text-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
               Không có tài khoản?{" "}
               <Link
@@ -166,7 +166,7 @@ export default function SignInForm() {
                 Đăng ký
               </Link>
             </p>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

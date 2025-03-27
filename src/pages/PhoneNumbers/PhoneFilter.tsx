@@ -256,7 +256,7 @@ function PhoneNumberFilters() {
       <div className="flex justify-end mb-4">
         <button
           onClick={() => setOpenModal(true)}
-          className="flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+          className="flex items-center dark:bg-black dark:text-white  gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
           <IoIosAdd size={24} />
           Thêm
         </button>
@@ -265,7 +265,7 @@ function PhoneNumberFilters() {
       {/* Form */}
       <div className="space-y-6">
         <ComponentCard>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className=" grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div>
               <Label htmlFor="inputTwo">Tìm kiếm theo đầu số</Label>
               <Input
@@ -289,6 +289,7 @@ function PhoneNumberFilters() {
                     key: provider.id,
                   })),
                 ]}
+                className="dark:bg-black dark:text-white "
                 onChange={(value) => setProvider(value)}
                 placeholder="Lựa chọn nhà cung cấp"
               />
@@ -296,7 +297,7 @@ function PhoneNumberFilters() {
             <div className="flex items-end ">
               <button
                 onClick={() => handleBookNumber()}
-                className="flex items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+                className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
                 <IoIosAdd size={24} />
                 Book số
               </button>

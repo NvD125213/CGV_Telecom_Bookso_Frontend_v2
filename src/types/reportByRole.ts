@@ -19,4 +19,6 @@ export interface IReportDetail extends IReportRole {
   maintenance_fee: number;
   provider_name: string;
   type_name: string;
+  booked_at?: string;
+  released_at?: string;
 }

@@ -41,7 +41,7 @@ const INITIAL_LIMIT = 5;
 const NumberStatusPieChart = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [reportData, setReportData] = useState<IReportData | null>(null);
-  const [isLoading, setIsLoading] = useState(false); // Thêm loading state
+  const [isLoading, setIsLoading] = useState(false);
   const [pagination, setPagination] = useState({
     limit: INITIAL_LIMIT,
     offset: 0,
@@ -174,7 +174,7 @@ const NumberStatusPieChart = () => {
         offset={pagination.offset}
         year={filters.year}
         month={filters.month}
-        number={filters.day}
+        day={filters.day}
         fetchData={(params) => {
           setFilters((prev) => ({ ...prev, ...params }));
           fetchReport(

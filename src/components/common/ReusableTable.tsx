@@ -83,14 +83,14 @@ const ReusableTable = <T extends { id: string | number }>({
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
       <div className="overflow-x-auto">
-        <div className="max-h-[400px] overflow-y-auto">
-          <Table>
+        <div className="max-h-[400px] overflow-y-auto dark:bg-black ">
+          <Table className="dark:text-white">
             {/* Table Header */}
             <TableHeader>
               <TableRow>
                 <TableCell
                   isHeader
-                  className="px-5 py-3 text-base font-semibold text-gray-500 text-start">
+                  className="px-5 py-3 text-base font-semibold text-gray-500 dark:text-gray-300 text-start">
                   <input
                     type="checkbox"
                     className="w-[18px] h-[18px]"
@@ -105,14 +105,14 @@ const ReusableTable = <T extends { id: string | number }>({
                   <TableCell
                     key={col.key as string}
                     isHeader
-                    className="px-5 py-3 text-base font-semibold text-gray-500 text-start">
+                    className="px-5 dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start">
                     {col.label}
                   </TableCell>
                 ))}
                 {hasActionColumn && (
                   <TableCell
                     isHeader
-                    className="px-5 py-3 text-base font-semibold text-gray-500 text-start">
+                    className="px-5 dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start">
                     Hành động
                   </TableCell>
                 )}
@@ -123,7 +123,7 @@ const ReusableTable = <T extends { id: string | number }>({
             <TableBody>
               {data.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell className="px-5 py-3">
+                  <TableCell className="px-5 dark:text-gray-300 py-3">
                     <input
                       type="checkbox"
                       className="w-[18px] h-[18px]"
@@ -135,7 +135,7 @@ const ReusableTable = <T extends { id: string | number }>({
                   {columns.map((col) => (
                     <TableCell
                       key={col.key as string}
-                      className="px-5 py-3 text-sm text-gray-500">
+                      className="px-5 py-3 text-sm text-gray-500 dark:text-gray-300">
                       {item[col.key] as string}
                     </TableCell>
                   ))}

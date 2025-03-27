@@ -59,9 +59,12 @@ const Pagination: React.FC<PaginationProps> = ({
         <select
           value={limit}
           onChange={handleLimitChange}
-          className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+          className="border dark:text-gray-300 border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
           {[5, 10, 20, 50].map((value) => (
-            <option key={value} value={value}>
+            <option
+              className="dark:bg-black dark:text-white "
+              key={value}
+              value={value}>
               {value}
             </option>
           ))}
@@ -75,7 +78,7 @@ const Pagination: React.FC<PaginationProps> = ({
             <button
               onClick={handlePrevPage}
               disabled={currentPage <= 1}
-              className={`px-3 py-2 border rounded-md ${
+              className={`px-3 py-2 border rounded-md dark:bg-black dark:text-white ${
                 currentPage <= 1
                   ? "text-gray-400 cursor-not-allowed bg-gray-100"
                   : "text-gray-700 hover:bg-gray-100"
@@ -88,7 +91,7 @@ const Pagination: React.FC<PaginationProps> = ({
             <li key={page}>
               <button
                 onClick={() => handlePageChange(page)}
-                className={`px-3 py-2 border rounded-md ${
+                className={`px-3 py-2 border rounded-md  ${
                   currentPage === page
                     ? "bg-blue-500 text-white"
                     : "hover:bg-gray-100 text-gray-700"
@@ -102,7 +105,7 @@ const Pagination: React.FC<PaginationProps> = ({
             <button
               onClick={handleNextPage}
               disabled={currentPage >= totalPages}
-              className={`px-3 py-2 border rounded-md ${
+              className={`px-3 py-2 border rounded-md dark:bg-black dark:text-white  ${
                 currentPage >= totalPages
                   ? "text-gray-400 cursor-not-allowed bg-gray-100"
                   : "text-gray-700 hover:bg-gray-100"

@@ -79,6 +79,11 @@ export const booking = async (data: IBookPhoneNumber) => {
   return res;
 };
 
+export const getQuantityPhoneAvailable = async () => {
+  const res = await axiosInstance.get("/api/v1/phone/quantity-available");
+  return res;
+};
+
 export const updatePhone = async (id: number, data: IPhoneNumber) => {
   try {
     const res = await axiosInstance.put(`/api/v1/phone?phone_id=${id}`, data);

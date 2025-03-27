@@ -67,12 +67,15 @@ const DropzoneComponent: React.FC<DropzoneComponentProps> = ({
   });
 
   return (
-    <ComponentCard title="Tải lên file Excel">
-      <div className="flex items-center justify-end">
+    <ComponentCard>
+      <div className="flex items-center justify-between">
         {" "}
+        <h2 className="font-extrabold  text-[18px] dark:text-blue-500">
+          Tải xuống file Excel
+        </h2>
         <Link
           to="/public/files/file_upload_sample.xlsx"
-          className="font-medium text-blue-600 dark:text-blue-500 hover:underline mr-2"
+          className="font-medium text-sm text-blue-600 dark:text-blue-500 hover:underline mr-2"
           target="_blank"
           download>
           Tải về file mẫu

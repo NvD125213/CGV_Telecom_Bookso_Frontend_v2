@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Modal } from "../../components/ui/modal";
 import Pagination from "../pagination/pagination";
 import ReusableTable from "./ReusableTable";
@@ -39,8 +39,8 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
   data,
   columns,
   totalPages,
-  limit: initialLimit,
-  offset: initialOffset,
+  limit,
+  offset,
   year,
   month,
   day,
@@ -49,22 +49,21 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
   selectedIds,
   setSelectedIds,
 }) => {
-  const [limit, setLimit] = useState(initialLimit);
-  const [offset, setOffset] = useState(initialOffset);
+  // Không cần useState cho limit và offset nữa, sử dụng trực tiếp từ props
 
+  // Gọi fetchData khi modal mở lần đầu
   useEffect(() => {
     if (isOpen) {
       fetchData({ limit, offset, year, month, day });
     }
-  }, [limit, offset, year, month, day, isOpen]);
+  }, [isOpen, limit, offset, year, month, day, fetchData]);
 
   const handlePageChange = (newLimit: number, newOffset: number) => {
-    setLimit(newLimit);
-    setOffset(newOffset);
+    fetchData({ limit: newLimit, offset: newOffset, year, month, day });
   };
 
   const handleLimitChange = (newLimit: number) => {
-    setLimit(newLimit);
+    fetchData({ limit: newLimit, offset: 0, year, month, day }); // Reset offset về 0 khi thay đổi limit
   };
 
   return (
