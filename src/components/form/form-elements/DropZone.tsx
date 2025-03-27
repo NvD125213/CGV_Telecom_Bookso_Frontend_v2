@@ -1,7 +1,7 @@
 import ComponentCard from "../../common/ComponentCard";
 import { useDropzone, FileRejection } from "react-dropzone";
 import { useState } from "react";
-
+import { Link } from "react-router";
 interface DropzoneComponentProps {
   onSubmit: (file: File) => void;
 }
@@ -68,6 +68,17 @@ const DropzoneComponent: React.FC<DropzoneComponentProps> = ({
 
   return (
     <ComponentCard title="Tải lên file Excel">
+      <div className="flex items-center justify-end">
+        {" "}
+        <Link
+          to="/public/files/file_upload_sample.xlsx"
+          className="font-medium text-blue-600 dark:text-blue-500 hover:underline mr-2"
+          target="_blank"
+          download>
+          Tải về file mẫu
+        </Link>
+      </div>
+
       <div className="transition border border-gray-300 border-dashed cursor-pointer dark:hover:border-brand-500 dark:border-gray-700 rounded-xl hover:border-brand-500">
         <form
           {...getRootProps()}

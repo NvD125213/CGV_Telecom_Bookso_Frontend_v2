@@ -34,7 +34,6 @@ export const login = createAsyncThunk(
         client_secret: "",
       });
 
-      // Lấy token từ Cookies
       const token = Cookies.get("token");
       const refreshToken = Cookies.get("refreshToken");
 

@@ -248,7 +248,6 @@ function PhoneNumberFilters() {
       Swal.fire("Lỗi", `${error.response?.data?.detail || "Đã xảy ra lỗi"}`);
     }
   };
-  console.log(">>", safeData);
 
   return (
     <>

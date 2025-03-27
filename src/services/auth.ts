@@ -15,17 +15,17 @@ export const signIn = async (data: SignInValues) => {
   Object.entries(data).forEach(([key, value]) => {
     if (value !== undefined) formData.append(key, value);
   });
-  try {
-    const res = await axiosInstance.post("/api/v1/auth/login", formData, {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+
+  const res = await axiosInstance.post("/api/v1/auth/login", formData, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+  });
+  if (res.status === 200) {
     const { access_token, refresh_token } = res.data;
     Cookies.set("token", access_token);
     Cookies.set("refreshToken", refresh_token);
     return res;
-  } catch (err) {
-    console.log(">>", err);
   }
+  return res;
 };

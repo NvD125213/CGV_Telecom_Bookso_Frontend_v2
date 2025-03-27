@@ -23,7 +23,7 @@ function convertSecondsToTime(seconds: any) {
 }
 
 const columns: { key: keyof ITypeNumber; label: string }[] = [
-  { key: "id", label: "STT" },
+  { key: "id", label: "ID" },
   { key: "name", label: "Định dạng số" },
   { key: "booking_expiration", label: "Thời hạn chờ triển khai" },
 ];

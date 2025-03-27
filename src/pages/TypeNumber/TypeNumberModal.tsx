@@ -139,7 +139,7 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
         },
         {
           name: "booking_expiration",
-          label: `Thời gian chờ triển khai (Nhập số giây)`,
+          label: `Thời gian chờ triển khai (HH.MM.SS)`,
           type: "text",
           value: typeNumber.booking_expiration || "00.00.00",
           onChange: (value) => setValue("booking_expiration", value as string),
