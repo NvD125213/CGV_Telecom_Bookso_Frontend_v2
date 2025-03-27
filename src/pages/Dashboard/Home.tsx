@@ -1,5 +1,6 @@
 import EcommerceMetrics from "../../components/ecommerce/EcommerceMetrics";
 import MonthlySalesChart from "../../components/ecommerce/MonthlySalesChart";
+import NumberStatusPieChart from "../../components/ecommerce/Report/StatusPieChart";
 import StatisticsChart from "../../components/ecommerce/StatisticsChart";
 import MonthlyTarget from "../../components/ecommerce/MonthlyTarget";
 import RecentOrders from "../../components/ecommerce/RecentOrders";
@@ -45,7 +46,7 @@ export default function Home() {
         </div>
 
         <div className="col-span-12 xl:col-span-5">
-          <MonthlyTarget />
+          <NumberStatusPieChart />
         </div>
 
         <div className="col-span-12">
