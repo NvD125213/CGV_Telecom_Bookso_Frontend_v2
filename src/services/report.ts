@@ -4,7 +4,7 @@ import { IReportRole } from "../types";
 export const getDetailReportByRole = async (params: IReportRole) => {
   try {
     const response = await axiosInstance.get(
-      "http://13.229.236.236:8000/api/v1/report/detail-report-by-role",
+      "/api/v1/report/detail-report-by-role",
       {
         params,
       }

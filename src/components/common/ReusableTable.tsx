@@ -8,13 +8,6 @@ import {
 import { PencilIcon } from "../../icons";
 import { RiDeleteBinLine } from "react-icons/ri";
 
-
-
-
-
-
-
-
 interface Action<T> {
   icon?: React.ReactNode;
   onClick: (item: T) => void;
@@ -32,8 +25,6 @@ interface Props<T> {
   onDelete?: (id: string | number) => void;
   actions?: Action<T>[];
   onCheck?: (selectedIds: (string | number)[]) => void;
-
-  // ✅ Dùng dấu ? để cho phép giá trị undefined
   selectedIds?: (string | number)[];
   setSelectedIds?: React.Dispatch<React.SetStateAction<number[]>>;
 }
@@ -107,7 +98,7 @@ const ReusableTable = <T extends { id: string | number }>({
                       selectedIds?.length === data.length && data.length > 0
                     }
                     onChange={handleSelectAll}
-                    disabled={!setSelectedIds} // ✅ Vô hiệu hóa nếu không có setSelectedIds
+                    disabled={!setSelectedIds}
                   />
                 </TableCell>
                 {columns.map((col) => (

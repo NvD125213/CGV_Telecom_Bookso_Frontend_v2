@@ -304,22 +304,26 @@ function PhoneNumberFilters() {
           </div>
 
           {/* Data table */}
-          <ReusableTable
-            title="Danh sách số điện thoại"
-            data={safeData}
-            onCheck={(selectedIds) => getIds(selectedIds)}
-            setSelectedIds={setSelectedIds}
-            selectedIds={selectedIds}
-            columns={columns}
-            actions={[
-              {
-                icon: <FiEye />,
-                onClick: (row) => handleGetById(Number(row.id)),
-                className: "bg-blue-400 text-white",
-              },
-            ]}
-            onDelete={(id) => handleDelete(Number(id))}
-          />
+          {safeData.length > 0 ? (
+            <ReusableTable
+              title="Danh sách số điện thoại"
+              data={safeData}
+              onCheck={(selectedIds) => getIds(selectedIds)}
+              setSelectedIds={setSelectedIds}
+              selectedIds={selectedIds}
+              columns={columns}
+              actions={[
+                {
+                  icon: <FiEye />,
+                  onClick: (row) => handleGetById(Number(row.id)),
+                  className: "bg-blue-400 text-white",
+                },
+              ]}
+              onDelete={(id) => handleDelete(Number(id))}
+            />
+          ) : (
+            <div className=" text-gray-500">Không có dữ liệu</div>
+          )}
 
           {/* Pagination */}
           <Pagination
@@ -332,7 +336,7 @@ function PhoneNumberFilters() {
             }}
             onLimitChange={(newLimit) => {
               setQuantity(newLimit);
-              setOffset(1); // Reset offset when change limit
+              setOffset(1);
             }}
           />
         </ComponentCard>
