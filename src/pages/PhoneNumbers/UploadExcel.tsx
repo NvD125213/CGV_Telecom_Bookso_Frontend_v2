@@ -43,15 +43,11 @@ const UploadExcel = () => {
         });
       }
     } catch (error: any) {
-      console.log(">> error data", error?.response?.data?.detail);
-
       const parsedError = handleError(error?.response?.data?.detail);
 
       if (parsedError?.errors && Array.isArray(parsedError.errors)) {
-        // Nếu là mảng → Hiển thị theo từng row
         setErrors(parsedError.errors);
       } else if (typeof error?.response?.data?.detail === "string") {
-        //  Nếu là chuỗi → Hiển thị trực tiếp
         setErrors(error?.response?.data?.detail);
       } else {
         setErrors("Đã xảy ra lỗi không xác định.");
@@ -61,6 +57,7 @@ const UploadExcel = () => {
 
   return (
     <>
+      {}
       <DropzoneComponent onSubmit={upLoadFileExcel} />
       {Array.isArray(errors) ? (
         <div className="mt-4 p-4 border border-red-500 bg-red-50 rounded-md">

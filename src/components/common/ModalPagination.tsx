@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Modal } from "../../components/ui/modal";
 import Pagination from "../pagination/pagination";
 import ReusableTable from "./ReusableTable";
@@ -12,7 +12,7 @@ interface ModalPaginationProps {
   isOpen: boolean;
   title: string;
   description?: string;
-  data: [];
+  data: any[]; // Đảm bảo kiểu dữ liệu phù hợp
   columns: Column[];
   totalPages: number;
   limit: number;
@@ -30,6 +30,7 @@ interface ModalPaginationProps {
   onClose: () => void;
   selectedIds?: (string | number)[];
   setSelectedIds?: React.Dispatch<React.SetStateAction<(string | number)[]>>;
+  isLoading?: boolean;
 }
 
 const ModalPagination: React.FC<ModalPaginationProps> = ({
@@ -48,10 +49,19 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
   onClose,
   selectedIds,
   setSelectedIds,
+  isLoading = false,
 }) => {
-  // Không cần useState cho limit và offset nữa, sử dụng trực tiếp từ props
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredData, setFilteredData] = useState(data);
 
-  // Gọi fetchData khi modal mở lần đầu
+  useEffect(() => {
+    const lowercasedFilter = searchTerm.toLowerCase();
+    const filtered = data.filter((item) =>
+      item.user_name.toLowerCase().includes(lowercasedFilter)
+    );
+    setFilteredData(filtered);
+  }, [searchTerm, data]);
+
   useEffect(() => {
     if (isOpen) {
       fetchData({ limit, offset, year, month, day });
@@ -84,13 +94,32 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
           )}
         </div>
 
+        {/* Thanh tìm kiếm */}
+        <div className="grid gap-6 mb-6 md:grid-cols-3">
+          <div>
+            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+              Nhập tên
+            </label>
+            <input
+              type="text"
+              id="first_name"
+              placeholder="Tìm kiếm theo user_name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+              required
+            />
+          </div>
+        </div>
+
         {/* Bảng dữ liệu */}
         <ReusableTable
-          data={data}
+          data={filteredData}
           columns={columns}
           selectedIds={selectedIds}
           setSelectedIds={setSelectedIds}
           onCheck={(selectedIds) => setSelectedIds?.(selectedIds)}
+          isLoading={isLoading}
         />
 
         {/* Pagination */}

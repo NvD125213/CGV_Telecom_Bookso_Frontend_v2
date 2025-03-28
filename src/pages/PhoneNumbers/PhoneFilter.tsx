@@ -60,7 +60,8 @@ function PhoneNumberFilters() {
   const [previousSearch, setPreviousSearch] = useState<string>("");
   const controllerRef = useRef<AbortController | null>(null);
   const [selectedPhone, setselectedPhone] = useState<IPhoneNumber | null>(null);
-
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   // Set default value of quantity và offset if do not have
   useEffect(() => {
     if (!searchParams.get("quantity") || !searchParams.get("offset")) {
@@ -98,7 +99,7 @@ function PhoneNumberFilters() {
     controllerRef.current = controller;
 
     let isMounted = true;
-
+    setLoading(true);
     try {
       const response = await bookingPhone({
         offset: offset,
@@ -123,22 +124,24 @@ function PhoneNumberFilters() {
       );
 
       if (isMounted) {
+        if (response.data.phone_numbers.length === 0) {
+          setError("Không có dữ liệu");
+        } else {
+          setError("");
+        }
         setData({
           ...response.data,
           phone_numbers: formattedData,
         });
         setSelectedIds([]);
-
         setSearchParams((prev) => {
           const newParams = new URLSearchParams(prev);
           newParams.set("quantity", quantity.toString());
           newParams.set("offset", offset.toString());
           if (provider) newParams.set("provider", provider);
           else newParams.delete("provider");
-
           if (search) newParams.set("search", search);
           else newParams.delete("search");
-
           return newParams;
         });
       }
@@ -146,6 +149,8 @@ function PhoneNumberFilters() {
       if (error.name !== "AbortError") {
         console.error("Error when get data:", error);
       }
+    } finally {
+      setTimeout(() => setLoading(false), 1000);
     }
 
     return () => {
@@ -305,26 +310,25 @@ function PhoneNumberFilters() {
           </div>
 
           {/* Data table */}
-          {safeData.length > 0 ? (
-            <ReusableTable
-              title="Danh sách số điện thoại"
-              data={safeData}
-              onCheck={(selectedIds) => getIds(selectedIds)}
-              setSelectedIds={setSelectedIds}
-              selectedIds={selectedIds}
-              columns={columns}
-              actions={[
-                {
-                  icon: <FiEye />,
-                  onClick: (row) => handleGetById(Number(row.id)),
-                  className: "bg-blue-400 text-white",
-                },
-              ]}
-              onDelete={(id) => handleDelete(Number(id))}
-            />
-          ) : (
-            <div className=" text-gray-500">Không có dữ liệu</div>
-          )}
+
+          <ReusableTable
+            isLoading={loading}
+            title="Danh sách số điện thoại"
+            data={safeData}
+            onCheck={(selectedIds) => getIds(selectedIds)}
+            setSelectedIds={setSelectedIds}
+            selectedIds={selectedIds}
+            error={error}
+            columns={columns}
+            actions={[
+              {
+                icon: <FiEye />,
+                onClick: (row) => handleGetById(Number(row.id)),
+                className: "bg-blue-400 text-white",
+              },
+            ]}
+            onDelete={(id) => handleDelete(Number(id))}
+          />
 
           {/* Pagination */}
           <Pagination

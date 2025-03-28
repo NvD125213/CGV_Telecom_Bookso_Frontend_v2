@@ -32,13 +32,14 @@ const TypeNumberPages = () => {
   const [openModal, setOpenModal] = useState(false);
   const [type, setType] = useState<ITypeNumber | undefined>(undefined);
   const [types, setTypes] = useState<ITypeNumber[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorData, setErrorData] = useState("");
 
-  const getAllData = async () => {
-    setLoading(true);
+  const getAllData = async (delay = 0) => {
     setError(null);
     try {
+      await new Promise((resolve) => setTimeout(resolve, delay));
       const res = await getTypeNumber();
       if (res?.length > 0) {
         const formatData = res.map((item: any) => ({
@@ -47,14 +48,16 @@ const TypeNumberPages = () => {
         }));
         setTypes(formatData);
       } else {
-        setError("Không có dữ liệu");
+        setErrorData("Không có dữ liệu");
       }
-    } catch (err) {
-      setError(`Lỗi dữ liệu: ${err}`);
-    } finally {
+    } catch (err: any) {
+      setError(`${err}`);
       setLoading(false);
+    } finally {
+      setTimeout(() => setLoading(false), 1000);
     }
   };
+
   useEffect(() => {
     getAllData();
   }, []);
@@ -73,50 +76,43 @@ const TypeNumberPages = () => {
 
   return (
     <>
-      {loading ? (
-        <div>Đang tải dữ liệu...</div>
-      ) : error ? (
-        <div>{error}</div>
-      ) : (
-        <>
-          <PageBreadcrumb pageTitle="Định dạng số" />
-          <div className="flex justify-end mb-4">
-            <button
-              onClick={() => {
-                setType(undefined);
+      <>
+        <PageBreadcrumb pageTitle="Nhà cung cấp" />
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={() => {
+              setType(undefined);
+              setOpenModal(!openModal);
+            }}
+            className="flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
+            <IoIosAdd size={24} />
+            Thêm
+          </button>
+        </div>
+        <div className="space-y-6">
+          {error && <div className="text-red-500">{error}</div>}
+          <ComponentCard>
+            <ReusableTable
+              error={errorData}
+              title="Danh sách số điện thoại"
+              data={types}
+              columns={columns}
+              onEdit={(item) => {
+                setType(item);
                 setOpenModal(!openModal);
               }}
-              className="flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
-              <IoIosAdd size={24} />
-              Thêm
-            </button>
-          </div>
-          <div className="space-y-6">
-            <ComponentCard>
-              {types.length > 0 ? (
-                <ReusableTable
-                  title="Danh sách định dạng"
-                  data={types}
-                  columns={columns}
-                  onEdit={(item) => {
-                    setType(item);
-                    setOpenModal(!openModal);
-                  }}
-                  onDelete={(id) => handleDelete(String(id))}
-                />
-              ) : (
-                <div>Không có dữ liệu</div>
-              )}
-            </ComponentCard>
-          </div>
-          <ModalTypeNumber
-            isOpen={openModal}
-            onClose={() => setOpenModal(!openModal)}
-            data={type}
-            onSuccess={getAllData}
-          />
-        </>
-      )}
+              isLoading={loading}
+              onDelete={(id) => handleDelete(String(id))}
+            />
+          </ComponentCard>
+        </div>
+        <ModalTypeNumber
+          isOpen={openModal}
+          onClose={() => setOpenModal(!openModal)}
+          data={type}
+          onSuccess={getAllData}
+        />
+      </>
     </>
   );
 };

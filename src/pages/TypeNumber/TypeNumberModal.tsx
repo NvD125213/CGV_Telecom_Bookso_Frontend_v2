@@ -109,7 +109,6 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
       }
     } else {
       const res = await updateTypeNumber(typeNumber.id, submitData);
-      console.log(res);
       if (res?.status === 200) {
         Swal.fire({
           title: "Cập nhật thành công!",

@@ -43,7 +43,8 @@ function PhoneNumbers() {
   const [selectedPhone, setselectedPhone] = useState<IPhoneNumber | null>(null);
   const [search, setSearch] = useState<string>("");
   const [safeData, setSafeData] = useState<IPhoneNumber[]>([]);
-
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   // Get value from query parameter or set default value
   const [quantity, setQuantity] = useState(
     Number(searchParams.get("quantity")) || 20
@@ -60,6 +61,7 @@ function PhoneNumbers() {
     status: string,
     offset: number
   ) => {
+    setLoading(true);
     try {
       const response = await bookingPhoneForOption({
         quantity,
@@ -81,6 +83,11 @@ function PhoneNumbers() {
           vanity_number_fee: formatNumber(phone?.vanity_number_fee),
         })
       );
+      if (response.data.phone_numbers.length === 0) {
+        setError("Không có dữ liệu");
+      } else {
+        setError("");
+      }
 
       setSafeData(formattedData);
       setData({
@@ -96,6 +103,8 @@ function PhoneNumbers() {
       });
     } catch (error) {
       console.error("Lỗi khi gọi API:", error);
+    } finally {
+      setTimeout(() => setLoading(false), 1000);
     }
   };
 
@@ -223,23 +232,21 @@ function PhoneNumbers() {
             </div>
           </div>
 
-          {safeData.length > 0 ? (
-            <ReusableTable
-              title="Danh sách số điện thoại"
-              data={safeData}
-              columns={columns}
-              actions={[
-                {
-                  icon: <FiEye />,
-                  onClick: (row) => handleGetById(Number(row.id)),
-                  className: "bg-blue-400 text-white",
-                },
-              ]}
-              onDelete={(id) => handleDelete(Number(id))}
-            />
-          ) : (
-            <div>Không có dữ liệu</div>
-          )}
+          <ReusableTable
+            isLoading={loading}
+            error={error}
+            title="Danh sách số điện thoại"
+            data={safeData}
+            columns={columns}
+            actions={[
+              {
+                icon: <FiEye />,
+                onClick: (row) => handleGetById(Number(row.id)),
+                className: "bg-blue-400 text-white",
+              },
+            ]}
+            onDelete={(id) => handleDelete(Number(id))}
+          />
 
           <Pagination
             limit={quantity}

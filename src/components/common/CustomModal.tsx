@@ -43,6 +43,7 @@ interface CustomModalProps {
   showSubmitButton?: boolean;
   disabledAll?: boolean;
   errorDetail?: string;
+  isLoading?: false;
 }
 
 const CustomModal: React.FC<CustomModalProps> = ({
@@ -57,7 +58,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
   disabledAll = false,
   errorDetail,
 }) => {
-  const gridCols = fields.length >= 8 ? "grid-cols-2" : "grid-cols-1";
+  const gridCols = fields.length >= 6 ? "grid-cols-2" : "grid-cols-1";
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[700px] m-4">

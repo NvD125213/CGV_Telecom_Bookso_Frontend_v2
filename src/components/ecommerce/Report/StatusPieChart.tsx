@@ -47,6 +47,7 @@ const NumberStatusPieChart = () => {
   const [day, setDay] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [reportData, setReportData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [pagination, setPagination] = useState({
     limit: INITIAL_LIMIT,
     offset: 0,
@@ -84,10 +85,10 @@ const NumberStatusPieChart = () => {
     fetchData();
   }, [year, month, day]);
 
-  // Fetch report data khi selectedEntry thay đổi
   useEffect(() => {
     if (selectedEntry && isModalOpen) {
-      const fetchReport = async () => {
+      setIsLoading(true);
+      const timer = setTimeout(async () => {
         try {
           const response = await getDetailReportByRole({
             option: selectedEntry.detail,
@@ -118,10 +119,12 @@ const NumberStatusPieChart = () => {
           }));
         } catch (error) {
           console.error("Lỗi khi fetch report:", error);
+        } finally {
+          setTimeout(() => setIsLoading(false), 1000);
         }
-      };
+      }, 1000);
 
-      fetchReport();
+      return () => clearTimeout(timer);
     }
   }, [
     selectedEntry,
@@ -238,6 +241,7 @@ const NumberStatusPieChart = () => {
           }));
         }}
         onClose={() => setIsModalOpen(false)}
+        isLoading={isLoading}
       />
     </ComponentCard>
   );

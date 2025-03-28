@@ -3,7 +3,6 @@ import Cookies from "js-cookie";
 
 const axiosInstance = axios.create({
   baseURL: "http://13.229.236.236:8000",
-  timeout: 10000,
 });
 
 axiosInstance.interceptors.request.use(
