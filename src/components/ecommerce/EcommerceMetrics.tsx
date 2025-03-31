@@ -1,12 +1,7 @@
-import React, { useState, useEffect } from "react";
-import { getQuantityPhoneAvailable } from "../../services/phoneNumber";
-import {
-  ArrowDownIcon,
-  ArrowUpIcon,
-  BoxIconLine,
-  GroupIcon,
-} from "../../icons";
+import { useState, useEffect } from "react";
+import { ArrowDownIcon, BoxIconLine, GroupIcon } from "../../icons";
 import Badge from "../ui/badge/Badge";
+import { getQuantityAvailable } from "../../services/phoneNumber";
 
 export default function EcommerceMetrics() {
   const [quantityPhoneNumberAvailable, setQuantityPhoneNumberAvailable] =
@@ -15,7 +10,7 @@ export default function EcommerceMetrics() {
   useEffect(() => {
     const fetchingDataPhoneNumberAvailable = async () => {
       try {
-        const response = await getQuantityPhoneAvailable();
+        const response = await getQuantityAvailable();
         setQuantityPhoneNumberAvailable(
           response?.data?.quantity_available || 0
         );
@@ -37,16 +32,16 @@ export default function EcommerceMetrics() {
         <div className="flex items-end justify-between mt-5">
           <div>
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              Số lượng khách hàng
+              Số lượng số tồn kho
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              4000
+              {quantityPhoneNumberAvailable}
             </h4>
           </div>
-          <Badge color="success">
+          {/* <Badge color="success">
             <ArrowUpIcon />
             11.01%
-          </Badge>
+          </Badge> */}
         </div>
       </div>
       {/* <!-- Metric Item End --> */}

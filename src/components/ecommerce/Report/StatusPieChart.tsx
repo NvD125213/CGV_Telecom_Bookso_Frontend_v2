@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 import ComponentCard from "../../common/ComponentCard";
-import { getDashBoard, getDetailReportByRole } from "../../../services/report";
+import {
+  getDashBoard,
+  getDetailReportByOption,
+} from "../../../services/report";
 import ModalPagination from "../../common/ModalPagination";
 import { IReportDetail } from "../../../types";
 import { formatDate } from "../../../helper/formatDateToISOString";
@@ -27,6 +30,8 @@ const getColumns = (status: string) => {
     return [
       ...baseColumns,
       { key: "released_at", label: "Thời gian triển khai" },
+      { key: "user_name_release", label: "Người triển khai" },
+      { key: "contract_code", label: "Mã hợp đồng" },
     ];
   }
 
@@ -48,6 +53,7 @@ const NumberStatusPieChart = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [reportData, setReportData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const [pagination, setPagination] = useState({
     limit: INITIAL_LIMIT,
     offset: 0,
@@ -57,6 +63,8 @@ const NumberStatusPieChart = () => {
   const prevSelectedEntry = useRef<typeof selectedEntry>(null);
   // Fetch dashboard data
   useEffect(() => {
+    let isMounted = true; // Chặn setState khi component unmount
+
     const fetchData = async () => {
       try {
         const response = await getDashBoard({
@@ -65,67 +73,82 @@ const NumberStatusPieChart = () => {
           day: day ? parseInt(day) : undefined,
         });
 
-        setData([
-          {
-            name: "Đã Book",
-            value: response?.data?.booked || 0,
-            detail: "booked",
-          },
-          {
-            name: "Đã Triển Khai",
-            value: response?.data?.deployed || 0,
-            detail: "released",
-          },
-        ]);
-      } catch (error) {
-        console.error("Lỗi khi lấy dữ liệu:", error);
+        if (isMounted) {
+          setData([
+            {
+              name: "Đã Book",
+              value: response?.data?.booked || 0,
+              detail: "booked",
+            },
+            {
+              name: "Đã Triển Khai",
+              value: response?.data?.deployed || 0,
+              detail: "released",
+            },
+          ]);
+          setError(""); // Reset lỗi nếu fetch thành công
+        }
+      } catch (error: any) {
+        if (isMounted) {
+          console.log("Lỗi khi lấy dữ liệu:", error.response?.data?.detail);
+          setError(
+            error.response?.data?.detail || "Đã xảy ra lỗi, vui lòng thử lại."
+          );
+        }
       }
     };
 
     fetchData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [year, month, day]);
 
   useEffect(() => {
-    if (selectedEntry && isModalOpen) {
-      setIsLoading(true);
-      const timer = setTimeout(async () => {
-        try {
-          const response = await getDetailReportByRole({
-            option: selectedEntry.detail,
-            limit: pagination.limit,
-            offset: pagination.offset,
-            year,
-            month,
-            day: day ? parseInt(day) : undefined,
-          });
+    if (!selectedEntry || !isModalOpen) return;
 
-          const formattedData = response.data.data.map(
-            (phone: IReportDetail) => ({
-              ...phone,
-              booked_until: phone.booked_until
-                ? formatDate(phone.booked_until)
-                : "0",
-              booked_at: phone.booked_at ? formatDate(phone.booked_at) : "0",
-              released_at: phone.released_at
-                ? formatDate(phone.released_at)
-                : "0",
-            })
-          );
+    setIsLoading(true);
+    setError(""); // Reset lỗi trước khi fetch lại
 
-          setReportData(formattedData);
-          setPagination((prev) => ({
-            ...prev,
-            totalPages: response.data.total_pages,
-          }));
-        } catch (error) {
-          console.error("Lỗi khi fetch report:", error);
-        } finally {
-          setTimeout(() => setIsLoading(false), 1000);
-        }
-      }, 1000);
+    const fetchDetails = async () => {
+      try {
+        const response = await getDetailReportByOption({
+          option: selectedEntry.detail,
+          limit: pagination.limit,
+          offset: pagination.offset,
+          year,
+          month,
+          day: day ? parseInt(day) : undefined,
+        });
 
-      return () => clearTimeout(timer);
-    }
+        setReportData(
+          response.data.data.map((phone: IReportDetail) => ({
+            ...phone,
+            booked_until: phone.booked_until
+              ? formatDate(phone.booked_until)
+              : "0",
+            booked_at: phone.booked_at ? formatDate(phone.booked_at) : "0",
+            released_at: phone.released_at
+              ? formatDate(phone.released_at)
+              : "0",
+          }))
+        );
+
+        setPagination((prev) => ({
+          ...prev,
+          totalPages: response.data.total_pages,
+        }));
+      } catch (error: any) {
+        console.log("Lỗi khi lấy dữ liệu:", error.response?.data?.detail);
+        setError(error.response?.data?.detail);
+      } finally {
+        setTimeout(() => setIsLoading(false), 1000);
+      }
+    };
+
+    const timer = setTimeout(fetchDetails, 1000);
+    return () => clearTimeout(timer);
   }, [
     selectedEntry,
     isModalOpen,
@@ -144,14 +167,15 @@ const NumberStatusPieChart = () => {
     setSelectedEntry(entry);
     setPagination((prev) => ({
       ...prev,
-      offset: isSameEntry ? prev.offset : 0, // Giữ offset nếu entry không thay đổi, ngược lại reset về 0
+      offset: isSameEntry ? prev.offset : 0,
     }));
     setIsModalOpen(true);
-    // Cập nhật giá trị trước đó
     prevSelectedEntry.current = entry;
   };
 
   const totalValue = data.reduce((sum, item) => sum + item.value, 0);
+
+  // console.log(">>>>", error);
 
   return (
     <ComponentCard>
@@ -223,6 +247,7 @@ const NumberStatusPieChart = () => {
       </div>
 
       <ModalPagination
+        error={error}
         isOpen={isModalOpen}
         title={`Chi tiết về danh sách số ${selectedEntry?.name || ""}`}
         data={reportData || []}

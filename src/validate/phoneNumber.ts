@@ -1,3 +1,4 @@
+import { IBookRandom } from "../pages/PhoneNumbers/PhoneRandomModal";
 import { IPhoneNumber } from "../types";
 
 export const validatePhoneNumber = (phone: IPhoneNumber) => {
@@ -29,6 +30,22 @@ export const validatePhoneNumber = (phone: IPhoneNumber) => {
     errors.vanity_number_fee = "Phí số đẹp không được để trống";
   } else if (phone.vanity_number_fee < 0) {
     errors.vanity_number_fee = "Phí số đẹp phải lớn hơn hoặc bằng 0";
+  }
+
+  return errors;
+};
+
+export const validateRandomPhone = (phone: IBookRandom) => {
+  const errors: Partial<Record<keyof IBookRandom, string>> = {};
+  if (!phone.quantity) {
+    errors.quantity = "Nhập số điện thoại";
+  }
+  if (!phone.provider_id) {
+    errors.provider_id = "Vui lòng chọn nhà cung cấp";
+  }
+
+  if (!phone.type_id) {
+    errors.type_id = "Vui lòng chọn loại số";
   }
 
   return errors;

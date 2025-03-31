@@ -13,6 +13,8 @@ import useSelectData from "../../hooks/useSelectData";
 import ReusableTable from "../../components/common/ReusableTable";
 import { FiEye } from "react-icons/fi";
 import { formatDate } from "../../helper/formatDateToISOString";
+import { useSelector } from "react-redux";
+import { RootState } from "../../store";
 import {
   booking,
   bookingPhone,
@@ -22,8 +24,10 @@ import {
 } from "../../services/phoneNumber";
 import Pagination from "../../components/pagination/pagination";
 import PhoneModalDetail from "./PhoneModalDetail";
-
+import { GiPerspectiveDiceSixFacesRandom } from "react-icons/gi";
 import Swal from "sweetalert2";
+import Spinner from "../../components/common/LoadingSpinner";
+import PhoneRandomModal from "./PhoneRandomModal";
 
 interface PhoneNumberProps {
   total_pages: number;
@@ -44,6 +48,7 @@ function PhoneNumberFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [openModal, setOpenModal] = useState(false);
   const [openModalDetail, setOpenModalDetail] = useState(false);
+  const [openModalRandom, setOpenModalRandom] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const [search, setSearch] = useState<string>(
@@ -61,7 +66,10 @@ function PhoneNumberFilters() {
   const controllerRef = useRef<AbortController | null>(null);
   const [selectedPhone, setselectedPhone] = useState<IPhoneNumber | null>(null);
   const [loading, setLoading] = useState(false);
+  const [bookLoading, setBookLoading] = useState(false);
   const [error, setError] = useState("");
+  const user = useSelector((state: RootState) => state.auth.user);
+
   // Set default value of quantity và offset if do not have
   useEffect(() => {
     if (!searchParams.get("quantity") || !searchParams.get("offset")) {
@@ -208,6 +216,7 @@ function PhoneNumberFilters() {
       id_phone_numbers: selectedIds,
     };
 
+    setBookLoading(true);
     try {
       const res = await booking(requestBody);
       if (res.status === 200) {
@@ -215,11 +224,19 @@ function PhoneNumberFilters() {
         fetchData();
         setSelectedIds([]);
       }
-    } catch (err) {
-      console.error("Lỗi khi gọi API:", err);
+    } catch (err: any) {
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi...",
+        text: `${err.response.data.detail} !`,
+      });
+      fetchData();
+    } finally {
+      setBookLoading(false);
     }
   };
 
+  // Handle delete number event
   const handleDelete = async (id: any) => {
     if (typeof id !== "number" || isNaN(id)) {
       console.error("Invalid ID:", id);
@@ -256,109 +273,129 @@ function PhoneNumberFilters() {
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Đặt số điện thoại" />
-
-      <div className="flex justify-end mb-4">
-        <button
-          onClick={() => setOpenModal(true)}
-          className="flex items-center dark:bg-black dark:text-white  gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
-          <IoIosAdd size={24} />
-          Thêm
-        </button>
-      </div>
-
-      {/* Form */}
-      <div className="space-y-6">
-        <ComponentCard>
-          <div className=" grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <div>
-              <Label htmlFor="inputTwo">Tìm kiếm theo đầu số</Label>
-              <Input
-                type="text"
-                id="inputTwo"
-                placeholder="Nhập đầu số..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={handleKeyDown}
-              />
-            </div>
-
-            <div>
-              <Label>Nhà cung cấp</Label>
-              <Select
-                options={[
-                  { label: "Tất cả", value: "" },
-                  ...providers.map((provider) => ({
-                    label: provider.name,
-                    value: provider.name,
-                    key: provider.id,
-                  })),
-                ]}
-                className="dark:bg-black dark:text-white "
-                onChange={(value) => setProvider(value)}
-                placeholder="Lựa chọn nhà cung cấp"
-              />
-            </div>
-            <div className="flex items-end ">
+      {bookLoading ? (
+        <Spinner />
+      ) : (
+        <>
+          <PageBreadcrumb pageTitle="Đặt số điện thoại" />
+          {user?.role === 1 ? (
+            <div className="flex justify-end mb-4">
               <button
-                onClick={() => handleBookNumber()}
-                className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+                onClick={() => setOpenModal(true)}
+                className="flex items-center dark:bg-black dark:text-white  gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
                 <IoIosAdd size={24} />
-                Book số
+                Thêm
               </button>
             </div>
+          ) : (
+            <></>
+          )}
+
+          {/* Form */}
+          <div className="space-y-6">
+            <ComponentCard>
+              <div className=" grid grid-cols-1 gap-4 lg:grid-cols-3">
+                <div>
+                  <Label htmlFor="inputTwo">Tìm kiếm theo đầu số</Label>
+                  <Input
+                    type="text"
+                    id="inputTwo"
+                    placeholder="Nhập đầu số..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                  />
+                </div>
+
+                <div>
+                  <Label>Nhà cung cấp</Label>
+                  <Select
+                    options={[
+                      { label: "Tất cả", value: "" },
+                      ...providers.map((provider) => ({
+                        label: provider.name,
+                        value: provider.name,
+                        key: provider.id,
+                      })),
+                    ]}
+                    className="dark:bg-black dark:text-white "
+                    onChange={(value) => setProvider(value)}
+                    placeholder="Lựa chọn nhà cung cấp"
+                  />
+                </div>
+                <div className="flex items-end gap-2">
+                  <button
+                    onClick={() => handleBookNumber()}
+                    className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+                    <IoIosAdd size={24} />
+                    Book số
+                  </button>
+                  <button
+                    onClick={() => setOpenModalRandom(!openModalRandom)}
+                    className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+                    <GiPerspectiveDiceSixFacesRandom size={24} />
+                    Random
+                  </button>
+                </div>
+              </div>
+
+              {/* Data table */}
+
+              <ReusableTable
+                isLoading={loading}
+                title="Danh sách số điện thoại"
+                data={safeData}
+                onCheck={(selectedIds) => getIds(selectedIds)}
+                setSelectedIds={setSelectedIds}
+                selectedIds={selectedIds}
+                error={error}
+                columns={columns}
+                actions={[
+                  {
+                    icon: <FiEye />,
+                    onClick: (row) => handleGetById(Number(row.id)),
+                    className: "bg-blue-400 text-white",
+                  },
+                ]}
+                onDelete={(id) => handleDelete(Number(id))}
+              />
+
+              {/* Pagination */}
+              <Pagination
+                limit={quantity}
+                offset={offset}
+                totalPages={data?.total_pages ?? 0}
+                onPageChange={(limit, newOffset) => {
+                  setQuantity(limit);
+                  setOffset(newOffset);
+                }}
+                onLimitChange={(newLimit) => {
+                  setQuantity(newLimit);
+                  setOffset(1);
+                }}
+              />
+            </ComponentCard>
           </div>
 
-          {/* Data table */}
-
-          <ReusableTable
-            isLoading={loading}
-            title="Danh sách số điện thoại"
-            data={safeData}
-            onCheck={(selectedIds) => getIds(selectedIds)}
-            setSelectedIds={setSelectedIds}
-            selectedIds={selectedIds}
-            error={error}
-            columns={columns}
-            actions={[
-              {
-                icon: <FiEye />,
-                onClick: (row) => handleGetById(Number(row.id)),
-                className: "bg-blue-400 text-white",
-              },
-            ]}
-            onDelete={(id) => handleDelete(Number(id))}
+          {/* Modal */}
+          <PhoneNumberModal
+            isOpen={openModal}
+            onCloseModal={() => setOpenModal(false)}
+            onSuccess={fetchData}
           />
-
-          {/* Pagination */}
-          <Pagination
-            limit={quantity}
-            offset={offset}
-            totalPages={data?.total_pages ?? 0}
-            onPageChange={(limit, newOffset) => {
-              setQuantity(limit);
-              setOffset(newOffset);
-            }}
-            onLimitChange={(newLimit) => {
-              setQuantity(newLimit);
-              setOffset(1);
-            }}
+          <PhoneModalDetail
+            isOpen={openModalDetail}
+            onCloseModal={() => setOpenModalDetail(false)}
+            data={selectedPhone}
+            onSuccess={fetchData}
           />
-        </ComponentCard>
-      </div>
-
-      {/* Modal */}
-      <PhoneNumberModal
-        isOpen={openModal}
-        onCloseModal={() => setOpenModal(false)}
-        onSuccess={fetchData}
-      />
-      <PhoneModalDetail
-        isOpen={openModalDetail}
-        onCloseModal={() => setOpenModalDetail(false)}
-        data={selectedPhone}
-        onSuccess={fetchData}
-      />
+          <PhoneRandomModal
+            isOpen={openModalRandom}
+            onCloseModal={() => setOpenModalRandom(false)}
+            onSuccess={fetchData}
+          />
+        </>
+      )}
     </>
   );
 }

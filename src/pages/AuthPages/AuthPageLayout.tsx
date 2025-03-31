@@ -21,11 +21,11 @@ export default function AuthLayout({
                 <img
                   width={231}
                   height={48}
-                  src="/public/Logo/Artboard 2.png"
+                  src="/public/Logo/Logo company.png"
                   alt="Logo"
                 />
               </Link>
-              <p className="text-center text-gray-400 dark:text-white/60">
+              <p className="text-center pt-4 text-gray-400 dark:text-white/60">
                 Hệ thống Booking số dành cho sale và doanh nghiệp hàng đầu Việt
                 Nam
               </p>

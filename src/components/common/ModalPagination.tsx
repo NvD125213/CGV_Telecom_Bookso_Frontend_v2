@@ -20,6 +20,7 @@ interface ModalPaginationProps {
   year?: number;
   month?: number;
   day?: number;
+  error?: string;
   fetchData: (params: {
     limit: number;
     offset: number;
@@ -50,6 +51,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
   selectedIds,
   setSelectedIds,
   isLoading = false,
+  error = "",
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredData, setFilteredData] = useState(data);
@@ -75,12 +77,13 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
   const handleLimitChange = (newLimit: number) => {
     fetchData({ limit: newLimit, offset: 0, year, month, day }); // Reset offset về 0 khi thay đổi limit
   };
+  // console.log(">>", error);
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      className="max-w-[85%] min-h-[600px] m-4">
+      className="max-w-[90%] min-h-[600px] m-4">
       <div className="relative w-full p-4 overflow-y-auto bg-white rounded-3xl dark:bg-gray-900 lg:p-11">
         {/* Tiêu đề */}
         <div className="px-2 pr-14">
@@ -114,6 +117,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
 
         {/* Bảng dữ liệu */}
         <ReusableTable
+          error={error}
           data={filteredData}
           columns={columns}
           selectedIds={selectedIds}

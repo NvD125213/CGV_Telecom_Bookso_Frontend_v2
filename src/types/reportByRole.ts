@@ -20,5 +20,7 @@ export interface IReportDetail extends IReportRole {
   provider_name: string;
   type_name: string;
   booked_at?: string;
+  user_name_release?: string;
+  contract_code?: string;
   released_at?: string;
 }

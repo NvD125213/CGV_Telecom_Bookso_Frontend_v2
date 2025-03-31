@@ -15,17 +15,32 @@ export const getDashBoard = async (params: IReportDate) => {
   }
 };
 
-export const getDetailReportByRole = async (params: IReportDate) => {
+export const getDetailReportByOption = async (params: IReportDate) => {
   try {
     const response = await axiosInstance.get(
-      "/api/v1/report/detail-report-by-role",
+      "/api/v1/report/detail-report-by-option",
       {
         params,
       }
     );
     return response;
   } catch (error) {
-    console.error("Failed to fetch detail report by role:", error);
+    console.error("Failed to fetch detail report by option:", error);
+    throw error;
+  }
+};
+
+export const getDetailReportCurrent = async (params: IReportDate) => {
+  try {
+    const response = await axiosInstance.get(
+      "/api/v1/report/booking-by-current",
+      {
+        params,
+      }
+    );
+    return response;
+  } catch (error) {
+    console.error("Failed to fetch detail report by option:", error);
     throw error;
   }
 };

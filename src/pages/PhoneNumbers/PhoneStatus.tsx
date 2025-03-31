@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router";
-
+import { useSearchParams } from "react-router-dom"; // Sửa "react-router" thành "react-router-dom"
+import {
+  releasePhoneNumber,
+  IReleasePhoneNumber,
+  // fetchAllBookingPhones,
+} from "../../services/phoneNumber";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
 import Label from "../../components/form/Label";
@@ -16,10 +20,15 @@ import ReusableTable from "../../components/common/ReusableTable";
 import Pagination from "../../components/pagination/pagination";
 import PhoneModalDetail from "./PhoneModalDetail";
 import Swal from "sweetalert2";
-// import { formatDate } from "../../helper/formatDateToISOString";
 import { FiEye } from "react-icons/fi";
 import { formatDate } from "../../helper/formatDateToISOString";
-// import { IoIosCall } from "react-icons/io";
+import { MdOutlineNewReleases } from "react-icons/md";
+import Spinner from "../../components/common/LoadingSpinner";
+import { useSelector } from "react-redux";
+import { RootState } from "../../store";
+import { CiExport } from "react-icons/ci";
+
+// import exportPivotTableToExcel from "../../helper/exportDataToExcel";
 
 interface PhoneNumberProps {
   total_pages: number;
@@ -37,15 +46,13 @@ const columns: { key: keyof IPhoneNumber; label: string }[] = [
 ];
 
 function PhoneNumbers() {
-  // Get and set values query params
   const [searchParams, setSearchParams] = useSearchParams();
   const [openModal, setOpenModal] = useState(false);
-  const [selectedPhone, setselectedPhone] = useState<IPhoneNumber | null>(null);
+  const [selectedPhone, setSelectedPhone] = useState<IPhoneNumber | null>(null);
   const [search, setSearch] = useState<string>("");
   const [safeData, setSafeData] = useState<IPhoneNumber[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  // Get value from query parameter or set default value
   const [quantity, setQuantity] = useState(
     Number(searchParams.get("quantity")) || 20
   );
@@ -54,8 +61,9 @@ function PhoneNumbers() {
     searchParams.get("status") || "available"
   );
   const [data, setData] = useState<PhoneNumberProps | undefined>(undefined);
+  const [bookLoading, setBookLoading] = useState(false);
+  const user = useSelector((state: RootState) => state.auth.user);
 
-  // Call api when data change
   const fetchData = async (
     quantity: number,
     status: string,
@@ -66,12 +74,11 @@ function PhoneNumbers() {
       const response = await bookingPhoneForOption({
         quantity,
         status,
-        offset, // change offset to zero based
+        offset,
       });
 
-      const formatNumber = (num: any) => {
-        return num?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") || "0";
-      };
+      const formatNumber = (num: any) =>
+        num?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") || "0";
       const formattedData = response.data.phone_numbers.map(
         (phone: IPhoneNumber) => ({
           ...phone,
@@ -95,7 +102,6 @@ function PhoneNumbers() {
         phone_numbers: formattedData,
       });
 
-      // Update query params trên URL
       setSearchParams({
         quantity: quantity.toString(),
         status,
@@ -108,17 +114,16 @@ function PhoneNumbers() {
     }
   };
 
-  // Automatically call API when query params change
   useEffect(() => {
     fetchData(quantity, status, offset); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quantity, status, offset]);
 
-  // Handle api when change status
   const handleChangeStatus = (value: string) => {
     setStatus(value);
-    setOffset(0); // Reset offset when change status
+    setOffset(0);
     fetchData(quantity, value, 0);
   };
+
   const handleGetById = async (id: number) => {
     try {
       const res = await getPhoneByID(id);
@@ -126,9 +131,9 @@ function PhoneNumbers() {
         const { type_number_id, ...rest } = res.data;
         const modifiedData = {
           ...rest,
-          type_id: type_number_id, // Đổi tên key
+          type_id: type_number_id,
         };
-        setselectedPhone(modifiedData);
+        setSelectedPhone(modifiedData);
         setOpenModal(true);
       }
     } catch (error) {
@@ -136,8 +141,6 @@ function PhoneNumbers() {
       Swal.fire("Lỗi", "Không thể tải dữ liệu chi tiết", "error");
     }
   };
-
-  // Get description number
 
   const handleSearch = (term: string) => {
     const regexPattern = term.replace(/\*/g, ".*");
@@ -155,6 +158,7 @@ function PhoneNumbers() {
       return;
     }
   };
+
   const handleOnKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       if (search === "") {
@@ -166,6 +170,7 @@ function PhoneNumbers() {
       }
     }
   };
+
   const handleDelete = async (id: any) => {
     if (typeof id !== "number" || isNaN(id)) {
       console.error("Invalid ID:", id);
@@ -199,76 +204,172 @@ function PhoneNumbers() {
     }
   };
 
+  const handleReleasedNumber = async (data: any) => {
+    setBookLoading(true);
+    try {
+      const { value: contractCode, isConfirmed } = await Swal.fire({
+        title: "Nhập Contract Code",
+        input: "text",
+        inputLabel: `Nhập mã giao dịch cho số ${data.phone_number}`,
+        inputPlaceholder: "Nhập mã giao dịch...",
+        showCancelButton: true,
+        confirmButtonText: "Xác nhận",
+        cancelButtonText: "Hủy",
+        inputValidator: (value) => {
+          if (!value) {
+            return "Mã giao dịch không được để trống!";
+          }
+        },
+      });
+
+      if (!isConfirmed) return;
+
+      const transformedData: IReleasePhoneNumber = {
+        data_releases: [
+          {
+            username: user.sub,
+            phone_number: data.phone_number,
+            contract_code: contractCode,
+          },
+        ],
+      };
+
+      const res = await releasePhoneNumber(transformedData);
+      if (res.status === 200) {
+        Swal.fire(
+          "Thành công",
+          "Giải phóng số điện thoại thành công!",
+          "success"
+        );
+        fetchData(quantity, status, offset);
+      }
+    } catch (err: any) {
+      console.error("Lỗi khi giải phóng số:", err);
+      Swal.fire(
+        "Lỗi",
+        err.message || "Có lỗi xảy ra, vui lòng thử lại!",
+        "error"
+      );
+      fetchData(quantity, status, offset);
+    } finally {
+      setBookLoading(false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    // setBookLoading(true);
+    const fulldata = await bookingPhoneForOption({
+      quantity: 100,
+      status: "available",
+      offset: 0,
+    });
+
+    console.log(">>", fulldata.data);
+
+    // if (fullData.length === 0) {
+    //   console.warn("Không có dữ liệu để xuất Excel.");
+    //   setBookLoading(false);
+    //   return;
+    // }
+    // exportPivotTableToExcel(
+    //   fullData,
+    //   "provider_name",
+    //   "type_name",
+    //   "phone_summary.xlsx"
+    // );
+    // setBookLoading(false);
+  };
+
   return (
     <>
-      <PageBreadcrumb pageTitle="Trạng thái số" />
+      {bookLoading ? (
+        <Spinner />
+      ) : (
+        <>
+          <PageBreadcrumb pageTitle="Trạng thái số" />
 
-      <div className="space-y-6">
-        <ComponentCard>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <div>
-              <Label>Trạng thái</Label>
-              <Select
-                options={[
-                  { label: "Có sẵn", value: "available" },
-                  { label: "Đã đặt", value: "booked" },
-                  { label: "Đã triển khai", value: "released" },
+          <div className="space-y-6">
+            <ComponentCard>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                <div>
+                  <Label>Trạng thái</Label>
+                  <Select
+                    options={[
+                      { label: "Có sẵn", value: "available" },
+                      { label: "Đã đặt", value: "booked" },
+                      { label: "Đã triển khai", value: "released" },
+                    ]}
+                    placeholder="Lựa chọn trạng thái"
+                    onChange={handleChangeStatus}
+                    defaultValue={"available"}
+                    className="dark:bg-dark-900"
+                  />
+                </div>
+                <div>
+                  <Label>Tìm kiếm theo số điện thoại</Label>
+                  <Input
+                    placeholder="Nhập vào số điện thoại tìm kiếm..."
+                    name="search"
+                    value={search}
+                    onChange={onChangeInputSearch}
+                    onKeyDown={handleOnKeyDown}
+                  />
+                </div>
+                <div className="flex items-end ">
+                  <button
+                    onClick={() => handleExportExcel()}
+                    className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+                    <CiExport size={24} />
+                    Xuất Excel
+                  </button>
+                </div>
+              </div>
+
+              <ReusableTable
+                isLoading={loading}
+                error={error}
+                title="Danh sách số điện thoại"
+                data={safeData}
+                columns={columns}
+                actions={[
+                  {
+                    icon: <FiEye />,
+                    onClick: (row) => handleGetById(Number(row.id)),
+                    className: "bg-blue-400 text-white",
+                  },
+                  {
+                    icon: <MdOutlineNewReleases />,
+                    onClick: (row) => handleReleasedNumber(row),
+                    className: "bg-green-400 text-white",
+                    condition: () => status === "booked",
+                  },
                 ]}
-                placeholder="Lựa chọn trạng thái"
-                onChange={handleChangeStatus}
-                defaultValue={"available"}
-                className="dark:bg-dark-900"
+                onDelete={(id) => handleDelete(Number(id))}
               />
-            </div>
-            <div>
-              <Label>Tìm kiếm theo số điện thoại</Label>
-              <Input
-                placeholder="Nhập vào số điện thoại tìm kiếm..."
-                name="search"
-                value={search}
-                onChange={onChangeInputSearch}
-                onKeyDown={handleOnKeyDown}
+
+              <Pagination
+                limit={quantity}
+                offset={offset}
+                totalPages={data?.total_pages ?? 0}
+                onPageChange={(limit, newOffset) => {
+                  setQuantity(limit);
+                  setOffset(newOffset);
+                }}
+                onLimitChange={(newLimit) => {
+                  setQuantity(newLimit);
+                  setOffset(1);
+                }}
               />
-            </div>
+            </ComponentCard>
+            <PhoneModalDetail
+              onSuccess={() => fetchData(quantity, status, offset)}
+              isOpen={openModal}
+              onCloseModal={() => setOpenModal(false)}
+              data={selectedPhone}
+            />
           </div>
-
-          <ReusableTable
-            isLoading={loading}
-            error={error}
-            title="Danh sách số điện thoại"
-            data={safeData}
-            columns={columns}
-            actions={[
-              {
-                icon: <FiEye />,
-                onClick: (row) => handleGetById(Number(row.id)),
-                className: "bg-blue-400 text-white",
-              },
-            ]}
-            onDelete={(id) => handleDelete(Number(id))}
-          />
-
-          <Pagination
-            limit={quantity}
-            offset={offset}
-            totalPages={data?.total_pages ?? 0}
-            onPageChange={(limit, newOffset) => {
-              setQuantity(limit);
-              setOffset(newOffset);
-            }}
-            onLimitChange={(newLimit) => {
-              setQuantity(newLimit);
-              setOffset(1);
-            }}
-          />
-        </ComponentCard>
-        <PhoneModalDetail
-          onSuccess={() => fetchData(quantity, status, offset)}
-          isOpen={openModal}
-          onCloseModal={() => setOpenModal(false)}
-          data={selectedPhone}
-        />
-      </div>
+        </>
+      )}
     </>
   );
 }

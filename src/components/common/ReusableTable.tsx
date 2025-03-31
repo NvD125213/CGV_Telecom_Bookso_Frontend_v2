@@ -10,10 +10,12 @@ import { RiDeleteBinLine } from "react-icons/ri";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 
+// Cập nhật interface Action để thêm condition
 interface Action<T> {
   icon?: React.ReactNode;
   onClick: (item: T) => void;
   className?: string;
+  condition?: (item: T) => boolean; // Thêm thuộc tính condition
 }
 
 interface Props<T> {
@@ -182,14 +184,18 @@ const ReusableTable = <T extends { id: string | number }>({
                               <RiDeleteBinLine />
                             </button>
                           )}
-                          {actions.map((action, index) => (
-                            <button
-                              key={index}
-                              onClick={() => action.onClick(item)}
-                              className={`px-4 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 ${action.className}`}>
-                              {action.icon}
-                            </button>
-                          ))}
+                          {actions
+                            .filter((action) =>
+                              action.condition ? action.condition(item) : true
+                            )
+                            .map((action, index) => (
+                              <button
+                                key={index}
+                                onClick={() => action.onClick(item)}
+                                className={`px-4 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 ${action.className}`}>
+                                {action.icon}
+                              </button>
+                            ))}
                         </TableCell>
                       )}
                     </TableRow>
