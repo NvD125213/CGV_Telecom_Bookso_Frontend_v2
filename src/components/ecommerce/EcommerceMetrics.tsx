@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { ArrowDownIcon, BoxIconLine, GroupIcon } from "../../icons";
-import Badge from "../ui/badge/Badge";
+import { BoxIconLine, GroupIcon } from "../../icons";
+
 import { getQuantityAvailable } from "../../services/phoneNumber";
 
 export default function EcommerceMetrics() {
@@ -32,7 +32,7 @@ export default function EcommerceMetrics() {
         <div className="flex items-end justify-between mt-5">
           <div>
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              Số lượng số tồn kho
+              Tổng số điện thoại chưa book
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
               {quantityPhoneNumberAvailable}
@@ -60,11 +60,6 @@ export default function EcommerceMetrics() {
               {quantityPhoneNumberAvailable || 0}
             </h4>
           </div>
-
-          <Badge color="error">
-            <ArrowDownIcon />
-            9.05%
-          </Badge>
         </div>
       </div>
       {/* <!-- Metric Item End --> */}
