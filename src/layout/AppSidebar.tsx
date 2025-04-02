@@ -309,23 +309,25 @@ const AppSidebar: React.FC = () => {
       onMouseLeave={() => setIsHovered(false)}>
       <div
         className={`flex ${
-          !isExpanded && !isHovered ? "lg:justify-center" : "justify-center"
+          !isExpanded && !isHovered
+            ? "lg:justify-center"
+            : "justify-start pt-4 pb-4"
         }`}>
         <Link to="/">
           {isExpanded || isHovered || isMobileOpen ? (
             <>
               <img
                 className="dark:hidden"
-                src="/public/Logo/Artboard 2.png"
+                src="/public/Logo/Logo company.png"
                 alt="Logo"
-                width={100}
+                width={180}
                 height={50}
               />
               <img
                 className="hidden dark:block"
-                src="/public/Logo/Artboard 2.png"
+                src="/public/Logo/Logo company.png"
                 alt="Logo"
-                width={100}
+                width={180}
                 height={50}
               />
             </>
@@ -333,8 +335,8 @@ const AppSidebar: React.FC = () => {
             <img
               src="/public/Logo/Artboard 2.png"
               alt="Logo"
-              width={120}
-              height={120}
+              width={180}
+              height={180}
             />
           )}
         </Link>
