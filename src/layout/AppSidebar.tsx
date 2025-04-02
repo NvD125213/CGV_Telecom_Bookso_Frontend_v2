@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { FaListAlt } from "react-icons/fa";
-
 import {
-  CalenderIcon,
+  // CalenderIcon,
   ChevronDownIcon,
   GridIcon,
   HorizontaLDots,
   TableIcon,
-  UserCircleIcon,
+  // UserCircleIcon,
   ServiceIcon,
   ContactIcon,
 } from "../icons";
@@ -39,11 +38,11 @@ const navItems: NavItem[] = [
     name: "Dashboard",
     subItems: [{ name: "Báo cáo thống kê", path: "/", pro: false }],
   },
-  {
-    icon: <CalenderIcon />,
-    name: "Lịch",
-    path: "/calendar",
-  },
+  // {
+  //   icon: <CalenderIcon />,
+  //   name: "Lịch",
+  //   path: "/calendar",
+  // },
   {
     icon: <ServiceIcon width="1em" height="1em" />,
     name: "Nhà cung cấp",
@@ -98,41 +97,13 @@ const navItems: NavItem[] = [
   // },
 ];
 
-const othersItems: NavItem[] = [
-  // {
-  //   icon: <PieChartIcon />,
-  //   name: "Charts",
-  //   subItems: [
-  //     { name: "Line Chart", path: "/line-chart", pro: false },
-  //     { name: "Bar Chart", path: "/bar-chart", pro: false },
-  //   ],
-  // },
-  // {
-  //   icon: <BoxCubeIcon />,
-  //   name: "UI Elements",
-  //   subItems: [
-  //     { name: "Alerts", path: "/alerts", pro: false },
-  //     { name: "Avatar", path: "/avatars", pro: false },
-  //     { name: "Badge", path: "/badge", pro: false },
-  //     { name: "Buttons", path: "/buttons", pro: false },
-  //     { name: "Images", path: "/images", pro: false },
-  //     { name: "Videos", path: "/videos", pro: false },
-  //   ],
-  // },
-  {
-    icon: <UserCircleIcon />,
-    name: "Hồ sơ cá nhân",
-    path: "/profile",
-  },
-];
+const othersItems: NavItem[] = [];
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const location = useLocation();
-
   // Check info user
   const user = useSelector((state: RootState) => state.auth.user);
-
   const filteredNavItems = navItems.filter(
     (item) =>
       !(
@@ -140,6 +111,7 @@ const AppSidebar: React.FC = () => {
         (item.path === "/providers" || item.path === "/type-numbers")
       )
   );
+
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";
     index: number;
@@ -385,7 +357,7 @@ const AppSidebar: React.FC = () => {
               </h2>
               {renderMenuItems(filteredNavItems, "main")}
             </div>
-            <div className="">
+            {/* <div className="">
               <h2
                 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
                   !isExpanded && !isHovered
@@ -399,7 +371,7 @@ const AppSidebar: React.FC = () => {
                 )}
               </h2>
               {renderMenuItems(othersItems, "others")}
-            </div>
+            </div> */}
           </div>
         </nav>
         {/* {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null} */}

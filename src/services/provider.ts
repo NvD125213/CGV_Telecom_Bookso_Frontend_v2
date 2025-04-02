@@ -47,8 +47,8 @@ export const updateProvider = async (id: string, data: IProvider) => {
       data
     );
     return res;
-  } catch (error) {
-    console.error("Failed to update provider:", error);
+  } catch (error: any) {
+    throw new Error(error.response.data.detail);
   }
 };
 
@@ -57,7 +57,7 @@ export const deleteProvider = async (id: string) => {
   try {
     const res = await axiosInstance.delete(`/api/v1/provider/${id}`);
     return res.data;
-  } catch (error) {
-    console.error("Failed to delete provider:", error);
+  } catch (error: any) {
+    throw new Error(error);
   }
 };

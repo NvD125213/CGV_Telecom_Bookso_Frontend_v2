@@ -10,12 +10,11 @@ import { RiDeleteBinLine } from "react-icons/ri";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 
-// Cập nhật interface Action để thêm condition
 interface Action<T> {
   icon?: React.ReactNode;
   onClick: (item: T) => void;
   className?: string;
-  condition?: (item: T) => boolean; // Thêm thuộc tính condition
+  condition?: (item: T) => boolean;
 }
 
 interface Props<T> {
@@ -28,7 +27,7 @@ interface Props<T> {
   onEdit?: (item: T) => void;
   onDelete?: (id: string | number) => void;
   actions?: Action<T>[];
-  onCheck?: (selectedIds: (string | number)[]) => void;
+  onCheck?: (selectedIds: (string | number)[], selectedRows: T[]) => void; // Sửa đổi onCheck
   selectedIds?: (string | number)[];
   setSelectedIds?: React.Dispatch<React.SetStateAction<number[]>>;
   isLoading: boolean;
@@ -55,13 +54,13 @@ const ReusableTable = <T extends { id: string | number }>({
 
     if (data.every((item) => selectedIds.includes(item.id))) {
       setSelectedIds([]);
-      onCheck?.([]);
+      onCheck?.([], []); // Truyền cả mảng rỗng cho selectedRows
     } else {
       const allIds = data
         .map((item) => Number(item.id))
         .filter((id) => !isNaN(id));
       setSelectedIds(allIds);
-      onCheck?.(allIds);
+      onCheck?.(allIds, data); // Truyền toàn bộ data khi chọn tất cả
     }
   };
 
@@ -69,21 +68,22 @@ const ReusableTable = <T extends { id: string | number }>({
     if (!setSelectedIds) return;
     if (!selectedIds) return;
 
+    let updatedSelection: (string | number)[];
+    let updatedRows: T[];
+
     if (selectedIds.includes(id)) {
-      const updatedSelection = selectedIds.filter(
-        (selectedId) => selectedId !== id
-      );
-      setSelectedIds(
-        updatedSelection.map((id) => Number(id)).filter((id) => !isNaN(id))
-      );
-      onCheck?.(updatedSelection);
+      updatedSelection = selectedIds.filter((selectedId) => selectedId !== id);
+      updatedRows = data.filter((item) => updatedSelection.includes(item.id));
     } else {
-      const updatedSelection = [...selectedIds, id];
-      setSelectedIds(
-        updatedSelection.map((id) => Number(id)).filter((id) => !isNaN(id))
-      );
-      onCheck?.(updatedSelection);
+      updatedSelection = [...selectedIds, id];
+      updatedRows = data.filter((item) => updatedSelection.includes(item.id));
     }
+
+    const numericIds = updatedSelection
+      .map((id) => Number(id))
+      .filter((id) => !isNaN(id));
+    setSelectedIds(numericIds);
+    onCheck?.(updatedSelection, updatedRows); // Truyền cả IDs và rows data
   };
 
   return error ? (

@@ -132,7 +132,7 @@ export const releasePhoneNumber = async (data: IReleasePhoneNumber) => {
       "/api/v1/booking/release-phone-number",
       data
     );
-    return res.data;
+    return res;
   } catch (err: any) {
     console.error("API Error:", err.response?.data.detail);
     throw new Error(err.response?.data?.detail);

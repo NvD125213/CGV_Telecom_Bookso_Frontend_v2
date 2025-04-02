@@ -65,7 +65,7 @@ const TypeNumberPages = () => {
   const handleDelete = async (id: string) => {
     await ModalSwalAction({
       mode: "delete",
-      title: "Nhà cung cấp",
+      title: "Xóa định dạng",
       action: async () => {
         const res = await deleteTypeNumber(id);
         return res;
@@ -77,7 +77,7 @@ const TypeNumberPages = () => {
   return (
     <>
       <>
-        <PageBreadcrumb pageTitle="Nhà cung cấp" />
+        <PageBreadcrumb pageTitle="Định dạng số" />
         <div className="flex justify-end mb-4">
           <button
             onClick={() => {

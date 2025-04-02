@@ -20,7 +20,7 @@ const ModalProvider: React.FC<ProviderModalProps> = ({
 }) => {
   const [provider, setProvider] = useState<IProvider>(newProvider);
   const [initialData, setInitialData] = useState<IProvider | null>(null);
-  const [error, setError] = useState<string>("");
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     if (data) {
@@ -31,25 +31,34 @@ const ModalProvider: React.FC<ProviderModalProps> = ({
       setInitialData(null);
     }
   }, [data]);
+
   const setValue = (name: keyof IProvider, value: string | number) => {
     setProvider((prev) => ({
       ...prev,
       [name]: value,
     }));
+    // Clear error when user starts editing
+    setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const validateForm = () => {
+    const newErrors: { [key: string]: string } = {};
+
     if (!provider.name) {
-      setError("Tên nhà cung cấp không được để trống.");
-      return false;
+      newErrors.name = "Tên nhà cung cấp không được để trống.";
     }
-    setError("");
-    return true;
+    if (!provider.description) {
+      newErrors.description = "Chi tiết không được để trống.";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
+
   const sendRequest = async () => {
     if (!validateForm()) return;
 
-    // Check if data don't change
+    // Check if data hasn't changed
     if (
       provider.id &&
       JSON.stringify(provider) === JSON.stringify(initialData)
@@ -70,18 +79,23 @@ const ModalProvider: React.FC<ProviderModalProps> = ({
         onSuccess();
       }
     } else {
-      const res = await updateProvider(provider.id, provider);
-      if (res?.status === 200) {
-        Swal.fire({
-          title: "Cập nhật thành công!",
-          text: `Cập nhật thành công nhà cung cấp ${res.data.name} !`,
-          icon: "success",
-        });
-        onCloseModal();
-        onSuccess();
+      try {
+        const res = await updateProvider(provider.id, provider);
+        if (res?.status === 200) {
+          Swal.fire({
+            title: "Cập nhật thành công!",
+            text: `Cập nhật thành công nhà cung cấp ${res.data.name} !`,
+            icon: "success",
+          });
+          onCloseModal();
+          onSuccess();
+        }
+      } catch (err: any) {
+        console.log(">>", err);
       }
     }
   };
+
   return (
     <CustomModal
       isOpen={isOpen}
@@ -92,10 +106,10 @@ const ModalProvider: React.FC<ProviderModalProps> = ({
           name: "name",
           label: "Tên nhà cung cấp",
           type: "text",
-          value: provider.name ? provider.name : "",
+          value: provider.name || "",
           onChange: (value) => setValue("name", value as string),
           placeholder: "Nhập tên nhà cung cấp",
-          error: error,
+          error: errors.name,
         },
         {
           name: "description",
@@ -104,6 +118,7 @@ const ModalProvider: React.FC<ProviderModalProps> = ({
           value: provider.description || "",
           onChange: (value) => setValue("description", value as string),
           placeholder: "Nhập chi tiết",
+          error: errors.description,
         },
       ]}
       onClose={onCloseModal}

@@ -66,28 +66,38 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
         quantity_book: data.quantity,
       });
       if (res.status === 200) {
+        if (!res.data || res.data.length === 0) {
+          Swal.fire({
+            title: "Không có đủ số để book!",
+            icon: "warning",
+            confirmButtonText: "Đóng",
+          });
+          setLoading(false);
+          onCloseModal();
+          return;
+        }
+
         onCloseModal();
         onSuccess();
         Swal.fire({
           title: "Book ngẫu nhiên thành công!",
           html: `
-                  <label for="message" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    Danh sách số trùng lặp:
-                  </label>
-                  <textarea id="message" rows="4" class="block max-h-[200px] w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 px-[10px]">${res.data.join(
-                    ", "
-                  )}</textarea>
-                `,
+            <label for="message" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+              Danh sách số đã book:
+            </label>
+            <textarea id="message" rows="4" class="block max-h-[200px] w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 px-[10px]">${res.data.join(
+              ", "
+            )}</textarea>
+          `,
           showDenyButton: true,
           icon: "success",
-          showCancelButton: true,
-          confirmButtonText: "Sao chép lỗi",
+          confirmButtonText: "Sao chép",
           denyButtonText: "Bỏ qua",
           allowOutsideClick: false,
         }).then((result) => {
           if (result.isConfirmed) {
             copyToClipBoard(res.data);
-            Swal.fire("Đã sao chép lỗi!", "", "success");
+            Swal.fire("Sao chép thành công!", "", "success");
           }
         });
       }

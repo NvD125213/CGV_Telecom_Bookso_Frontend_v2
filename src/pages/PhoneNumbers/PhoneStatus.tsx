@@ -3,7 +3,6 @@ import { useSearchParams } from "react-router-dom"; // Sửa "react-router" thà
 import {
   releasePhoneNumber,
   IReleasePhoneNumber,
-  // fetchAllBookingPhones,
 } from "../../services/phoneNumber";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
@@ -60,6 +59,9 @@ function PhoneNumbers() {
   const [status, setStatus] = useState(
     searchParams.get("status") || "available"
   );
+  const [selectedRows, setSelectedRows] = useState<IPhoneNumber[]>([]);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
   const [data, setData] = useState<PhoneNumberProps | undefined>(undefined);
   const [bookLoading, setBookLoading] = useState(false);
   const user = useSelector((state: RootState) => state.auth.user);
@@ -236,18 +238,21 @@ function PhoneNumbers() {
 
       const res = await releasePhoneNumber(transformedData);
       if (res.status === 200) {
-        Swal.fire(
+        await Swal.fire(
           "Thành công",
-          "Giải phóng số điện thoại thành công!",
+          `Đã giải phóng ${selectedRows.length} số điện thoại thành công!`,
           "success"
         );
-        fetchData(quantity, status, offset);
+        setSelectedIds([]);
+        setSelectedRows([]);
+        await fetchData(quantity, status, offset);
+        setSearchParams({});
       }
     } catch (err: any) {
       console.error("Lỗi khi giải phóng số:", err);
       Swal.fire(
         "Lỗi",
-        err.message || "Có lỗi xảy ra, vui lòng thử lại!",
+        err.response.data.detail || "Có lỗi xảy ra, vui lòng thử lại!",
         "error"
       );
       fetchData(quantity, status, offset);
@@ -255,31 +260,69 @@ function PhoneNumbers() {
       setBookLoading(false);
     }
   };
+  const handleManyRelease = async () => {
+    if (selectedRows.length === 0) {
+      alert("Vui lòng chọn ít nhất một số để giải phóng");
+      return;
+    }
 
-  const handleExportExcel = async () => {
-    // setBookLoading(true);
-    const fulldata = await bookingPhoneForOption({
-      quantity: 100,
-      status: "available",
-      offset: 0,
-    });
+    setBookLoading(true);
 
-    console.log(">>", fulldata.data);
+    try {
+      const { value: contractCode, isConfirmed } = await Swal.fire({
+        title: "Nhập Contract Code",
+        input: "text",
+        inputLabel: `Nhập mã giao dịch cho ${selectedRows.length} số được chọn`,
+        inputPlaceholder: "Nhập mã giao dịch...",
+        showCancelButton: true,
+        confirmButtonText: "Xác nhận",
+        cancelButtonText: "Hủy",
+        inputValidator: (value) => {
+          if (!value) {
+            return "Mã giao dịch không được để trống!";
+          }
+        },
+      });
 
-    // if (fullData.length === 0) {
-    //   console.warn("Không có dữ liệu để xuất Excel.");
-    //   setBookLoading(false);
-    //   return;
-    // }
-    // exportPivotTableToExcel(
-    //   fullData,
-    //   "provider_name",
-    //   "type_name",
-    //   "phone_summary.xlsx"
-    // );
-    // setBookLoading(false);
+      if (!isConfirmed) {
+        setBookLoading(false);
+        return;
+      }
+
+      const dataReleases = selectedRows.map((row) => ({
+        username: user.sub,
+        phone_number: row.phone_number,
+        contract_code: contractCode,
+      }));
+
+      const transformedData: IReleasePhoneNumber = {
+        data_releases: dataReleases,
+      };
+
+      const res = await releasePhoneNumber(transformedData);
+      if (res.status === 200) {
+        await Swal.fire(
+          "Thành công",
+          `Đã giải phóng ${selectedRows.length} số điện thoại thành công!`,
+          "success"
+        );
+        setSelectedIds([]);
+        setSelectedRows([]);
+        setSearchParams({});
+        await fetchData(quantity, status, offset);
+      }
+    } catch (err: any) {
+      console.error("Lỗi khi triển khai số:", err);
+      Swal.fire(
+        "Lỗi",
+        err.response.data.detail ||
+          "Có lỗi xảy ra khi triển khai số, vui lòng thử lại!",
+        "error"
+      );
+    } finally {
+      setBookLoading(false);
+    }
   };
-
   return (
     <>
       {bookLoading ? (
@@ -300,8 +343,8 @@ function PhoneNumbers() {
                       { label: "Đã triển khai", value: "released" },
                     ]}
                     placeholder="Lựa chọn trạng thái"
+                    defaultValue={status}
                     onChange={handleChangeStatus}
-                    defaultValue={"available"}
                     className="dark:bg-dark-900"
                   />
                 </div>
@@ -315,18 +358,26 @@ function PhoneNumbers() {
                     onKeyDown={handleOnKeyDown}
                   />
                 </div>
-                <div className="flex items-end ">
-                  <button
-                    onClick={() => handleExportExcel()}
-                    className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
-                    <CiExport size={24} />
-                    Xuất Excel
-                  </button>
-                </div>
+                {status === "booked" && (
+                  <div className="flex items-end ">
+                    <button
+                      onClick={handleManyRelease}
+                      className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+                      <CiExport size={24} />
+                      Triển khai
+                    </button>
+                  </div>
+                )}
               </div>
 
               <ReusableTable
                 isLoading={loading}
+                onCheck={(selectedIds, selectedRows) => {
+                  setSelectedIds(selectedIds.map((id) => Number(id)));
+                  setSelectedRows(selectedRows);
+                }}
+                setSelectedIds={setSelectedIds}
+                selectedIds={selectedIds}
                 error={error}
                 title="Danh sách số điện thoại"
                 data={safeData}

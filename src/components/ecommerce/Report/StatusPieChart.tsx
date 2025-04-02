@@ -180,7 +180,7 @@ const NumberStatusPieChart = () => {
   return (
     <ComponentCard>
       <div className="flex flex-col items-center">
-        <h3 className="text-xl font-semibold mb-4">
+        <h3 className="text-xl font-semibold mb-4 dark:text-white">
           Thống kê số theo trạng thái
         </h3>
         <div className="flex gap-4 mb-4">

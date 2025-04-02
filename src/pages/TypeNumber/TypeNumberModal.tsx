@@ -29,7 +29,7 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
 }) => {
   const [typeNumber, setTypeNumber] = useState<ITypeNumber>(newTypeNumber);
   const [initialData, setInitialData] = useState<ITypeNumber | null>(null);
-  const [error, setError] = useState<string>("");
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     if (data) {
@@ -49,6 +49,7 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
       setInitialData(null);
     }
   }, [data]);
+
   const setValue = (name: keyof ITypeNumber, value: string | number) => {
     if (name === "booking_expiration") {
       // Chỉ cho phép nhập số và dấu chấm
@@ -65,16 +66,30 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
         [name]: value,
       }));
     }
+
+    // Clear error when user starts editing
+    setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const validateForm = () => {
+    const newErrors: { [key: string]: string } = {};
+
     if (!typeNumber.name) {
-      setError("Tên định dạng không được để trống !");
-      return false;
+      newErrors.name = "Tên định dạng không được để trống!";
     }
-    setError("");
-    return true;
+
+    if (
+      !typeNumber.booking_expiration ||
+      !/^\d{2}\.\d{2}\.\d{2}$/.test(typeNumber.booking_expiration)
+    ) {
+      newErrors.booking_expiration =
+        "Vui lòng nhập thời gian đúng định dạng HH.MM.SS!";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
+
   const sendRequest = async () => {
     if (!validateForm()) return;
 
@@ -100,7 +115,7 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
       if (res?.status === 200) {
         Swal.fire({
           title: "Thêm thành công!",
-          text: `Thêm thành công nhà cung cấp ${res.data.name}!`,
+          text: `Thêm thành công định dạng ${res.data.name}!`,
           icon: "success",
         });
 
@@ -112,7 +127,7 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
       if (res?.status === 200) {
         Swal.fire({
           title: "Cập nhật thành công!",
-          text: `Cập nhật thành công nhà cung cấp ${res.data.name}!`,
+          text: `Cập nhật thành công định dạng ${res.data.name}!`,
           icon: "success",
         });
         onClose();
@@ -131,10 +146,10 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
           name: "name",
           label: "Tên định dạng",
           type: "text",
-          value: typeNumber.name ? typeNumber.name : "",
+          value: typeNumber.name || "",
           onChange: (value) => setValue("name", value as string),
           placeholder: "Nhập tên định dạng",
-          error: error,
+          error: errors.name,
         },
         {
           name: "booking_expiration",
@@ -143,6 +158,7 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
           value: typeNumber.booking_expiration || "00.00.00",
           onChange: (value) => setValue("booking_expiration", value as string),
           placeholder: "00.00.00",
+          error: errors.booking_expiration,
         },
         {
           name: "description",
