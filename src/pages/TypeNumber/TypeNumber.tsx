@@ -38,21 +38,24 @@ const TypeNumberPages = () => {
 
   const getAllData = async (delay = 0) => {
     setError(null);
+    setLoading(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, delay));
       const res = await getTypeNumber();
-      if (res?.length > 0) {
+
+      if (res && res.length > 0) {
         const formatData = res.map((item: any) => ({
           ...item,
           booking_expiration: convertSecondsToTime(item.booking_expiration),
         }));
         setTypes(formatData);
+        setErrorData("");
       } else {
+        setTypes([]);
         setErrorData("Không có dữ liệu");
       }
     } catch (err: any) {
       setError(`${err}`);
-      setLoading(false);
     } finally {
       setTimeout(() => setLoading(false), 1000);
     }
@@ -65,7 +68,7 @@ const TypeNumberPages = () => {
   const handleDelete = async (id: string) => {
     await ModalSwalAction({
       mode: "delete",
-      title: "Xóa định dạng",
+      title: "Định dạng số",
       action: async () => {
         const res = await deleteTypeNumber(id);
         return res;

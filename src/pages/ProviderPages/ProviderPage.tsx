@@ -29,14 +29,14 @@ const ProviderPage = () => {
     try {
       await new Promise((resolve) => setTimeout(resolve, delay));
       const res = await getProviders();
-      if (res?.length > 0) {
-        setProviders(res);
-      } else {
+      setProviders(res || []);
+      if (!res || res.length === 0) {
         setErrorData("Không có dữ liệu");
+      } else {
+        setErrorData("");
       }
     } catch (err: any) {
       setError(`${err}`);
-      setLoading(false);
     } finally {
       setTimeout(() => setLoading(false), 1000);
     }
