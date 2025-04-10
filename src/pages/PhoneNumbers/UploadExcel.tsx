@@ -48,7 +48,41 @@ const UploadExcel = () => {
       if (parsedError?.errors && Array.isArray(parsedError.errors)) {
         setErrors(parsedError.errors);
       } else if (typeof error?.response?.data?.detail === "string") {
-        setErrors(error?.response?.data?.detail);
+        const rawDetail = error?.response?.data?.detail;
+
+        // Kiểm tra có chứa JSON không
+        const start = rawDetail.indexOf("{");
+        const end = rawDetail.lastIndexOf("}") + 1;
+
+        if (start !== -1 && end !== -1) {
+          const jsonPart = rawDetail.substring(start, end).replace(/'/g, '"');
+
+          try {
+            const objErr = JSON.parse(jsonPart);
+
+            if (
+              objErr.message === "Add data failed. provider does not exist."
+            ) {
+              setErrors(
+                "Xuất hiện nhà cung cấp không tồn tại! Hãy kiểm tra lại danh sách tên nhà cung cấp của bạn."
+              );
+            } else if (
+              objErr.message === "Add data failed. Type number does not exist."
+            ) {
+              setErrors(
+                "Xuất hiện loại số không tồn tại! Hãy kiểm tra lại danh sách loại số của bạn."
+              );
+            } else {
+              setErrors(
+                "Đã xảy ra lỗi không xác định (mã lỗi không nằm trong danh sách xử lý)."
+              );
+            }
+          } catch (e: any) {
+            setErrors(e.response.data.detail);
+          }
+        } else {
+          setErrors("Thiếu một số cột trong file Excel.");
+        }
       } else {
         setErrors("Đã xảy ra lỗi không xác định.");
       }

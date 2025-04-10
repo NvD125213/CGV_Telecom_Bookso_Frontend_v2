@@ -26,12 +26,6 @@ export const validatePhoneNumber = (phone: IPhoneNumber) => {
     errors.maintenance_fee = "Phí duy trì phải lớn hơn hoặc bằng 0";
   }
 
-  if (!phone.vanity_number_fee) {
-    errors.vanity_number_fee = "Phí số đẹp không được để trống";
-  } else if (phone.vanity_number_fee < 0) {
-    errors.vanity_number_fee = "Phí số đẹp phải lớn hơn hoặc bằng 0";
-  }
-
   return errors;
 };
 

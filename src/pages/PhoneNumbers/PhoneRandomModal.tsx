@@ -102,7 +102,18 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
         });
       }
     } catch (error: any) {
+      onCloseModal();
       setErrors(error.response?.data?.detail);
+      if (
+        error.response?.data?.detail ===
+        "You have reached your daily booking limit. Please contact your administrator to increase your limit if needed."
+      ) {
+        Swal.fire(
+          "Opps!",
+          `Bạn đã vượt quá số lượng book cho phép trong ngày! Vui lòng liên hệ admin để được cấp phép thêm.`,
+          "error"
+        );
+      }
     } finally {
       setLoading(false);
     }

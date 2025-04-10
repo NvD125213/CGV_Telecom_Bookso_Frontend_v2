@@ -7,14 +7,14 @@ import {
   GridIcon,
   HorizontaLDots,
   TableIcon,
-  // UserCircleIcon,
-  ServiceIcon,
-  ContactIcon,
 } from "../icons";
+import { MdOutlineProductionQuantityLimits } from "react-icons/md";
+
 import { useSidebar } from "../context/SidebarContext";
 import { FaCloudUploadAlt } from "react-icons/fa";
 import { FaCalendarCheck } from "react-icons/fa";
-
+import { SiAmazonsimpleemailservice } from "react-icons/si";
+import { BsPhone } from "react-icons/bs";
 import { useSelector } from "react-redux";
 import { RootState } from "../store";
 
@@ -45,12 +45,12 @@ const navItems: NavItem[] = [
   //   path: "/calendar",
   // },
   {
-    icon: <ServiceIcon width="1em" height="1em" />,
+    icon: <SiAmazonsimpleemailservice width="1em" height="1em" />,
     name: "Nhà cung cấp",
     path: "/providers",
   },
   {
-    icon: <ContactIcon />,
+    icon: <BsPhone />,
     name: "Định dạng số",
     path: "/type-numbers",
   },
@@ -69,6 +69,12 @@ const navItems: NavItem[] = [
         path: "/phone-numbers-for-status",
         pro: false,
         icon: <FaCalendarCheck />,
+      },
+      {
+        name: "Giới hạn đặt",
+        path: "/limit-booking",
+        pro: false,
+        icon: <MdOutlineProductionQuantityLimits />,
       },
       {
         name: "Upload File",
@@ -103,15 +109,28 @@ const othersItems: NavItem[] = [];
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const location = useLocation();
-  // Check info user
   const user = useSelector((state: RootState) => state.auth.user);
-  const filteredNavItems = navItems.filter(
-    (item) =>
-      !(
+  const filteredNavItems = navItems
+    .map((item) => {
+      const newItem = { ...item };
+      if (newItem.subItems) {
+        newItem.subItems = newItem.subItems.filter(
+          (subItem) =>
+            !(
+              user?.role !== 1 &&
+              (subItem.path === "/upload-file" ||
+                subItem.path === "/limit-booking")
+            )
+        );
+      }
+      return newItem;
+    })
+    .filter((item) => {
+      return !(
         user?.role !== 1 &&
         (item.path === "/providers" || item.path === "/type-numbers")
-      )
-  );
+      );
+    });
 
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";

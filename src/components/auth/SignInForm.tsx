@@ -85,7 +85,7 @@ export default function SignInForm() {
                     <Field
                       name="username"
                       type="text"
-                      placeholder="info@gmail.com"
+                      placeholder="Enter your username..."
                       as={Input}
                     />
                     <ErrorMessage
@@ -104,7 +104,7 @@ export default function SignInForm() {
                       <Field
                         name="password"
                         type={showPassword ? "text" : "password"}
-                        placeholder="Enter your password"
+                        placeholder="Enter your password..."
                         as={Input}
                       />
                       <span

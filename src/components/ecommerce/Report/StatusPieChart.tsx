@@ -22,11 +22,10 @@ const getColumns = (status: string) => {
     { key: "maintenance_fee", label: "Phí bảo trì" },
     { key: "vanity_number_fee", label: "Phí số đẹp" },
     { key: "booked_until", label: "Hạn đặt" },
+    { key: "booked_at", label: "Thời gian đặt" },
   ];
 
-  if (status === "booked") {
-    return [...baseColumns, { key: "booked_at", label: "Thời gian đặt" }];
-  } else if (status === "released") {
+  if (status === "released") {
     return [
       ...baseColumns,
       { key: "released_at", label: "Thời gian triển khai" },
@@ -208,7 +207,7 @@ const NumberStatusPieChart = () => {
 
           <input
             type="number"
-            className="p-2 border rounded w-20 dark:bg-black dark:text-white "
+            className="p-2 border rounded w-20 dark:bg-black dark:text-white dark:placeholder-white "
             placeholder="Ngày"
             value={day}
             onChange={(e) => setDay(e.target.value)}
@@ -218,7 +217,7 @@ const NumberStatusPieChart = () => {
         </div>
 
         {totalValue === 0 ? (
-          <div className="text-center text-gray-500 text-lg">
+          <div className="text-center text-gray-500 text-lg dark:text-white">
             Chưa có dữ liệu
           </div>
         ) : (

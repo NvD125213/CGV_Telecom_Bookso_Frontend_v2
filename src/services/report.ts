@@ -60,3 +60,19 @@ export const getNumberCurrent = async (params: IReportDate) => {
     throw error;
   }
 };
+
+export const getBookingByCurrent = async (params: IReportDate) => {
+  try {
+    const response = await axiosInstance.get(
+      "/api/v1/report/booking-by-current",
+      { params }
+    );
+    return response;
+  } catch (error: any) {
+    console.error(
+      "Failed to fetch detail report by option:",
+      error?.response?.data?.detail || error
+    );
+    throw error;
+  }
+};

@@ -15,6 +15,7 @@ import { FiEye } from "react-icons/fi";
 import { formatDate } from "../../helper/formatDateToISOString";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
+import SearchHelp from "../../components/instruct/InstructRule";
 import {
   booking,
   bookingPhone,
@@ -24,7 +25,8 @@ import {
 } from "../../services/phoneNumber";
 import Pagination from "../../components/pagination/pagination";
 import PhoneModalDetail from "./PhoneModalDetail";
-import { GiPerspectiveDiceSixFacesRandom } from "react-icons/gi";
+import { FaRandom } from "react-icons/fa";
+
 import Swal from "sweetalert2";
 import Spinner from "../../components/common/LoadingSpinner";
 import PhoneRandomModal from "./PhoneRandomModal";
@@ -34,14 +36,25 @@ interface PhoneNumberProps {
   phone_numbers: IPhoneNumber[];
 }
 
-const columns: { key: keyof IPhoneNumber; label: string }[] = [
+const columns: {
+  key: keyof IPhoneNumber;
+  label: string;
+  type?: string;
+  classname?: string;
+}[] = [
   { key: "phone_number", label: "Số điện thoại" },
   { key: "provider_name" as "provider_id", label: "Nhà cung cấp" },
   { key: "type_name" as "type_number_id", label: "Loại số" },
   { key: "installation_fee", label: "Phí lắp đặt (đ)" },
   { key: "maintenance_fee", label: "Phí duy trì (đ)" },
   { key: "vanity_number_fee", label: "Phí số đẹp (đ)" },
-  { key: "status", label: "Trạng thái" },
+  {
+    key: "status",
+    label: "Trạng thái",
+    type: "span",
+    classname:
+      "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500",
+  },
 ];
 
 function PhoneNumberFilters() {
@@ -278,6 +291,8 @@ function PhoneNumberFilters() {
       ) : (
         <>
           <PageBreadcrumb pageTitle="Đặt số điện thoại" />
+          <SearchHelp />
+
           {user?.role === 1 ? (
             <div className="flex justify-end mb-4">
               <button
@@ -327,13 +342,13 @@ function PhoneNumberFilters() {
                   <button
                     onClick={() => handleBookNumber()}
                     className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
-                    <IoIosAdd size={24} />
+                    <IoIosAdd size={20} />
                     Book số
                   </button>
                   <button
                     onClick={() => setOpenModalRandom(!openModalRandom)}
                     className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
-                    <GiPerspectiveDiceSixFacesRandom size={24} />
+                    <FaRandom size={20} />
                     Random
                   </button>
                 </div>
@@ -354,7 +369,7 @@ function PhoneNumberFilters() {
                   {
                     icon: <FiEye />,
                     onClick: (row) => handleGetById(Number(row.id)),
-                    className: "bg-blue-400 text-white",
+                    label: "Chi tiết",
                   },
                 ]}
                 onDelete={(id) => handleDelete(Number(id))}

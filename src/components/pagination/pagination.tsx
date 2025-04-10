@@ -69,7 +69,7 @@ const Pagination: React.FC<PaginationProps> = ({
             </option>
           ))}
         </select>
-        <span className="ml-2 text-gray-600">/ page</span>
+        <span className="ml-2 text-gray-600 dark:text-white">/ page</span>
       </div>
 
       <nav aria-label="Pagination">
@@ -80,7 +80,7 @@ const Pagination: React.FC<PaginationProps> = ({
               disabled={currentPage <= 1}
               className={`px-3 py-2 border rounded-md dark:bg-black dark:text-white ${
                 currentPage <= 1
-                  ? "text-gray-400 cursor-not-allowed bg-gray-100"
+                  ? "text-gray-400 cursor-not-allowed bg-gray-100 "
                   : "text-gray-700 hover:bg-gray-100"
               }`}>
               Trước
@@ -94,7 +94,7 @@ const Pagination: React.FC<PaginationProps> = ({
                 className={`px-3 py-2 border rounded-md  ${
                   currentPage === page
                     ? "bg-blue-500 text-white"
-                    : "hover:bg-gray-100 text-gray-700"
+                    : "hover:bg-gray-100 text-gray-700 dark:hover:bg-gray-300 dark:text-white"
                 }`}>
                 {page}
               </button>

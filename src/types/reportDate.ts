@@ -1,5 +1,5 @@
 export interface IReportDate {
-  year: number;
+  year?: number;
   month?: number;
   day?: number;
   option?: string;

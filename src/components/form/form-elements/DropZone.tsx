@@ -79,7 +79,7 @@ const DropzoneComponent: React.FC<DropzoneComponentProps> = ({
   });
 
   return (
-    <div className="relative">
+    <div className="">
       {loading && <Spinner />}
       <ComponentCard>
         <div className="flex items-center justify-between">
@@ -88,7 +88,7 @@ const DropzoneComponent: React.FC<DropzoneComponentProps> = ({
             Tải xuống file Excel
           </h2>
           <Link
-            to="/public/files/file_upload_sample.xlsx"
+            to="/public/files/sample_file.xlsx"
             className="font-medium text-sm text-blue-600 dark:text-blue-500 hover:underline mr-2"
             target="_blank"
             download>
@@ -141,7 +141,7 @@ const DropzoneComponent: React.FC<DropzoneComponentProps> = ({
 
         {file && (
           <div className="mt-4 p-2 border-b flex justify-between items-center">
-            <span>{file.name}</span>
+            <span className="dark:text-white">{file.name}</span>
             <button
               onClick={handleRemoveFile}
               className="text-red-500 hover:text-red-700">

@@ -2,7 +2,7 @@ import axios from "axios";
 import Cookies from "js-cookie";
 
 const axiosInstance = axios.create({
-  baseURL: "http://47.128.146.4:8000",
+  baseURL: "http://13.229.236.236:8000",
 });
 
 axiosInstance.interceptors.request.use(
@@ -34,7 +34,7 @@ axiosInstance.interceptors.response.use(
 
       try {
         const res = await axios.get(
-          "http://13.229.236.236:8000/api/v1/access_token_by_refresh_token",
+          "https://bookso.cgvtelecom.vn:8000/api/v1/access_token_by_refresh_token",
           {
             headers: {
               Authorization: `Bearer ${refreshToken}`,

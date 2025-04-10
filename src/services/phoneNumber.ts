@@ -1,5 +1,5 @@
 import axiosInstance from "../config/apiToken";
-import { IPhoneNumber } from "../types";
+import { IPhoneNumber, IReportDate } from "../types";
 
 export const initialPhoneNumber: IPhoneNumber = {
   id: 0,
@@ -182,15 +182,38 @@ export const getQuantityAvailable = async () => {
 
 export const getRandomNumber = async (params: IRandomNumber) => {
   try {
-    const response = await axiosInstance.get(
+    const res = await axiosInstance.get(
       "/api/v1/booking/booking-random-by-type-number-and-provider",
       {
         params,
       }
     );
-    return response;
+    return res;
   } catch (error) {
-    console.error("Failed to fetch detail report by option:", error);
+    console.error("Failed to fetch detail random :", error);
     throw error;
+  }
+};
+
+export const getAllBookingLimit = async (params: IReportDate) => {
+  try {
+    const res = await axiosInstance.get("/api/v1/booking/limit-booking-all", {
+      params,
+    });
+    return res;
+  } catch (error: any) {
+    throw new Error(error);
+  }
+};
+
+export const updateQuantityLimit = async (id: number, data: any) => {
+  try {
+    const res = await axiosInstance.put(
+      `/api/v1/booking/limit-booking/${id}`,
+      data
+    );
+    return res;
+  } catch (error: any) {
+    throw new Error(error);
   }
 };

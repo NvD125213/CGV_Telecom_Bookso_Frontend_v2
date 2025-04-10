@@ -14,4 +14,6 @@ export interface IPhoneNumber {
   vanity_number_fee?: number;
   provider_name?: string;
   type_name?: string;
+  created_at?: string;
+  updated_at?: string;
 }
