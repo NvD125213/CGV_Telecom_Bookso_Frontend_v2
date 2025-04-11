@@ -32,13 +32,13 @@ const UploadExcel = () => {
           showDenyButton: true,
           icon: "success",
           showCancelButton: true,
-          confirmButtonText: "Sao chép lỗi",
+          confirmButtonText: "Sao chép",
           denyButtonText: "Bỏ qua",
           allowOutsideClick: false,
         }).then((result) => {
           if (result.isConfirmed) {
             copyToClipBoard(res.update_error);
-            Swal.fire("Đã sao chép lỗi!", "", "success");
+            Swal.fire("Đã sao chép!", "", "success");
           }
         });
       }

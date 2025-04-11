@@ -266,34 +266,36 @@ const ReusableTable = <T extends { id: string | number }>({
                                 onClick={() => toggleDropdown(item.id)}
                                 className="bg-gray-200 dark:bg-gray-800 dark:text-white text-gray-700 px-4 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 dropdown-toggle ">
                                 <HiDotsVertical />
+                                <Dropdown
+                                  isOpen={dropdownOpenId === item.id}
+                                  onClose={() => setDropdownOpenId(null)}
+                                  className="w-48">
+                                  <div className="py-1">
+                                    {actions
+                                      .filter((action) =>
+                                        action.condition
+                                          ? action.condition(item)
+                                          : true
+                                      )
+                                      .map((action, index) => (
+                                        <button
+                                          key={index}
+                                          onClick={() => {
+                                            action.onClick(item);
+                                            setDropdownOpenId(null);
+                                          }}
+                                          className={`w-full dark:text-white dark:hover:bg-black dark:hover:bg-opacity-20 text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 transition-all duration-200 ${
+                                            action.className || ""
+                                          }`}>
+                                          {action.icon}
+                                          <span>
+                                            {action.label || "Action"}
+                                          </span>
+                                        </button>
+                                      ))}
+                                  </div>
+                                </Dropdown>
                               </button>
-                              <Dropdown
-                                isOpen={dropdownOpenId === item.id}
-                                onClose={() => setDropdownOpenId(null)}
-                                className="w-48">
-                                <div className="py-1">
-                                  {actions
-                                    .filter((action) =>
-                                      action.condition
-                                        ? action.condition(item)
-                                        : true
-                                    )
-                                    .map((action, index) => (
-                                      <button
-                                        key={index}
-                                        onClick={() => {
-                                          action.onClick(item);
-                                          setDropdownOpenId(null);
-                                        }}
-                                        className={`w-full dark:text-white dark:hover:bg-black dark:hover:bg-opacity-20 text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 transition-all duration-200 ${
-                                          action.className || ""
-                                        }`}>
-                                        {action.icon}
-                                        <span>{action.label || "Action"}</span>
-                                      </button>
-                                    ))}
-                                </div>
-                              </Dropdown>
                             </div>
                           )}
                         </TableCell>

@@ -47,7 +47,6 @@ const getColumns = (status: string) => {
     { key: "installation_fee", label: "Phí lắp đặt (đ)" },
     { key: "maintenance_fee", label: "Phí duy trì (đ)" },
     { key: "vanity_number_fee", label: "Phí số đẹp (đ)" },
-    { key: "updated_at", label: "Ngày đặt" },
     { key: "booked_until", label: "Hạn đặt" },
     {
       key: "status",
@@ -63,6 +62,15 @@ const getColumns = (status: string) => {
           : "",
     },
   ];
+  if (status === "available") {
+    return [...columns, { key: "created_at", label: "Ngày tạo" }];
+  }
+  if (status === "booked") {
+    return [...columns, { key: "updated_at", label: "Ngày đặt" }];
+  }
+  if (status === "released") {
+    return [...columns, { key: "released_at", label: "Ngày triển khai" }];
+  }
 
   return columns;
 };
@@ -88,6 +96,7 @@ function PhoneNumbers() {
   const [data, setData] = useState<PhoneNumberProps | undefined>(undefined);
   const [bookLoading, setBookLoading] = useState(false);
 
+  const [exportOption, setExportOption] = useState("status");
   const [loadingProgress, setLoadingProgress] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -115,6 +124,7 @@ function PhoneNumbers() {
             ? formatDate(phone.booked_until)
             : "0",
           updated_at: phone.updated_at ? formatDate(phone.updated_at) : "0",
+          created_at: phone.created_at ? formatDate(phone.created_at) : "0",
           installation_fee: formatNumber(phone?.installation_fee),
           maintenance_fee: formatNumber(phone?.maintenance_fee),
           vanity_number_fee: formatNumber(phone?.vanity_number_fee),
@@ -352,76 +362,139 @@ function PhoneNumbers() {
     }
   };
 
-  const exportExcel = async () => {
+  const handleExport = async (typeExport: any) => {
     setLoadingProgress(true);
     setProgress(0);
 
     const limit = 100;
-    let currentPage = 0;
-    let totalPages = 1;
-    let allData = [];
+    let allData: any[] = [];
 
     const waitMinimumTime = new Promise((resolve) => setTimeout(resolve, 3000));
+    if (typeExport === "status") {
+      if (!status) {
+        console.error("Status is not provided");
+        setLoadingProgress(false);
+        return; // Thoát nếu không có status
+      }
 
-    const fetchAndExport = async () => {
-      try {
-        const firstRes = await bookingPhoneForOption({
-          quantity: limit,
-          status,
-          offset: currentPage,
-        });
+      let currentPage = 0;
+      let totalPages = 1;
+      let statusData: any[] = [];
 
-        if (firstRes.data) {
-          totalPages = firstRes.data.total_pages;
-          allData = [...firstRes.data.phone_numbers];
-          setProgress(Math.round(((currentPage + 1) / totalPages) * 100));
+      const fetchDataStatus = async () => {
+        try {
+          const firstRes = await bookingPhoneForOption({
+            quantity: limit,
+            status,
+            offset: currentPage,
+          });
 
-          while (currentPage < totalPages - 1) {
-            currentPage++;
-            const nextRes = await bookingPhoneForOption({
-              quantity: limit,
-              status,
-              offset: currentPage,
-            });
+          if (firstRes?.data?.phone_numbers) {
+            totalPages = firstRes.data.total_pages || 1;
+            statusData = [...firstRes.data.phone_numbers];
+            setProgress((prev) => Math.min(prev + 5, 90));
 
-            if (nextRes.data?.phone_numbers) {
-              allData = [...allData, ...nextRes.data.phone_numbers];
+            while (currentPage < totalPages - 1) {
+              currentPage++;
+              const nextRes = await bookingPhoneForOption({
+                quantity: limit,
+                status,
+                offset: currentPage,
+              });
+
+              if (nextRes?.data?.phone_numbers) {
+                statusData = [...statusData, ...nextRes.data.phone_numbers];
+              }
+
+              setProgress((prev) => Math.min(prev + 5, 90));
             }
 
-            setProgress(Math.round(((currentPage + 1) / totalPages) * 100));
+            // Gọi export sau khi thu thập xong
+            exportPivotTableToExcel(
+              statusData,
+              "provider_name",
+              "type_name",
+              `${status}_data.xlsx`,
+              `Danh sách số theo trạng thái: ${status}`,
+              "Nhà mạng"
+            );
+          } else {
+            console.error("No data returned from API for status:", status);
           }
-          const titleFile =
-            status === "booked"
-              ? "Tổng số lượng số đã đặt"
-              : status === "available"
-              ? "Tổng số lượng số tồn kho"
-              : "Tổng số lượng số đã triển khai";
-          const nameFile =
-            status === "booked"
-              ? "all_booked_phone.xlsx"
-              : status === "available"
-              ? "all_available_phone.xlsx"
-              : "all_released_phone.xlsx";
-          exportPivotTableToExcel(
-            allData,
-            "provider_name",
-            "type_name",
-            nameFile,
-            titleFile,
-            "Nhà mạng"
-          );
+        } catch (error) {
+          console.error(`Error fetching data for status ${status}:`, error);
+        } finally {
+          await waitMinimumTime;
+          setLoadingProgress(false);
         }
-      } catch (error) {
-        console.error("Error fetching paginated data:", error);
+      };
+
+      // Gọi hàm fetchDataStatus
+      await fetchDataStatus();
+    } else if (typeExport === "allStatus") {
+      const statuses = ["available", "booked", "released"];
+      console.log("Vào đây");
+
+      const fetchDataByStatus = async (status: string) => {
+        let currentPage = 0;
+        let totalPages = 1;
+        let statusData: any[] = [];
+
+        try {
+          const firstRes = await bookingPhoneForOption({
+            quantity: limit,
+            status,
+            offset: currentPage,
+          });
+
+          if (firstRes.data) {
+            totalPages = firstRes.data.total_pages;
+            statusData = [...firstRes.data.phone_numbers];
+            setProgress((prev) => Math.min(prev + 5, 90));
+
+            while (currentPage < totalPages - 1) {
+              currentPage++;
+              const nextRes = await bookingPhoneForOption({
+                quantity: limit,
+                status,
+                offset: currentPage,
+              });
+
+              if (nextRes.data?.phone_numbers) {
+                statusData = [...statusData, ...nextRes.data.phone_numbers];
+              }
+
+              setProgress((prev) => Math.min(prev + 5, 90));
+            }
+
+            const dataWithStatus = statusData.map((item) => ({
+              ...item,
+              status,
+            }));
+
+            allData = [...allData, ...dataWithStatus];
+          }
+        } catch (error) {
+          console.error(`Error fetching data for status ${status}:`, error);
+        }
+      };
+
+      for (const status of statuses) {
+        await fetchDataByStatus(status);
       }
-    };
 
-    await Promise.all([fetchAndExport(), waitMinimumTime]);
+      exportPivotTableToExcel(
+        allData,
+        "provider_name",
+        "status",
+        "all_statuses_pivot.xlsx",
+        "Tổng hợp số theo nhà mạng và trạng thái",
+        "Nhà mạng"
+      );
+    }
 
-    setProgress(100);
-    setTimeout(() => {
-      setLoadingProgress(false);
-    }, 300);
+    await waitMinimumTime;
+    setLoadingProgress(false);
   };
 
   return (
@@ -476,10 +549,24 @@ function PhoneNumbers() {
                   />
                 </div>
                 <div></div>
-                <div className="flex items-center justify-end">
+                <div className="flex items-center gap-2 justify-end">
+                  <Select
+                    className="flex-2"
+                    onChange={(value) => setExportOption(value)}
+                    options={[
+                      {
+                        label: "Theo trạng thái",
+                        value: "status",
+                      },
+                      {
+                        label: "Tổng hợp",
+                        value: "allStatus",
+                      },
+                    ]}
+                  />
                   <button
-                    onClick={exportExcel}
-                    className="flex items-center justify-center w-10 h-10 rounded-full border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:bg-black dark:text-white">
+                    onClick={() => handleExport(exportOption)}
+                    className="flex flex-1 items-center justify-center w-10 h-10 rounded-full border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:bg-black dark:text-white">
                     <IoCloudDownloadOutline size={20} />
                   </button>
                 </div>

@@ -65,6 +65,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
         provider_id: data.provider_id,
         quantity_book: data.quantity,
       });
+
       if (res.status === 200) {
         if (!res.data || res.data.length === 0) {
           Swal.fire({
@@ -102,7 +103,20 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
         });
       }
     } catch (error: any) {
+      if (
+        error.response &&
+        error.response.data.detail ===
+          "Currently a booking request can only book a maximum of 100 numbers."
+      ) {
+        Swal.fire({
+          title: "Oops...",
+          text: "Bạn đã vượt quá số lượng được phép book của 1 request! Giới hạn của 1 lần book là dưới 100 số",
+          icon: "error",
+          confirmButtonText: "Đóng",
+        });
+      }
       onCloseModal();
+
       setErrors(error.response?.data?.detail);
       if (
         error.response?.data?.detail ===

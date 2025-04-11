@@ -49,7 +49,7 @@ const ProviderPage = () => {
   const handleDelete = async (id: string) => {
     await ModalSwalAction({
       mode: "delete",
-      title: "Nhà cung cấp",
+      title: "nhà cung cấp",
       action: async () => {
         const res = await deleteProvider(id);
         return res;

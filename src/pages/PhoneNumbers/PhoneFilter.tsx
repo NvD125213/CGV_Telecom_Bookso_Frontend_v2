@@ -238,11 +238,18 @@ function PhoneNumberFilters() {
         setSelectedIds([]);
       }
     } catch (err: any) {
-      Swal.fire({
-        icon: "error",
-        title: "Lỗi...",
-        text: `${err.response.data.detail} !`,
-      });
+      const error = err.response.data.detail;
+      if (
+        error ==
+        "You have reached your daily booking limit. Please contact your administrator to increase your limit if needed."
+      ) {
+        Swal.fire({
+          icon: "error",
+          title: "Oops...",
+          text: `Bạn đã đạt đến giới hạn đặt phòng hàng ngày. Vui lòng liên hệ với quản trị viên của bạn để tăng giới hạn nếu cần.`,
+        });
+      }
+
       fetchData();
     } finally {
       setBookLoading(false);
@@ -291,8 +298,9 @@ function PhoneNumberFilters() {
       ) : (
         <>
           <PageBreadcrumb pageTitle="Đặt số điện thoại" />
-          <SearchHelp />
-
+          <div className="p-4">
+            <SearchHelp />
+          </div>
           {user?.role === 1 ? (
             <div className="flex justify-end mb-4">
               <button

@@ -54,7 +54,7 @@ export default function EcommerceMetrics() {
         <div className="flex items-end justify-between mt-5">
           <div>
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              Tổng số điện thoại có sẵn
+              Tổng số điện thoại đang có sẵn
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
               {quantityPhoneNumberAvailable}
@@ -71,7 +71,7 @@ export default function EcommerceMetrics() {
         <div className="flex items-end justify-between mt-5">
           <div>
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              Số điện thoại có sẵn trong tháng
+              Số điện thoại được thêm trong tháng
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
               {phoneCurrent || 0}

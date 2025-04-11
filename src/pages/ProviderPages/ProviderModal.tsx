@@ -47,9 +47,6 @@ const ModalProvider: React.FC<ProviderModalProps> = ({
     if (!provider.name) {
       newErrors.name = "Tên nhà cung cấp không được để trống.";
     }
-    if (!provider.description) {
-      newErrors.description = "Chi tiết không được để trống.";
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;

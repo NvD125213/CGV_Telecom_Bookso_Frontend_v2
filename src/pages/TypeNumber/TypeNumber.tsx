@@ -68,7 +68,7 @@ const TypeNumberPages = () => {
   const handleDelete = async (id: string) => {
     await ModalSwalAction({
       mode: "delete",
-      title: "Định dạng số",
+      title: "định dạng số",
       action: async () => {
         const res = await deleteTypeNumber(id);
         return res;

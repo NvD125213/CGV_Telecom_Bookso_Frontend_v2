@@ -21,8 +21,8 @@ const baseColumns: { key: keyof IHistoryBooked; label: string }[] = [
   { key: "installation_fee", label: "Phí cài đặt" },
   { key: "maintenance_fee", label: "Phí bảo trì" },
   { key: "vanity_number_fee", label: "Phí số đẹp" },
-  { key: "created_at", label: "Ngày book" },
-  { key: "updated_at", label: "Cập nhật lần cuối" },
+  { key: "created_at", label: "Ngày thêm số" },
+  { key: "updated_at", label: "Ngày book" },
   { key: "booked_until", label: "Hạn đặt" },
 ];
 
@@ -36,6 +36,7 @@ const HistoryBooked = () => {
   const [limit, setLimit] = useState(Number(searchParams.get("limit")) || 20);
   const [offset, setOffset] = useState(Number(searchParams.get("offset")) || 0);
   const [totalPages, setTotalPages] = useState(0);
+  const [errors, setErrors] = useState("");
 
   useEffect(() => {
     if (!searchParams.get("limit") || !searchParams.get("offset")) {
@@ -59,6 +60,7 @@ const HistoryBooked = () => {
   } = {}) => {
     try {
       setLoading(true);
+      setErrors("");
       const params: any = {
         option: status,
         limit: limit,
@@ -81,8 +83,13 @@ const HistoryBooked = () => {
         maintenance_fee: formatNumber(String(phone?.maintenance_fee ?? 0)),
         vanity_number_fee: formatNumber(String(phone?.vanity_number_fee ?? 0)),
       }));
+      const rawData = res.data.data || [];
 
+      if (rawData.length === 0) {
+        setErrors("Không có dữ liệu!");
+      }
       setData(formattedData || []);
+
       setTotalPages(res.data.total_pages || Math.ceil(res.data.total / limit));
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -142,7 +149,7 @@ const HistoryBooked = () => {
   return (
     <>
       <PageBreadcrumb pageTitle="Lịch sử book số của bạn" />
-      <div className="flex flex-wrap w-full items-center justify-start gap-3 mb-4">
+      <div className="flex flex-wrap w-full items-end justify-start gap-3 mb-4">
         <div className="w-full md:w-auto">
           <Label htmlFor="filterType">Lọc theo</Label>
           <select
@@ -197,6 +204,7 @@ const HistoryBooked = () => {
       <div className="space-y-6">
         <ComponentCard>
           <ReusableTable
+            error={errors}
             title="Bảng lịch sử chi tiết"
             data={data ?? []}
             columns={baseColumns}
