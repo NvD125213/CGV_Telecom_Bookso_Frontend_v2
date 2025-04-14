@@ -298,9 +298,6 @@ function PhoneNumberFilters() {
       ) : (
         <>
           <PageBreadcrumb pageTitle="Đặt số điện thoại" />
-          <div className="p-4">
-            <SearchHelp />
-          </div>
           {user?.role === 1 ? (
             <div className="flex justify-end mb-4">
               <button
@@ -316,6 +313,8 @@ function PhoneNumberFilters() {
 
           {/* Form */}
           <div className="space-y-6">
+            <SearchHelp />
+
             <ComponentCard>
               <div className=" grid grid-cols-1 gap-4 lg:grid-cols-3">
                 <div>
@@ -373,6 +372,10 @@ function PhoneNumberFilters() {
                 selectedIds={selectedIds}
                 error={error}
                 columns={columns}
+                pagination={{
+                  currentPage: offset,
+                  pageSize: quantity,
+                }}
                 actions={[
                   {
                     icon: <FiEye />,

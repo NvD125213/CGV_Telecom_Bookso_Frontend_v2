@@ -256,6 +256,8 @@ const NumberStatusPieChart = () => {
         offset={pagination.offset}
         year={year}
         month={month}
+        currentPage={pagination.offset}
+        pageSize={pagination.limit}
         day={day ? parseInt(day) : undefined}
         fetchData={(params) => {
           setPagination((prev) => ({

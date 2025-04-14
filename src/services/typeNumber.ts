@@ -32,25 +32,17 @@ export const getTypeNumberByID = async (id: string) => {
 
 // Create new provider
 export const createTypeNumber = async (data: ITypeNumber) => {
-  try {
-    const res = await axiosInstance.post("/api/v1/type_number", data);
-    return res;
-  } catch (error) {
-    console.error("Failed to fetch profile:", error);
-  }
+  const res = await axiosInstance.post("/api/v1/type_number", data);
+  return res;
 };
 
 // Update provider by id
 export const updateTypeNumber = async (id: string, data: ITypeNumber) => {
-  try {
-    const res = await axiosInstance.put(
-      `/api/v1/type_number/type-number-by-id?type_number_id=${id}`,
-      data
-    );
-    return res;
-  } catch (error) {
-    console.error("Failed to update type:", error);
-  }
+  const res = await axiosInstance.put(
+    `/api/v1/type_number/type-number-by-id?type_number_id=${id}`,
+    data
+  );
+  return res;
 };
 
 // Delete provider by id

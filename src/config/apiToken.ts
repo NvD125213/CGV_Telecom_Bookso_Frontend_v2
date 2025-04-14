@@ -5,6 +5,8 @@ const axiosInstance = axios.create({
   baseURL: "http://13.229.236.236:8000",
 });
 
+let isAlertShown = false;
+
 axiosInstance.interceptors.request.use(
   async (config) => {
     const token = Cookies.get("token");
@@ -55,10 +57,19 @@ axiosInstance.interceptors.response.use(
         originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
         return axiosInstance(originalRequest);
       } catch (refreshErr: any) {
-        Cookies.remove("refreshToken");
-        Cookies.remove("user");
-        if (refreshErr.response?.data?.detail === "Token has expired") {
+        console.log("Lỗi ở đây >>", refreshErr);
+
+        if (!isAlertShown) {
+          isAlertShown = true;
+          if (refreshErr.status === 401) {
+            alert("Phiên đăng nhập đã hết hạn");
+          } else if (refreshErr.status === 403) {
+            alert("Yêu cầu bị từ chối!");
+          }
+
           document.location.href = "/signin";
+          Cookies.remove("refreshToken");
+          Cookies.remove("user");
         }
 
         return Promise.reject(refreshErr);

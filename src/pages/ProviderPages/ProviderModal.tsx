@@ -21,7 +21,7 @@ const ModalProvider: React.FC<ProviderModalProps> = ({
   const [provider, setProvider] = useState<IProvider>(newProvider);
   const [initialData, setInitialData] = useState<IProvider | null>(null);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
-
+  const [error, setError] = useState("");
   useEffect(() => {
     if (data) {
       setProvider(data);
@@ -30,7 +30,10 @@ const ModalProvider: React.FC<ProviderModalProps> = ({
       setProvider(newProvider);
       setInitialData(null);
     }
-  }, [data]);
+
+    setErrors({});
+    setError("");
+  }, [data, isOpen]);
 
   const setValue = (name: keyof IProvider, value: string | number) => {
     setProvider((prev) => ({
@@ -53,30 +56,32 @@ const ModalProvider: React.FC<ProviderModalProps> = ({
   };
 
   const sendRequest = async () => {
-    if (!validateForm()) return;
+    try {
+      if (!validateForm()) return;
 
-    // Check if data hasn't changed
-    if (
-      provider.id &&
-      JSON.stringify(provider) === JSON.stringify(initialData)
-    ) {
-      onCloseModal();
-      return;
-    }
-
-    if (!provider.id) {
-      const res = await createProvider(provider);
-      if (res?.status === 200) {
-        Swal.fire({
-          title: "Thêm thành công!",
-          text: `Thêm thành công nhà cung cấp ${res.data.name} !`,
-          icon: "success",
-        });
+      if (
+        provider.id &&
+        JSON.stringify(provider) === JSON.stringify(initialData)
+      ) {
         onCloseModal();
-        onSuccess();
+        return;
       }
-    } else {
-      try {
+
+      if (!provider.id) {
+        const res = await createProvider(provider);
+        console.log(">>>>", res);
+
+        if (res?.status === 200) {
+          Swal.fire({
+            title: "Thêm thành công!",
+            text: `Thêm thành công nhà cung cấp ${res.data.name} !`,
+            icon: "success",
+          });
+          onCloseModal();
+          setError("");
+          onSuccess();
+        }
+      } else {
         const res = await updateProvider(provider.id, provider);
         if (res?.status === 200) {
           Swal.fire({
@@ -84,11 +89,16 @@ const ModalProvider: React.FC<ProviderModalProps> = ({
             text: `Cập nhật thành công nhà cung cấp ${res.data.name} !`,
             icon: "success",
           });
+          setError("");
           onCloseModal();
           onSuccess();
         }
-      } catch (err: any) {
-        console.log(">>", err);
+      }
+    } catch (err: any) {
+      if (err.status === 409) {
+        setError("Nhà cung cấp đã tồn tại!");
+      } else {
+        setError(err.response.data.detail);
       }
     }
   };
@@ -96,6 +106,7 @@ const ModalProvider: React.FC<ProviderModalProps> = ({
   return (
     <CustomModal
       isOpen={isOpen}
+      errorDetail={error}
       title={data ? "Cập nhật nhà cung cấp" : "Tạo nhà cung cấp mới"}
       description="Cập nhật thông tin chi tiết để thông tin của bạn luôn được cập nhật."
       fields={[

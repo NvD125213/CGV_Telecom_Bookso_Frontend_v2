@@ -12,8 +12,8 @@ export const getProviders = async () => {
   try {
     const res = await axiosInstance.get("/api/v1/provider/all");
     return res.data;
-  } catch (error) {
-    console.error("Failed to fetch provider:", error);
+  } catch (error: any) {
+    throw new Error(error);
   }
 };
 
@@ -24,32 +24,24 @@ export const getProviderById = async (id: string) => {
       `/api/v1/provider/provider-by-id?provider_id=${id}`
     );
     return res.data;
-  } catch (error) {
-    console.error("Failed to get by id provider:", error);
+  } catch (error: any) {
+    throw new Error(error);
   }
 };
 
 // Create new provider
 export const createProvider = async (data: IProvider) => {
-  try {
-    const res = await axiosInstance.post("/api/v1/provider", data);
-    return res;
-  } catch (error) {
-    console.error("Failed to fetch provider:", error);
-  }
+  const res = await axiosInstance.post("/api/v1/provider", data);
+  return res;
 };
 
 // Update provider by id
 export const updateProvider = async (id: string, data: IProvider) => {
-  try {
-    const res = await axiosInstance.put(
-      `/api/v1/provider/provider-by-id?provider_id=${id}`,
-      data
-    );
-    return res;
-  } catch (error: any) {
-    throw new Error(error.response.data.detail);
-  }
+  const res = await axiosInstance.put(
+    `/api/v1/provider/provider-by-id?provider_id=${id}`,
+    data
+  );
+  return res;
 };
 
 // Delete provider by id

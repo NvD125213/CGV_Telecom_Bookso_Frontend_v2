@@ -38,6 +38,10 @@ interface Props<T> {
   setSelectedIds?: React.Dispatch<React.SetStateAction<number[]>>;
   isLoading: boolean;
   error?: string;
+  pagination?: {
+    currentPage: number;
+    pageSize: number;
+  };
 }
 
 const ReusableTable = <T extends { id: string | number }>({
@@ -51,6 +55,7 @@ const ReusableTable = <T extends { id: string | number }>({
   setSelectedIds,
   isLoading = false,
   error = "",
+  pagination,
 }: Props<T>) => {
   const [dropdownOpenId, setDropdownOpenId] = useState<string | number | null>(
     null
@@ -125,15 +130,24 @@ const ReusableTable = <T extends { id: string | number }>({
                     disabled={!setSelectedIds}
                   />
                 </TableCell>
+                <TableCell
+                  isHeader
+                  className={`px-5 ${
+                    isManyColumns ? "text-[13px]" : "text-sm"
+                  } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start`}>
+                  STT
+                </TableCell>
                 {columns.map((col) => (
-                  <TableCell
-                    key={col.key as string}
-                    isHeader
-                    className={`px-5 ${
-                      isManyColumns ? "text-[13px]" : "text-sm"
-                    } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start`}>
-                    {col.label}
-                  </TableCell>
+                  <>
+                    <TableCell
+                      key={col.key as string}
+                      isHeader
+                      className={`px-5 ${
+                        isManyColumns ? "text-[13px]" : "text-sm"
+                      } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start`}>
+                      {col.label}
+                    </TableCell>
+                  </>
                 ))}
                 {hasActionColumn && (
                   <TableCell
@@ -152,6 +166,15 @@ const ReusableTable = <T extends { id: string | number }>({
               {isLoading
                 ? Array.from({ length: 5 }).map((_, index) => (
                     <TableRow key={index}>
+                      <TableCell className="px-5 py-3">
+                        <Skeleton
+                          width={18}
+                          height={18}
+                          baseColor="#e5e7eb" // Light mode: xám nhạt
+                          highlightColor="#f3f4f6" // Light mode: sáng hơn
+                          className="dark:[&_*]:bg-black dark:[&_*]:bg-opacity-30 dark:[&_*]:shadow-[0_0_8px_rgba(255,255,255,0.1)]" // Dark mode: đen mờ + bóng
+                        />
+                      </TableCell>
                       <TableCell className="px-5 py-3">
                         <Skeleton
                           width={18}
@@ -206,102 +229,115 @@ const ReusableTable = <T extends { id: string | number }>({
                       )}
                     </TableRow>
                   ))
-                : data.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell
-                        className={`px-5 dark:text-gray-300 py-3  ${
-                          isManyColumns ? "text-[13px]" : "text-sm"
-                        }`}>
-                        <input
-                          type="checkbox"
-                          className="w-[18px] h-[18px]"
-                          checked={selectedIds?.includes(item.id)}
-                          onChange={() => handleSelectRow(item.id)}
-                          disabled={!setSelectedIds}
-                        />
-                      </TableCell>
-                      {columns.map((col) => (
+                : data.map((item, index) => {
+                    const stt =
+                      pagination?.currentPage && pagination?.pageSize
+                        ? pagination.currentPage * pagination.pageSize +
+                          index +
+                          1
+                        : index + 1;
+                    return (
+                      <TableRow key={item.id}>
                         <TableCell
-                          key={col.key as string}
-                          className={`px-5 py-3 text-sm text-gray-500 dark:text-gray-300 0 ${
-                            isManyColumns ? "text-[13px]" : "text-sm 0"
+                          className={`px-5 dark:text-gray-300 py-3  ${
+                            isManyColumns ? "text-[13px]" : "text-sm"
                           }`}>
-                          {col.type === "button" ? (
-                            <button className={col.classname}>
-                              {item[col.key] as string}
-                            </button>
-                          ) : col.type === "span" ? (
-                            <span className={col.classname}>
-                              {item[col.key] as string}
-                            </span>
-                          ) : (
-                            (item[col.key] as string)
-                          )}
+                          <input
+                            type="checkbox"
+                            className="w-[18px] h-[18px]"
+                            checked={selectedIds?.includes(item.id)}
+                            onChange={() => handleSelectRow(item.id)}
+                            disabled={!setSelectedIds}
+                          />
                         </TableCell>
-                      ))}
-                      {hasActionColumn && (
                         <TableCell
-                          className={`flex gap-2 px-5 py-3 items-center  ${
-                            isManyColumns ? "text-[13px]" : "text-sm "
+                          className={`px-5 dark:text-gray-300 py-3 ${
+                            isManyColumns ? "text-[13px]" : "text-sm"
                           }`}>
-                          {onEdit && (
-                            <button
-                              onClick={() => onEdit(item)}
-                              className="bg-yellow-400 text-white 0 px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2">
-                              <PencilIcon />
-                              <span>Edit</span>
-                            </button>
-                          )}
-                          {onDelete && (
-                            <button
-                              onClick={() => onDelete(item.id)}
-                              className="bg-red-400 text-white px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2 0">
-                              <RiDeleteBinLine />
-                              <span>Delete</span>
-                            </button>
-                          )}
-                          {actions.length > 0 && (
-                            <div className="">
-                              <button
-                                onClick={() => toggleDropdown(item.id)}
-                                className="bg-gray-200 dark:bg-gray-800 dark:text-white text-gray-700 px-4 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 dropdown-toggle ">
-                                <HiDotsVertical />
-                                <Dropdown
-                                  isOpen={dropdownOpenId === item.id}
-                                  onClose={() => setDropdownOpenId(null)}
-                                  className="w-48">
-                                  <div className="py-1">
-                                    {actions
-                                      .filter((action) =>
-                                        action.condition
-                                          ? action.condition(item)
-                                          : true
-                                      )
-                                      .map((action, index) => (
-                                        <button
-                                          key={index}
-                                          onClick={() => {
-                                            action.onClick(item);
-                                            setDropdownOpenId(null);
-                                          }}
-                                          className={`w-full dark:text-white dark:hover:bg-black dark:hover:bg-opacity-20 text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 transition-all duration-200 ${
-                                            action.className || ""
-                                          }`}>
-                                          {action.icon}
-                                          <span>
-                                            {action.label || "Action"}
-                                          </span>
-                                        </button>
-                                      ))}
-                                  </div>
-                                </Dropdown>
+                          {stt}
+                        </TableCell>
+
+                        {columns.map((col) => (
+                          <TableCell
+                            key={col.key as string}
+                            className={`px-5 py-3 text-sm text-gray-500 dark:text-gray-300 0 ${
+                              isManyColumns ? "text-[13px]" : "text-sm 0"
+                            }`}>
+                            {col.type === "button" ? (
+                              <button className={col.classname}>
+                                {item[col.key] as string}
                               </button>
-                            </div>
-                          )}
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))}
+                            ) : col.type === "span" ? (
+                              <span className={col.classname}>
+                                {item[col.key] as string}
+                              </span>
+                            ) : (
+                              (item[col.key] as string)
+                            )}
+                          </TableCell>
+                        ))}
+                        {hasActionColumn && (
+                          <TableCell
+                            className={`flex gap-2 px-5 py-3 items-center  ${
+                              isManyColumns ? "text-[13px]" : "text-sm "
+                            }`}>
+                            {onEdit && (
+                              <button
+                                onClick={() => onEdit(item)}
+                                className="bg-yellow-400 text-white 0 px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2">
+                                <PencilIcon />
+                              </button>
+                            )}
+                            {onDelete && (
+                              <button
+                                onClick={() => onDelete(item.id)}
+                                className="bg-red-400 text-white px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2 0">
+                                <RiDeleteBinLine />
+                              </button>
+                            )}
+                            {actions.length > 0 && (
+                              <div className="">
+                                <button
+                                  onClick={() => toggleDropdown(item.id)}
+                                  className="bg-gray-200 dark:bg-gray-800 dark:text-white text-gray-700 px-4 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 dropdown-toggle ">
+                                  <HiDotsVertical />
+                                  <Dropdown
+                                    isOpen={dropdownOpenId === item.id}
+                                    onClose={() => setDropdownOpenId(null)}
+                                    className="w-48">
+                                    <div className="py-1">
+                                      {actions
+                                        .filter((action) =>
+                                          action.condition
+                                            ? action.condition(item)
+                                            : true
+                                        )
+                                        .map((action, index) => (
+                                          <button
+                                            key={index}
+                                            onClick={() => {
+                                              action.onClick(item);
+                                              setDropdownOpenId(null);
+                                            }}
+                                            className={`w-full dark:text-white dark:hover:bg-black dark:hover:bg-opacity-20 text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 transition-all duration-200 ${
+                                              action.className || ""
+                                            }`}>
+                                            {action.icon}
+                                            <span>
+                                              {action.label || "Action"}
+                                            </span>
+                                          </button>
+                                        ))}
+                                    </div>
+                                  </Dropdown>
+                                </button>
+                              </div>
+                            )}
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })}
             </TableBody>
           </Table>
         </div>

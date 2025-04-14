@@ -595,6 +595,10 @@ function PhoneNumbers() {
                 title="Danh sách số điện thoại"
                 data={safeData}
                 columns={getColumns(status)}
+                pagination={{
+                  currentPage: offset,
+                  pageSize: quantity,
+                }}
                 actions={[
                   {
                     icon: <FiEye />,

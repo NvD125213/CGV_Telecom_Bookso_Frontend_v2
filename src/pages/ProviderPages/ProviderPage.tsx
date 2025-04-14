@@ -8,11 +8,24 @@ import { useEffect, useState } from "react";
 import ModalSwalAction from "../../hooks/useModalSwal";
 import { IProvider } from "../../types";
 import ReusableTable from "../../components/common/ReusableTable";
+import { sortByPriority } from "../../helper/priorityProviderList";
 
 const columns: { key: keyof IProvider; label: string }[] = [
-  { key: "id", label: "ID" },
   { key: "name", label: "Nhà cung cấp" },
   { key: "description", label: "Mô tả" },
+];
+
+const priorityList = [
+  { name: "VIETTEL", order: 1 },
+  { name: "MOBIFONE_3C", order: 2 },
+  { name: "MOBIFONE_CSV", order: 3 },
+  { name: "VINAPHONE_VNPT", order: 4 },
+  { name: "VINAPHONE_LEEON", order: 5 },
+  { name: "GMOBILE_LEEON", order: 6 },
+  { name: "HTC", order: 7 },
+  { name: "GTEL", order: 8 },
+  { name: "VTC", order: 9 },
+  { name: "CMC", order: 10 },
 ];
 
 const ProviderPage = () => {
@@ -29,7 +42,14 @@ const ProviderPage = () => {
     try {
       await new Promise((resolve) => setTimeout(resolve, delay));
       const res = await getProviders();
-      setProviders(res || []);
+      const sortedProvider = sortByPriority(res, priorityList);
+      const mappedProviders: IProvider[] = sortedProvider.map((item) => ({
+        id: item.id,
+        name: item.name,
+        description: item.description,
+      }));
+      setProviders(mappedProviders);
+
       if (!res || res.length === 0) {
         setErrorData("Không có dữ liệu");
       } else {

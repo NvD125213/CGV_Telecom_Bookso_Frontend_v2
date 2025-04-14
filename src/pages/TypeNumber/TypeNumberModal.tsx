@@ -30,7 +30,7 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
   const [typeNumber, setTypeNumber] = useState<ITypeNumber>(newTypeNumber);
   const [initialData, setInitialData] = useState<ITypeNumber | null>(null);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
-
+  const [error, setError] = useState("");
   useEffect(() => {
     if (data) {
       const formattedExpiration = data.booking_expiration
@@ -48,7 +48,9 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
       });
       setInitialData(null);
     }
-  }, [data]);
+    setErrors({});
+    setError("");
+  }, [data, isOpen]);
 
   const setValue = (name: keyof ITypeNumber, value: string | number) => {
     if (name === "booking_expiration") {
@@ -109,35 +111,44 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
       onClose();
       return;
     }
-
-    if (!typeNumber.id) {
-      const res = await createTypeNumber(submitData);
-      if (res?.status === 200) {
-        Swal.fire({
-          title: "Thêm thành công!",
-          text: `Thêm thành công định dạng ${res.data.name}!`,
-          icon: "success",
-        });
-
-        onClose();
-        onSuccess();
+    try {
+      if (!typeNumber.id) {
+        const res = await createTypeNumber(submitData);
+        if (res?.status === 200) {
+          Swal.fire({
+            title: "Thêm thành công!",
+            text: `Thêm thành công định dạng ${res.data.name}!`,
+            icon: "success",
+          });
+          setError("");
+          onClose();
+          onSuccess();
+        }
+      } else {
+        const res = await updateTypeNumber(typeNumber.id, submitData);
+        if (res?.status === 200) {
+          Swal.fire({
+            title: "Cập nhật thành công!",
+            text: `Cập nhật thành công định dạng ${res.data.name}!`,
+            icon: "success",
+          });
+          setError("");
+          onClose();
+          onSuccess();
+        }
       }
-    } else {
-      const res = await updateTypeNumber(typeNumber.id, submitData);
-      if (res?.status === 200) {
-        Swal.fire({
-          title: "Cập nhật thành công!",
-          text: `Cập nhật thành công định dạng ${res.data.name}!`,
-          icon: "success",
-        });
-        onClose();
-        onSuccess();
+    } catch (err: any) {
+      if (err.status === 409) {
+        setError("Định dạng số đã tồn tại");
+      } else {
+        setError(err.response.data.detail);
       }
     }
   };
 
   return (
     <CustomModal
+      errorDetail={error}
       isOpen={isOpen}
       title={data ? "Cập nhật định dạng" : "Tạo định dạng"}
       description="Cập nhật thông tin chi tiết để thông tin của bạn luôn được cập nhật."

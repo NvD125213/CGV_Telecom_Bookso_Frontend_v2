@@ -32,6 +32,8 @@ interface ModalPaginationProps {
   selectedIds?: (string | number)[];
   setSelectedIds?: React.Dispatch<React.SetStateAction<(string | number)[]>>;
   isLoading?: boolean;
+  currentPage: number;
+  pageSize: number;
 }
 
 const ModalPagination: React.FC<ModalPaginationProps> = ({
@@ -52,6 +54,8 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
   setSelectedIds,
   isLoading = false,
   error = "",
+  currentPage = 0,
+  pageSize = 1,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredData, setFilteredData] = useState(data);
@@ -122,6 +126,10 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
           columns={columns}
           selectedIds={selectedIds}
           setSelectedIds={setSelectedIds}
+          pagination={{
+            currentPage: currentPage,
+            pageSize: pageSize,
+          }}
           onCheck={(selectedIds) => setSelectedIds?.(selectedIds)}
           isLoading={isLoading}
         />
