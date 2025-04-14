@@ -34,12 +34,14 @@ const ModalProvider: React.FC<ProviderModalProps> = ({
     setErrors({});
     setError("");
   }, [data, isOpen]);
-
   const setValue = (name: keyof IProvider, value: string | number) => {
+    const trimmedValue = typeof value === "string" ? value.trim() : value;
+
     setProvider((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: trimmedValue,
     }));
+
     // Clear error when user starts editing
     setErrors((prev) => ({ ...prev, [name]: "" }));
   };

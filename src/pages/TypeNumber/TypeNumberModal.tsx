@@ -53,9 +53,11 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
   }, [data, isOpen]);
 
   const setValue = (name: keyof ITypeNumber, value: string | number) => {
+    const trimmedValue = typeof value === "string" ? value.trim() : value;
+
     if (name === "booking_expiration") {
       // Chỉ cho phép nhập số và dấu chấm
-      const cleanValue = String(value).replace(/[^0-9.]/g, "");
+      const cleanValue = String(trimmedValue).replace(/[^0-9.]/g, "");
       // Format lại thành HH.MM.SS khi người dùng nhập
       const formattedValue = formatBookingExpiration(cleanValue);
       setTypeNumber((prev) => ({
@@ -65,7 +67,7 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
     } else {
       setTypeNumber((prev) => ({
         ...prev,
-        [name]: value,
+        [name]: trimmedValue,
       }));
     }
 

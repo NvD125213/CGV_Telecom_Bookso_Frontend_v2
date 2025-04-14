@@ -47,7 +47,6 @@ const getColumns = (status: string) => {
     { key: "installation_fee", label: "Phí lắp đặt (đ)" },
     { key: "maintenance_fee", label: "Phí duy trì (đ)" },
     { key: "vanity_number_fee", label: "Phí số đẹp (đ)" },
-    { key: "booked_until", label: "Hạn đặt" },
     {
       key: "status",
       label: "Trạng thái",
@@ -66,7 +65,14 @@ const getColumns = (status: string) => {
     return [...columns, { key: "created_at", label: "Ngày tạo" }];
   }
   if (status === "booked") {
-    return [...columns, { key: "updated_at", label: "Ngày đặt" }];
+    return [
+      ...columns,
+      { key: "updated_at", label: "Ngày đặt" },
+      { key: "booked_until", label: "Hạn đặt" },
+    ];
+  }
+  if (status === "released") {
+    return [...columns, { key: "released_at", label: "Ngày triển khai" }];
   }
 
   return columns;
@@ -122,6 +128,8 @@ function PhoneNumbers() {
             : "0",
           updated_at: phone.updated_at ? formatDate(phone.updated_at) : "0",
           created_at: phone.created_at ? formatDate(phone.created_at) : "0",
+          released_at: phone.released_at ? formatDate(phone.released_at) : "0",
+
           installation_fee: formatNumber(phone?.installation_fee),
           maintenance_fee: formatNumber(phone?.maintenance_fee),
           vanity_number_fee: formatNumber(phone?.vanity_number_fee),
