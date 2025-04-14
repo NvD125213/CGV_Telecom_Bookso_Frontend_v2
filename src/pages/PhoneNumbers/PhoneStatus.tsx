@@ -68,9 +68,6 @@ const getColumns = (status: string) => {
   if (status === "booked") {
     return [...columns, { key: "updated_at", label: "Ngày đặt" }];
   }
-  if (status === "released") {
-    return [...columns, { key: "released_at", label: "Ngày triển khai" }];
-  }
 
   return columns;
 };
