@@ -197,7 +197,7 @@ function PhoneNumbers() {
 
   const onChangeInputSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setSearch(value);
+    setSearch(value.trim().replace(/\s+/g, " "));
     if (value === "") {
       setSafeData(data?.phone_numbers ?? []);
       return;

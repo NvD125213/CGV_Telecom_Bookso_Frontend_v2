@@ -2,12 +2,12 @@ export interface ITypeNumber {
   id: string;
   name: string;
   description?: string;
-  booking_expiration: number | string;
+  booking_expiration: string;
 }
 
 export const newTypeNumber = {
   id: "",
   name: "",
   description: "",
-  booking_expiration: 0,
+  booking_expiration: "",
 };

@@ -299,12 +299,12 @@ const ReusableTable = <T extends { id: string | number }>({
                               <div className="">
                                 <button
                                   onClick={() => toggleDropdown(item.id)}
-                                  className="bg-gray-200 dark:bg-gray-800 dark:text-white text-gray-700 px-4 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 dropdown-toggle ">
+                                  className="bg-gray-200  dark:bg-gray-800 dark:text-white text-gray-700 px-4 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 dropdown-toggle ">
                                   <HiDotsVertical />
                                   <Dropdown
                                     isOpen={dropdownOpenId === item.id}
                                     onClose={() => setDropdownOpenId(null)}
-                                    className="w-48">
+                                    className="w-50">
                                     <div className="py-1">
                                       {actions
                                         .filter((action) =>

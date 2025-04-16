@@ -2,6 +2,7 @@ export interface IPhoneNumber {
   id: number;
   provider_id: number | string;
   type_number_id: number | string;
+  type_id: number | string;
   phone_number: string;
   status?: string;
   booking_expiration?: number;

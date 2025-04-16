@@ -126,7 +126,7 @@ function PhoneNumberFilters() {
         offset: offset,
         quantity,
         telco: provider || "",
-        search: search || "",
+        search: search.replace(/\s+/g, " ").trim() || "",
         signal: controller.signal,
       });
       const formatNumber = (num: any) => {
@@ -182,11 +182,10 @@ function PhoneNumberFilters() {
     };
   }, [search, provider, quantity, offset, setSearchParams]);
 
-  // Call api when click enter
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && search !== previousSearch) {
       fetchData();
-      setPreviousSearch(search);
+      setPreviousSearch(search.replace(/\s+/g, " ").trim());
     }
   };
 
@@ -280,7 +279,7 @@ function PhoneNumberFilters() {
         if (res?.status === 200) {
           Swal.fire({
             title: "Xóa thành công!",
-            text: `${res?.data.message}`,
+            text: "Số điện thoại đã được xóa",
             icon: "success",
           });
           fetchData();

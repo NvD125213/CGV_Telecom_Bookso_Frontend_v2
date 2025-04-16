@@ -53,13 +53,8 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
   }, [data, isOpen]);
 
   const setValue = (name: keyof ITypeNumber, value: string | number) => {
-    const trimmedValue = typeof value === "string" ? value.trim() : value;
-
     if (name === "booking_expiration") {
-      // Chỉ cho phép nhập số và dấu chấm
-      const cleanValue = String(trimmedValue).replace(/[^0-9.]/g, "");
-      // Format lại thành HH.MM.SS khi người dùng nhập
-      const formattedValue = formatBookingExpiration(cleanValue);
+      const formattedValue = formatBookingExpiration(value);
       setTypeNumber((prev) => ({
         ...prev,
         [name]: formattedValue,
@@ -67,11 +62,11 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
     } else {
       setTypeNumber((prev) => ({
         ...prev,
-        [name]: trimmedValue,
+        [name]: value,
       }));
     }
 
-    // Clear error when user starts editing
+    // Clear error
     setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
@@ -97,11 +92,22 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
   const sendRequest = async () => {
     if (!validateForm()) return;
 
-    // Convert booking_expiration về định dạng số trước khi gửi
+    // Convert booking_expiration to type number
     const submitData = {
       ...typeNumber,
       booking_expiration: String(
         parseBookingExpiration(typeNumber.booking_expiration)
+      ),
+    };
+
+    const normalizeString = (str: string) => str.trim().replace(/\s+/g, " ");
+    const trimData: ITypeNumber = {
+      ...submitData,
+      ...Object.fromEntries(
+        Object.entries(submitData).map(([key, value]) => [
+          key,
+          typeof value === "string" ? normalizeString(value) : value,
+        ])
       ),
     };
 
@@ -115,7 +121,7 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
     }
     try {
       if (!typeNumber.id) {
-        const res = await createTypeNumber(submitData);
+        const res = await createTypeNumber(trimData);
         if (res?.status === 200) {
           Swal.fire({
             title: "Thêm thành công!",
@@ -127,7 +133,7 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
           onSuccess();
         }
       } else {
-        const res = await updateTypeNumber(typeNumber.id, submitData);
+        const res = await updateTypeNumber(trimData.id, trimData);
         if (res?.status === 200) {
           Swal.fire({
             title: "Cập nhật thành công!",

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { IPhoneNumber, IProvider, ITypeNumber } from "../../types";
 import CustomModal from "../../components/common/CustomModal";
 import {
@@ -28,6 +28,13 @@ const PhoneNumberModal: React.FC<PhoneNumberProps> = ({
     Partial<Record<keyof IPhoneNumber, string>>
   >({});
   const [errorDetail, setErrorDetail] = useState("");
+  useEffect(() => {
+    if (!isOpen) {
+      setErrors({});
+      setErrorDetail("");
+      setPhone(initialPhoneNumber);
+    }
+  }, [isOpen]);
   const setValue = (name: keyof IPhoneNumber, value: string | number) => {
     let finalValue: string | number = value;
     if (
@@ -128,7 +135,7 @@ const PhoneNumberModal: React.FC<PhoneNumberProps> = ({
             })),
           ],
           onChange: (value) => setValue("type_id", value),
-          error: errors.type_number_id,
+          error: errors.type_id,
         },
         {
           name: "installation_fee",

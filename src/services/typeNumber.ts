@@ -5,7 +5,7 @@ export const newTypeNumber = {
   id: "",
   name: "",
   description: "",
-  booking_expiration: 0,
+  booking_expiration: "",
 };
 
 // Get all list typeNumber

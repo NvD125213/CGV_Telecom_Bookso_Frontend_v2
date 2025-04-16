@@ -35,11 +35,9 @@ const ModalProvider: React.FC<ProviderModalProps> = ({
     setError("");
   }, [data, isOpen]);
   const setValue = (name: keyof IProvider, value: string | number) => {
-    const trimmedValue = typeof value === "string" ? value.trim() : value;
-
     setProvider((prev) => ({
       ...prev,
-      [name]: trimmedValue,
+      [name]: value,
     }));
 
     // Clear error when user starts editing
@@ -68,11 +66,16 @@ const ModalProvider: React.FC<ProviderModalProps> = ({
         onCloseModal();
         return;
       }
+      const normalizeString = (str: string) => str.trim().replace(/\s+/g, " ");
+      const trimProvider: IProvider = Object.fromEntries(
+        Object.entries(provider).map(([key, value]) => [
+          key,
+          typeof value === "string" ? normalizeString(value) : value,
+        ])
+      ) as IProvider;
 
       if (!provider.id) {
-        const res = await createProvider(provider);
-        console.log(">>>>", res);
-
+        const res = await createProvider(trimProvider);
         if (res?.status === 200) {
           Swal.fire({
             title: "Thêm thành công!",
@@ -84,7 +87,7 @@ const ModalProvider: React.FC<ProviderModalProps> = ({
           onSuccess();
         }
       } else {
-        const res = await updateProvider(provider.id, provider);
+        const res = await updateProvider(trimProvider.id, trimProvider);
         if (res?.status === 200) {
           Swal.fire({
             title: "Cập nhật thành công!",
