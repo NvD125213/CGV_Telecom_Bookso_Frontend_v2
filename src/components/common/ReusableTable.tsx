@@ -38,6 +38,7 @@ interface Props<T> {
   setSelectedIds?: React.Dispatch<React.SetStateAction<number[]>>;
   isLoading: boolean;
   error?: string;
+  role?: number;
   pagination?: {
     currentPage: number;
     pageSize: number;
@@ -56,11 +57,11 @@ const ReusableTable = <T extends { id: string | number }>({
   isLoading = false,
   error = "",
   pagination,
+  role,
 }: Props<T>) => {
   const [dropdownOpenId, setDropdownOpenId] = useState<string | number | null>(
     null
   );
-
   const hasActionColumn = onEdit || onDelete || actions.length > 0;
 
   const handleSelectAll = () => {
@@ -110,10 +111,10 @@ const ReusableTable = <T extends { id: string | number }>({
   return error ? (
     <div className="dark:text-white">{error}</div>
   ) : (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-black">
-      <div className="overflow-x-auto">
-        <div className="max-h-[400px] overflow-y-auto dark:bg-black">
-          <Table className="dark:text-white">
+    <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-black">
+      <div className="overflow-x-auto min-w-[1000px]">
+        <div className="max-h-[500px] overflow-y-auto dark:bg-black min-w-[900px]">
+          <Table className="dark:text-white ">
             {/* Table Header */}
             <TableHeader>
               <TableRow>
@@ -288,49 +289,51 @@ const ReusableTable = <T extends { id: string | number }>({
                                 <PencilIcon />
                               </button>
                             )}
-                            {onDelete && (
+                            {onDelete && role === 1 && (
                               <button
                                 onClick={() => onDelete(item.id)}
                                 className="bg-red-400 text-white px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2 0">
                                 <RiDeleteBinLine />
                               </button>
                             )}
+
                             {actions.length > 0 && (
-                              <div className="">
+                              <div className="relative">
                                 <button
                                   onClick={() => toggleDropdown(item.id)}
-                                  className="bg-gray-200  dark:bg-gray-800 dark:text-white text-gray-700 px-4 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 dropdown-toggle ">
+                                  className="bg-gray-200 dark:bg-gray-800 dark:text-white text-gray-700 px-4 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 dropdown-toggle">
                                   <HiDotsVertical />
-                                  <Dropdown
-                                    isOpen={dropdownOpenId === item.id}
-                                    onClose={() => setDropdownOpenId(null)}
-                                    className="w-50">
-                                    <div className="py-1">
-                                      {actions
-                                        .filter((action) =>
-                                          action.condition
-                                            ? action.condition(item)
-                                            : true
-                                        )
-                                        .map((action, index) => (
-                                          <button
-                                            key={index}
-                                            onClick={() => {
-                                              action.onClick(item);
-                                              setDropdownOpenId(null);
-                                            }}
-                                            className={`w-full dark:text-white dark:hover:bg-black dark:hover:bg-opacity-20 text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 transition-all duration-200 ${
-                                              action.className || ""
-                                            }`}>
-                                            {action.icon}
-                                            <span>
-                                              {action.label || "Action"}
-                                            </span>
-                                          </button>
-                                        ))}
-                                    </div>
-                                  </Dropdown>
                                 </button>
+
+                                <Dropdown
+                                  isOpen={dropdownOpenId === item.id}
+                                  onClose={() => setDropdownOpenId(null)}
+                                  className="w-50">
+                                  <div className="py-1">
+                                    {actions
+                                      .filter((action) =>
+                                        action.condition
+                                          ? action.condition(item)
+                                          : true
+                                      )
+                                      .map((action, index) => (
+                                        <button
+                                          key={index}
+                                          onClick={() => {
+                                            action.onClick(item);
+                                            setDropdownOpenId(null);
+                                          }}
+                                          className={`w-full dark:text-white dark:hover:bg-black dark:hover:bg-opacity-20 text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 transition-all duration-200 ${
+                                            action.className || ""
+                                          }`}>
+                                          {action.icon}
+                                          <span>
+                                            {action.label || "Action"}
+                                          </span>
+                                        </button>
+                                      ))}
+                                  </div>
+                                </Dropdown>
                               </div>
                             )}
                           </TableCell>

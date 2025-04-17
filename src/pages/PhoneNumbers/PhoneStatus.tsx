@@ -98,7 +98,6 @@ function PhoneNumbers() {
 
   const [data, setData] = useState<PhoneNumberProps | undefined>(undefined);
   const [bookLoading, setBookLoading] = useState(false);
-
   const [exportOption, setExportOption] = useState("status");
   const [loadingProgress, setLoadingProgress] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -207,11 +206,13 @@ function PhoneNumbers() {
   const handleOnKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       if (search === "") {
-        setSafeData(data?.phone_numbers ?? []);
-        return;
+        const originalData = data?.phone_numbers ?? [];
+        setSafeData(originalData);
+        setError(originalData.length === 0 ? "Không có dữ liệu" : "");
       } else {
-        const result = handleSearch(search);
-        setSafeData(result ?? []);
+        const result = handleSearch(search) ?? [];
+        setSafeData(result);
+        setError(result.length === 0 ? "Không có dữ liệu" : "");
       }
     }
   };
@@ -219,7 +220,7 @@ function PhoneNumbers() {
   const handleDelete = async (id: any) => {
     if (typeof id !== "number" || isNaN(id)) {
       console.error("Invalid ID:", id);
-      Swal.fire("Lỗi", "ID không hợp lệ");
+      Swal.fire("Oops...", "ID không hợp lệ", "error");
       return;
     }
 
@@ -245,7 +246,15 @@ function PhoneNumbers() {
         }
       }
     } catch (error: any) {
-      Swal.fire("Lỗi", `${error.response?.data?.detail || "Đã xảy ra lỗi"}`);
+      if (error.status === 403) {
+        Swal.fire({
+          title: "Oops...",
+          text: "Bạn không có quyền thực hiện hành động này",
+          icon: "error",
+        });
+      } else {
+        Swal.fire("Oops...", `${error || "Đã xảy ra lỗi"}`);
+      }
     }
   };
 
@@ -292,12 +301,7 @@ function PhoneNumbers() {
         setSearchParams({});
       }
     } catch (err: any) {
-      console.error("Lỗi khi giải phóng số:", err);
-      Swal.fire(
-        "Lỗi",
-        err.response.data.detail || "Có lỗi xảy ra, vui lòng thử lại!",
-        "error"
-      );
+      setError(err);
       fetchData(quantity, status, offset);
     } finally {
       setBookLoading(false);
@@ -343,6 +347,7 @@ function PhoneNumbers() {
       };
 
       const res = await releasePhoneNumber(transformedData);
+
       if (res.status === 200) {
         await Swal.fire(
           "Thành công",
@@ -355,11 +360,9 @@ function PhoneNumbers() {
         await fetchData(quantity, status, offset);
       }
     } catch (err: any) {
-      console.error("Lỗi khi triển khai số:", err);
       Swal.fire(
-        "Lỗi",
-        err.response.data.detail ||
-          "Có lỗi xảy ra khi triển khai số, vui lòng thử lại!",
+        "Oops...",
+        `${err}` || "Có lỗi xảy ra khi triển khai số, vui lòng thử lại!",
         "error"
       );
     } finally {
@@ -375,113 +378,125 @@ function PhoneNumbers() {
     let allData: any[] = [];
 
     const waitMinimumTime = new Promise((resolve) => setTimeout(resolve, 3000));
+
+    const updateProgress = (current: number, total: number) => {
+      const percentage = Math.min(100, Math.round((current / total) * 100));
+      setProgress(percentage);
+    };
+
     if (typeExport === "status") {
       if (!status) {
         console.error("Status is not provided");
         setLoadingProgress(false);
-        return; // Thoát nếu không có status
+        return;
       }
 
       let currentPage = 0;
       let totalPages = 1;
       let statusData: any[] = [];
 
-      const fetchDataStatus = async () => {
-        try {
-          const firstRes = await bookingPhoneForOption({
-            quantity: limit,
-            status,
-            offset: currentPage,
-          });
+      try {
+        const firstRes = await bookingPhoneForOption({
+          quantity: limit,
+          status,
+          offset: currentPage,
+        });
 
-          if (firstRes?.data?.phone_numbers) {
-            totalPages = firstRes.data.total_pages || 1;
-            statusData = [...firstRes.data.phone_numbers];
-            setProgress((prev) => Math.min(prev + 5, 90));
+        if (firstRes?.data?.phone_numbers) {
+          totalPages = firstRes.data.total_pages || 1;
+          statusData = [...firstRes.data.phone_numbers];
 
-            while (currentPage < totalPages - 1) {
-              currentPage++;
-              const nextRes = await bookingPhoneForOption({
-                quantity: limit,
-                status,
-                offset: currentPage,
-              });
+          updateProgress(1, totalPages);
 
-              if (nextRes?.data?.phone_numbers) {
-                statusData = [...statusData, ...nextRes.data.phone_numbers];
-              }
+          for (currentPage = 1; currentPage < totalPages; currentPage++) {
+            const nextRes = await bookingPhoneForOption({
+              quantity: limit,
+              status,
+              offset: currentPage,
+            });
 
-              setProgress((prev) => Math.min(prev + 5, 90));
+            if (nextRes?.data?.phone_numbers) {
+              statusData = [...statusData, ...nextRes.data.phone_numbers];
             }
 
-            // Gọi export sau khi thu thập xong
-            exportPivotTableToExcel(
-              statusData,
-              "provider_name",
-              "type_name",
-              `${status}_data.xlsx`,
-              `Danh sách số theo trạng thái: ${status}`,
-              "Nhà mạng"
-            );
-          } else {
-            console.error("No data returned from API for status:", status);
+            updateProgress(currentPage + 1, totalPages);
           }
-        } catch (error) {
-          console.error(`Error fetching data for status ${status}:`, error);
-        } finally {
-          await waitMinimumTime;
-          setLoadingProgress(false);
-        }
-      };
 
-      // Gọi hàm fetchDataStatus
-      await fetchDataStatus();
-    } else if (typeExport === "allStatus") {
+          exportPivotTableToExcel(
+            statusData,
+            "provider_name",
+            "type_name",
+            `${status}_data.xlsx`,
+            `Danh sách số theo trạng thái: ${status}`,
+            "Nhà mạng"
+          );
+        } else {
+          console.error("No data returned from API for status:", status);
+        }
+      } catch (error) {
+        console.error(`Error fetching data for status ${status}:`, error);
+      }
+
+      await waitMinimumTime;
+      setProgress(100);
+      setLoadingProgress(false);
+      return;
+    }
+
+    if (typeExport === "allStatus") {
       const statuses = ["available", "booked", "released"];
-      console.log("Vào đây");
+      let totalRequests = 0;
+      let finishedRequests = 0;
+
+      // First, determine total pages for each status
+      const pagesPerStatus: Record<string, number> = {};
+      for (const status of statuses) {
+        try {
+          const res = await bookingPhoneForOption({
+            quantity: limit,
+            status,
+            offset: 0,
+          });
+          pagesPerStatus[status] = res?.data?.total_pages || 1;
+          totalRequests += pagesPerStatus[status];
+        } catch (err) {
+          pagesPerStatus[status] = 0;
+          console.error(`Error getting total pages for status ${status}`, err);
+        }
+      }
 
       const fetchDataByStatus = async (status: string) => {
-        let currentPage = 0;
-        let totalPages = 1;
         let statusData: any[] = [];
+        const totalPages = pagesPerStatus[status];
 
-        try {
-          const firstRes = await bookingPhoneForOption({
-            quantity: limit,
-            status,
-            offset: currentPage,
-          });
-
-          if (firstRes.data) {
-            totalPages = firstRes.data.total_pages;
-            statusData = [...firstRes.data.phone_numbers];
-            setProgress((prev) => Math.min(prev + 5, 90));
-
-            while (currentPage < totalPages - 1) {
-              currentPage++;
-              const nextRes = await bookingPhoneForOption({
-                quantity: limit,
-                status,
-                offset: currentPage,
-              });
-
-              if (nextRes.data?.phone_numbers) {
-                statusData = [...statusData, ...nextRes.data.phone_numbers];
-              }
-
-              setProgress((prev) => Math.min(prev + 5, 90));
-            }
-
-            const dataWithStatus = statusData.map((item) => ({
-              ...item,
+        for (let page = 0; page < totalPages; page++) {
+          try {
+            const res = await bookingPhoneForOption({
+              quantity: limit,
               status,
-            }));
+              offset: page,
+            });
 
-            allData = [...allData, ...dataWithStatus];
+            if (res?.data?.phone_numbers) {
+              statusData = [...statusData, ...res.data.phone_numbers];
+            }
+          } catch (error) {
+            console.error(
+              `Error fetching data for status ${status} at page ${page}`,
+              error
+            );
           }
-        } catch (error) {
-          console.error(`Error fetching data for status ${status}:`, error);
+
+          finishedRequests++;
+          updateProgress(finishedRequests, totalRequests);
         }
+
+        const dataWithStatus = statusData.map((item) => ({
+          ...item,
+          status,
+        }));
+
+        allData = [...allData, ...dataWithStatus];
       };
 
       for (const status of statuses) {
@@ -496,10 +511,11 @@ function PhoneNumbers() {
         "Tổng hợp số theo nhà mạng và trạng thái",
         "Nhà mạng"
       );
-    }
 
-    await waitMinimumTime;
-    setLoadingProgress(false);
+      await waitMinimumTime;
+      setProgress(100);
+      setLoadingProgress(false);
+    }
   };
 
   return (
@@ -556,6 +572,7 @@ function PhoneNumbers() {
                 <div></div>
                 <div className="flex items-center gap-2 justify-end">
                   <Select
+                    placeholder="Chọn option export"
                     className="flex-2"
                     onChange={(value) => setExportOption(value)}
                     options={[
@@ -576,7 +593,7 @@ function PhoneNumbers() {
                   </button>
                 </div>
 
-                {status === "booked" && (
+                {status === "booked" && user.role === 1 && (
                   <div className="flex items-end">
                     <button
                       onClick={handleManyRelease}
@@ -594,6 +611,7 @@ function PhoneNumbers() {
                   setSelectedIds(selectedIds.map((id) => Number(id)));
                   setSelectedRows(selectedRows);
                 }}
+                role={user.role}
                 setSelectedIds={setSelectedIds}
                 selectedIds={selectedIds}
                 error={error}
@@ -610,12 +628,16 @@ function PhoneNumbers() {
                     onClick: (row) => handleGetById(Number(row.id)),
                     label: "Chi tiết",
                   },
-                  {
-                    icon: <MdOutlineNewReleases />,
-                    onClick: (row) => handleReleasedNumber(row),
-                    label: "Triển khai",
-                    condition: () => status === "booked",
-                  },
+                  ...(user.role === 1
+                    ? [
+                        {
+                          icon: <MdOutlineNewReleases />,
+                          onClick: (row: any) => handleReleasedNumber(row),
+                          label: "Triển khai",
+                          condition: () => status === "booked",
+                        },
+                      ]
+                    : []),
                 ]}
                 onDelete={(id) => handleDelete(Number(id))}
               />
@@ -635,6 +657,7 @@ function PhoneNumbers() {
               />
             </ComponentCard>
             <PhoneModalDetail
+              role={user.role}
               onSuccess={() => fetchData(quantity, status, offset)}
               isOpen={openModal}
               onCloseModal={() => setOpenModal(false)}

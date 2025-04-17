@@ -33,9 +33,14 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
   const [error, setError] = useState("");
   useEffect(() => {
     if (data) {
+      const rawNumber = convertTimeToNumber(data.booking_expiration);
       const formattedExpiration = data.booking_expiration
-        ? formatBookingExpiration(convertTimeToNumber(data.booking_expiration))
+        ? formatBookingExpiration(rawNumber)
         : "00.00.00";
+
+      if (parseBookingExpiration(formattedExpiration) === 0) {
+        alert("Thời gian giữ không được bằng 0");
+      }
       setTypeNumber({
         ...data,
         booking_expiration: formattedExpiration,
@@ -77,12 +82,10 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
       newErrors.name = "Tên định dạng không được để trống!";
     }
 
-    if (
-      !typeNumber.booking_expiration ||
-      !/^\d{2}\.\d{2}\.\d{2}$/.test(typeNumber.booking_expiration)
-    ) {
-      newErrors.booking_expiration =
-        "Vui lòng nhập thời gian đúng định dạng HH.MM.SS!";
+    if (!typeNumber.booking_expiration) {
+      newErrors.booking_expiration = "Thời gian giữ không được để trống!";
+    } else if (parseBookingExpiration(typeNumber.booking_expiration) === 0) {
+      newErrors.booking_expiration = "Thời gian giữ không được bằng 0!";
     }
 
     setErrors(newErrors);
@@ -99,7 +102,6 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
         parseBookingExpiration(typeNumber.booking_expiration)
       ),
     };
-
     const normalizeString = (str: string) => str.trim().replace(/\s+/g, " ");
     const trimData: ITypeNumber = {
       ...submitData,
@@ -121,6 +123,8 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
     }
     try {
       if (!typeNumber.id) {
+        console.log(">>>", trimData);
+
         const res = await createTypeNumber(trimData);
         if (res?.status === 200) {
           Swal.fire({

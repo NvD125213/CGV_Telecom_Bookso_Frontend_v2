@@ -4,6 +4,7 @@ import { IPhoneNumber, IReportDate } from "../types";
 export const initialPhoneNumber: IPhoneNumber = {
   id: 0,
   phone_number: "",
+  type_id: "",
   provider_id: 0,
   type_number_id: 0,
   installation_fee: 0,
@@ -134,8 +135,7 @@ export const releasePhoneNumber = async (data: IReleasePhoneNumber) => {
     );
     return res;
   } catch (err: any) {
-    console.error("API Error:", err.response?.data.detail);
-    throw new Error(err.response?.data?.detail);
+    throw new Error(err.response?.data.detail);
   }
 };
 
@@ -145,21 +145,13 @@ export const getQuantityPhoneAvailable = async () => {
 };
 
 export const updatePhone = async (id: number, data: IPhoneNumber) => {
-  try {
-    const res = await axiosInstance.put(`/api/v1/phone?phone_id=${id}`, data);
-    return res;
-  } catch (error) {
-    console.error("Failed to update phone number:", error);
-  }
+  const res = await axiosInstance.put(`/api/v1/phone?phone_id=${id}`, data);
+  return res;
 };
 
 export const deletePhone = async (id: number) => {
-  try {
-    const res = await axiosInstance.delete(`/api/v1/phone?phone_id=${id}`);
-    return res;
-  } catch (error) {
-    console.error("Failed to update phone number:", error);
-  }
+  const res = await axiosInstance.delete(`/api/v1/phone?phone_id=${id}`);
+  return res;
 };
 
 export const getPhoneByID = async (id: number) => {
@@ -214,6 +206,6 @@ export const updateQuantityLimit = async (id: number, data: any) => {
     );
     return res;
   } catch (error: any) {
-    throw new Error(error);
+    throw new Error(error.response.data.detail);
   }
 };

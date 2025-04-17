@@ -3,6 +3,8 @@ import ComponentCard from "../../components/common/ComponentCard";
 import { IoIosAdd } from "react-icons/io";
 import ModalProvider from "./ProviderModal";
 import { deleteProvider, getProviders } from "../../services/provider";
+import { useSelector } from "react-redux";
+import { RootState } from "../../store";
 
 import { useEffect, useState } from "react";
 import ModalSwalAction from "../../hooks/useModalSwal";
@@ -35,6 +37,7 @@ const ProviderPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorData, setErrorData] = useState("");
+  const user = useSelector((state: RootState) => state.auth.user);
 
   const getAllData = async (delay = 0) => {
     setError(null);
@@ -98,6 +101,7 @@ const ProviderPage = () => {
           <ComponentCard>
             <ReusableTable
               error={errorData}
+              role={user.role}
               title="Danh sách số điện thoại"
               data={providers}
               columns={columns}

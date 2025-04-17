@@ -59,14 +59,24 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredData, setFilteredData] = useState(data);
+  const [errors, setErrors] = useState(error);
 
   useEffect(() => {
+    if (!isOpen) {
+      setSearchTerm("");
+      setErrors("");
+    }
     const lowercasedFilter = searchTerm.toLowerCase();
     const filtered = data.filter((item) =>
       item.user_name.toLowerCase().includes(lowercasedFilter)
     );
+    if (filtered.length === 0) {
+      setErrors("Không có dữ liệu");
+    } else {
+      setErrors("");
+    }
     setFilteredData(filtered);
-  }, [searchTerm, data]);
+  }, [searchTerm, data, isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -81,7 +91,6 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
   const handleLimitChange = (newLimit: number) => {
     fetchData({ limit: newLimit, offset: 0, year, month, day }); // Reset offset về 0 khi thay đổi limit
   };
-  // console.log(">>", error);
 
   return (
     <Modal
@@ -121,7 +130,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
 
         {/* Bảng dữ liệu */}
         <ReusableTable
-          error={error}
+          error={errors}
           data={filteredData}
           columns={columns}
           selectedIds={selectedIds}

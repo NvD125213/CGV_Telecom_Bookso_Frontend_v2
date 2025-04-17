@@ -10,6 +10,7 @@ import Swal from "sweetalert2";
 import { formatNumber, parseNumber } from "../../helper/formatCurrencyVND";
 
 interface PhoneNumberProps {
+  role?: number;
   isOpen: boolean;
   onCloseModal: () => void;
   data?: IPhoneNumber | null;
@@ -18,6 +19,7 @@ interface PhoneNumberProps {
 
 const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
   isOpen,
+  role,
   onCloseModal,
   data,
   onSuccess,
@@ -31,6 +33,8 @@ const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
   // Chỉ cần 1 useEffect để set dữ liệu ban đầu
   useEffect(() => {
     if (data) {
+      console.log("role", role);
+
       setPhone(data);
     } else {
       setPhone(initialPhoneNumber);
@@ -105,6 +109,7 @@ const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
 
   return (
     <CustomModal
+      disabledAll={role !== 1 ? true : false}
       errorDetail={errorDetail}
       isOpen={isOpen}
       title="Chi tiết số điện thoại"
@@ -164,7 +169,7 @@ const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
           name: "installation_fee",
           label: "Phí yêu cầu (đ)",
           type: "text", // Đổi sang text
-          value: formatNumber(phone.installation_fee?.toString() || "0"), // Giá trị định dạng
+          value: formatNumber(phone.installation_fee?.toString() || "0"),
           onChange: (value) => setValue("installation_fee", value),
           error: errors.installation_fee,
         },
@@ -172,7 +177,7 @@ const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
           name: "maintenance_fee",
           label: "Phí duy trì (đ)",
           type: "text", // Đổi sang text
-          value: formatNumber(phone.maintenance_fee?.toString() || "0"), // Giá trị định dạng
+          value: formatNumber(phone.maintenance_fee?.toString() || "0"),
           onChange: (value) => setValue("maintenance_fee", value),
           error: errors.maintenance_fee,
         },
@@ -180,7 +185,7 @@ const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
           name: "vanity_number_fee",
           label: "Phí số đẹp (đ)",
           type: "text", // Đổi sang text
-          value: formatNumber(phone.vanity_number_fee?.toString() || "0"), // Giá trị định dạng
+          value: formatNumber(phone.vanity_number_fee?.toString() || "0"),
           onChange: (value) => setValue("vanity_number_fee", value),
           error: errors.vanity_number_fee,
         },

@@ -52,7 +52,7 @@ const Input: FC<InputProps> = ({
   }
 
   return (
-    <div className="relative">
+    <div className="">
       <input
         type={type}
         id={id}

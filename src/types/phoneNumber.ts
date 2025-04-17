@@ -18,4 +18,5 @@ export interface IPhoneNumber {
   created_at?: string;
   updated_at?: string;
   released_at?: string;
+  phone_number_id?: string;
 }

@@ -8,6 +8,8 @@ import { deleteTypeNumber, getTypeNumber } from "../../services/typeNumber";
 import ModalTypeNumber from "./TypeNumberModal";
 import ModalSwalAction from "../../hooks/useModalSwal";
 import ReusableTable from "../../components/common/ReusableTable";
+import { useSelector } from "react-redux";
+import { RootState } from "../../store";
 
 function convertSecondsToTime(seconds: any) {
   const hours = Math.floor(seconds / 3600);
@@ -35,6 +37,8 @@ const TypeNumberPages = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [errorData, setErrorData] = useState("");
+
+  const user = useSelector((state: RootState) => state.auth.user);
 
   const getAllData = async (delay = 0) => {
     setError(null);
@@ -97,6 +101,7 @@ const TypeNumberPages = () => {
           <ComponentCard>
             <ReusableTable
               error={errorData}
+              role={user.role}
               title="Danh sách số điện thoại"
               data={types}
               columns={columns}

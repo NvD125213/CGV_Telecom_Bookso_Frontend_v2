@@ -74,8 +74,12 @@ const LimitBookingPage = () => {
         cancelButtonText: "Hủy",
         inputValidator: (value) => {
           if (!value) {
-            return "Không được để số lượng giới hạn!";
+            return "Không được để trống số lượng giới hạn!";
           }
+          if (!/^\d+$/.test(value)) {
+            return "Chỉ được nhập số nguyên dương!";
+          }
+          return undefined;
         },
       });
 
@@ -92,12 +96,7 @@ const LimitBookingPage = () => {
             getAllData();
           }
         } catch (error: any) {
-          Swal.fire(
-            "Lỗi",
-            error.response.data.detail ||
-              "Có lỗi xảy ra khi thay đổi giới hạn, vui lòng thử lại!",
-            "error"
-          );
+          Swal.fire("Oops...", `${error}`, "error");
         }
       }
     } catch (err: any) {

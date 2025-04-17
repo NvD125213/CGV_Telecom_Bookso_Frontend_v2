@@ -15,6 +15,7 @@ import { FiEye } from "react-icons/fi";
 import { formatDate } from "../../helper/formatDateToISOString";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
+
 import SearchHelp from "../../components/instruct/InstructRule";
 import {
   booking,
@@ -286,7 +287,11 @@ function PhoneNumberFilters() {
         }
       }
     } catch (error: any) {
-      Swal.fire("Lỗi", `${error.response?.data?.detail || "Đã xảy ra lỗi"}`);
+      Swal.fire(
+        "Oops...",
+        `${error.response?.data?.detail || "Đã xảy ra lỗi"}`,
+        "error"
+      );
     }
   };
 
@@ -363,6 +368,7 @@ function PhoneNumberFilters() {
               {/* Data table */}
 
               <ReusableTable
+                role={user.role}
                 isLoading={loading}
                 title="Danh sách số điện thoại"
                 data={safeData}
@@ -410,6 +416,7 @@ function PhoneNumberFilters() {
           />
           <PhoneModalDetail
             isOpen={openModalDetail}
+            role={user.role}
             onCloseModal={() => setOpenModalDetail(false)}
             data={selectedPhone}
             onSuccess={fetchData}
