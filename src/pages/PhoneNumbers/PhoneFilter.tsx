@@ -321,18 +321,19 @@ function PhoneNumberFilters() {
 
             <ComponentCard>
               <div className=" grid grid-cols-1 gap-4 lg:grid-cols-3">
-                <div>
-                  <Label htmlFor="inputTwo">Tìm kiếm theo đầu số</Label>
-                  <Input
-                    type="text"
-                    id="inputTwo"
-                    placeholder="Nhập đầu số..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                  />
-                </div>
-
+                {user.role === 1 && (
+                  <div>
+                    <Label htmlFor="inputTwo">Tìm kiếm theo đầu số</Label>
+                    <Input
+                      type="text"
+                      id="inputTwo"
+                      placeholder="Nhập đầu số..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                    />
+                  </div>
+                )}
                 <div>
                   <Label>Nhà cung cấp</Label>
                   <Select

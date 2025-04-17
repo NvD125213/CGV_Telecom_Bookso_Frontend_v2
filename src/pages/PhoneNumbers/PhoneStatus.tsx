@@ -543,7 +543,8 @@ function PhoneNumbers() {
 
           <div className="space-y-6">
             <ComponentCard>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+              <div
+                className={`grid grid-cols-1 items-end gap-4 lg:grid-cols-4`}>
                 <div>
                   <Label>Trạng thái</Label>
                   <Select
@@ -558,7 +559,6 @@ function PhoneNumbers() {
                     className="dark:bg-dark-900"
                   />
                 </div>
-
                 <div>
                   <Label>Tìm kiếm theo số điện thoại</Label>
                   <Input
@@ -569,8 +569,18 @@ function PhoneNumbers() {
                     onKeyDown={handleOnKeyDown}
                   />
                 </div>
-                <div></div>
-                <div className="flex items-center gap-2 justify-end">
+
+                {status === "booked" && user.role === 1 && (
+                  <div className="flex items-end">
+                    <button
+                      onClick={handleManyRelease}
+                      className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+                      <CiExport size={24} />
+                      Triển khai
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
                   <Select
                     placeholder="Chọn option export"
                     className="flex-2"
@@ -592,17 +602,6 @@ function PhoneNumbers() {
                     <IoCloudDownloadOutline size={20} />
                   </button>
                 </div>
-
-                {status === "booked" && user.role === 1 && (
-                  <div className="flex items-end">
-                    <button
-                      onClick={handleManyRelease}
-                      className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
-                      <CiExport size={24} />
-                      Triển khai
-                    </button>
-                  </div>
-                )}
               </div>
 
               <ReusableTable
