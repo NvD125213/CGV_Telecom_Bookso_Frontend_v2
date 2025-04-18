@@ -14,6 +14,7 @@ import {
   bookingPhoneForOption,
   getPhoneByID,
   deletePhone,
+  revokeNumber,
 } from "../../services/phoneNumber";
 import ReusableTable from "../../components/common/ReusableTable";
 import Pagination from "../../components/pagination/pagination";
@@ -27,6 +28,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "../../store";
 import { CiExport } from "react-icons/ci";
 import { IoCloudDownloadOutline } from "react-icons/io5";
+import { IoCaretBackCircleOutline } from "react-icons/io5";
 import exportPivotTableToExcel from "../../helper/exportDataToExcel";
 
 interface PhoneNumberProps {
@@ -307,6 +309,8 @@ function PhoneNumbers() {
       setBookLoading(false);
     }
   };
+
+  // Handle data released when choose many number
   const handleManyRelease = async () => {
     if (selectedRows.length === 0) {
       alert("Vui lòng chọn ít nhất một số để giải phóng");
@@ -363,6 +367,53 @@ function PhoneNumbers() {
       Swal.fire(
         "Oops...",
         `${err}` || "Có lỗi xảy ra khi triển khai số, vui lòng thử lại!",
+        "error"
+      );
+    } finally {
+      setBookLoading(false);
+    }
+  };
+
+  const handleRevoke = async () => {
+    if (selectedRows.length === 0) {
+      alert("Vui lòng chọn ít nhất một số để thu hồi");
+      return;
+    }
+
+    setBookLoading(true);
+    const dataRevoke = {
+      id_phone_numbers: selectedRows.map((row) => row.id),
+    };
+
+    try {
+      const result = await Swal.fire({
+        title: "Bạn có chắc chắn?",
+        text: "Hãy kiểm tra lại danh sách số bạn muốn thu hồi!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Thu hồi",
+      });
+
+      if (result.isConfirmed) {
+        const res = await revokeNumber(dataRevoke);
+        if (res.status === 200) {
+          Swal.fire({
+            title: "Thu hồi thành công!",
+            text: "Bạn đã thu hồi thành công danh sách số cho nó.",
+            icon: "success",
+          });
+          setSelectedIds([]);
+          setSelectedRows([]);
+          await fetchData(quantity, status, offset);
+          setSearchParams({});
+        }
+      }
+    } catch (err: any) {
+      Swal.fire(
+        "Oops...",
+        `${err}` || "Có lỗi xảy ra khi thu hồi, vui lòng thử lại!",
         "error"
       );
     } finally {
@@ -571,18 +622,24 @@ function PhoneNumbers() {
                 </div>
 
                 {status === "booked" && user.role === 1 && (
-                  <div className="flex items-end">
+                  <div className="flex items-end gap-2">
                     <button
                       onClick={handleManyRelease}
                       className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
-                      <CiExport size={24} />
+                      <CiExport size={22} />
                       Triển khai
+                    </button>
+                    <button
+                      onClick={handleRevoke}
+                      className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+                      <IoCaretBackCircleOutline size={22} />
+                      Thu hồi
                     </button>
                   </div>
                 )}
                 <div className="flex items-center gap-2">
                   <Select
-                    placeholder="Chọn option export"
+                    placeholder="Option export"
                     className="flex-2"
                     onChange={(value) => setExportOption(value)}
                     options={[

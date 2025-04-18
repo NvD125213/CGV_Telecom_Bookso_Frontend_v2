@@ -231,11 +231,22 @@ function PhoneNumberFilters() {
 
     setBookLoading(true);
     try {
-      const res = await booking(requestBody);
-      if (res.status === 200) {
-        Swal.fire("Book thành công!", "", "success");
-        fetchData();
-        setSelectedIds([]);
+      const result = await Swal.fire({
+        title: "Thực hiện book số?",
+        text: "Hãy kiểm tra lại danh sách số bạn đã chọn!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Thu hồi",
+      });
+      if (result.isConfirmed) {
+        const res = await booking(requestBody);
+        if (res.status === 200) {
+          Swal.fire("Book thành công!", "", "success");
+          fetchData();
+          setSelectedIds([]);
+        }
       }
     } catch (err: any) {
       const error = err.response.data.detail;

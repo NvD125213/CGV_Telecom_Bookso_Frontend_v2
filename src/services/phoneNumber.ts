@@ -209,3 +209,12 @@ export const updateQuantityLimit = async (id: number, data: any) => {
     throw new Error(error.response.data.detail);
   }
 };
+
+export const revokeNumber = async (data: any) => {
+  try {
+    const res = await axiosInstance.put("/api/v1/phone/revoke", data);
+    return res;
+  } catch (err: any) {
+    throw new Error(err.response?.data.detail);
+  }
+};
