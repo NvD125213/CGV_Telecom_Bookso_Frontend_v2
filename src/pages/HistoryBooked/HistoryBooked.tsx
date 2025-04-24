@@ -12,29 +12,69 @@ import Pagination from "../../components/pagination/pagination";
 import { useSearchParams } from "react-router-dom";
 import { debounce } from "lodash";
 import DatePicker from "../../components/form/date-picker";
+import Select from "../../components/form/Select";
+import Input from "../../components/form/input/InputField";
+const getColumns = (status: string) => {
+  const columns: {
+    key: keyof IHistoryBooked;
+    label: string;
+    type?: string;
+    classname?: string;
+  }[] = [
+    { key: "phone_number", label: "Số điện thoại" },
+    { key: "provider_name", label: "Nhà cung cấp" },
+    { key: "type_name", label: "Loại số" },
+    { key: "installation_fee", label: "Phí lắp đặt (đ)" },
+    { key: "maintenance_fee", label: "Phí duy trì (đ)" },
+    { key: "vanity_number_fee", label: "Phí số đẹp (đ)" },
+    {
+      key: "status",
+      label: "Trạng thái",
+      type: "span",
+      classname:
+        status === "available"
+          ? "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500"
+          : status === "booked"
+          ? "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-orange-400"
+          : status === "released"
+          ? "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500"
+          : "",
+    },
+  ];
+  if (status === "available") {
+    return [
+      ...columns,
+      { key: "created_at" as keyof IHistoryBooked, label: "Ngày tạo" },
+    ];
+  }
+  if (status === "booked") {
+    return [
+      ...columns,
+      { key: "booked_at" as keyof IHistoryBooked, label: "Ngày đặt" },
+      { key: "booked_until" as keyof IHistoryBooked, label: "Hạn đặt" },
+    ];
+  }
+  if (status === "released") {
+    return [
+      ...columns,
+      { key: "released_at" as keyof IHistoryBooked, label: "Ngày triển khai" },
+    ];
+  }
 
-const baseColumns: { key: keyof IHistoryBooked; label: string }[] = [
-  { key: "user_name", label: "Tên" },
-  { key: "phone_number", label: "Số đã book" },
-  { key: "provider_name", label: "Nhà cung cấp" },
-  { key: "type_name", label: "Kiểu số" },
-  { key: "installation_fee", label: "Phí cài đặt" },
-  { key: "maintenance_fee", label: "Phí bảo trì" },
-  { key: "vanity_number_fee", label: "Phí số đẹp" },
-  { key: "created_at", label: "Ngày thêm số" },
-  { key: "updated_at", label: "Ngày book" },
-  { key: "booked_until", label: "Hạn đặt" },
-];
+  return columns;
+};
+type StatusType = "booked" | "released";
 
 const HistoryBooked = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [status] = useState("booked");
   const [data, setData] = useState<IHistoryBooked[]>([]);
   const [loading, setLoading] = useState(false);
   const { month, year, setYear, setMonth, setAll } = useDateFilter();
   const [filterType, setFilterType] = useState<"day" | "monthYear">("day");
   const [limit, setLimit] = useState(Number(searchParams.get("limit")) || 20);
   const [offset, setOffset] = useState(Number(searchParams.get("offset")) || 0);
+  const [status, setStatus] = useState<StatusType>("booked");
+
   const [totalPages, setTotalPages] = useState(0);
   const [errors, setErrors] = useState("");
 
@@ -70,6 +110,7 @@ const HistoryBooked = () => {
       if (year) params.year = year;
       if (month) params.month = month;
       if (day) params.day = day;
+      if (status) params.option = status;
 
       const res = await getBookingByCurrent(params);
       const formattedData = res.data.data.map((phone: IHistoryBooked) => ({
@@ -78,7 +119,8 @@ const HistoryBooked = () => {
         booked_until: phone.booked_until
           ? formatDate(phone.booked_until)
           : "N/A",
-        updated_at: phone.updated_at ? formatDate(phone.updated_at) : "N/A",
+        booked_at: phone.booked_at ? formatDate(phone.booked_at) : "N/A",
+        released_at: phone.released_at ? formatDate(phone.released_at) : "N/A",
         installation_fee: formatNumber(String(phone?.installation_fee ?? 0)),
         maintenance_fee: formatNumber(String(phone?.maintenance_fee ?? 0)),
         vanity_number_fee: formatNumber(String(phone?.vanity_number_fee ?? 0)),
@@ -89,7 +131,6 @@ const HistoryBooked = () => {
         setErrors("Không có dữ liệu!");
       }
       setData(formattedData || []);
-
       setTotalPages(res.data.total_pages || Math.ceil(res.data.total / limit));
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -131,7 +172,17 @@ const HistoryBooked = () => {
     setYear(null);
     fetchData();
   };
-
+  const handleStatusChange = (newStatus: StatusType) => {
+    setStatus(newStatus);
+    setOffset(0);
+    setMonth(null); // Đặt lại month nếu cần
+    setYear(null); // Đặt lại year nếu cần
+    setSearchParams({
+      limit: limit.toString(),
+      offset: "0",
+      option: newStatus,
+    });
+  };
   useEffect(() => {
     if (filterType !== "monthYear") {
       fetchData();
@@ -152,19 +203,17 @@ const HistoryBooked = () => {
       <div className="flex flex-wrap w-full items-end justify-start gap-3 mb-4">
         <div className="w-full md:w-auto">
           <Label htmlFor="filterType">Lọc theo</Label>
-          <select
-            value={filterType}
-            onChange={(e) =>
-              handleFilterTypeChange(e.target.value as "day" | "monthYear")
+          <Select
+            options={[
+              { label: "Tìm kiếm cụ thể từng ngày", value: "day" },
+              { label: "Tìm kiếm theo năm, tháng", value: "monthYear" },
+            ]}
+            className="border rounded-md px-3 py-3 w-full md:w-auto dark:bg-black dark:text-white"
+            onChange={(value) =>
+              handleFilterTypeChange(value as "day" | "monthYear")
             }
-            className="border rounded-md px-3 py-3 w-full md:w-auto dark:text-white">
-            <option className="bg-white dark:bg-black" value="day">
-              Tìm kiếm cụ thể từng ngày
-            </option>
-            <option className="bg-white dark:bg-black" value="monthYear">
-              Tìm kiếm theo năm, tháng
-            </option>
-          </select>
+            placeholder="Chọn kiểu tìm kiếm"
+          />
         </div>
 
         <div className="w-full md:w-auto">
@@ -178,26 +227,45 @@ const HistoryBooked = () => {
               />
             </div>
           ) : (
-            <div className="flex flex-wrap items-center justify-start gap-3 ">
-              <input
-                type="number"
-                placeholder="Năm..."
-                value={year ?? ""}
-                onChange={(e) => setYear(Number(e.target.value))}
-                className="border border-gray-300 rounded px-3 py-2 w-24 dark:placeholder-white/50 dark:text-white"
-                min={1}
-              />
-              <input
-                type="number"
-                placeholder="Tháng"
-                value={month ?? ""}
-                onChange={(e) => setMonth(Number(e.target.value))}
-                className="border border-gray-300 rounded px-3 py-2 w-24 dark:placeholder-white/50 dark:text-white"
-                min={1}
-                max={12}
-              />
+            <div className="grid grid-cols-2 items-center justify-start gap-3 ">
+              <div>
+                <Label htmlFor="">Nhập năm</Label>
+
+                <Input
+                  type="number"
+                  placeholder="Năm..."
+                  value={year ?? ""}
+                  onChange={(e: any) => setYear(Number(e.target.value))}
+                  className="border border-gray-300 rounded px-3 py-2 w-24 dark:placeholder-white/50 dark:text-white"
+                  min={1}
+                />
+              </div>
+              <div>
+                <Label htmlFor="">Nhập tháng</Label>
+                <Input
+                  type="number"
+                  placeholder="Tháng"
+                  value={month ?? ""}
+                  onChange={(e: any) => setMonth(Number(e.target.value))}
+                  className="border border-gray-300 rounded px-3 py-2 w-24 dark:placeholder-white/50 dark:text-white"
+                  min={1}
+                  max={12}
+                />
+              </div>
             </div>
           )}
+        </div>
+        <div>
+          <Label>Trạng thái</Label>
+          <Select
+            options={[
+              { label: "Đã book", value: "booked" },
+              { label: "Triển khai", value: "released" },
+            ]}
+            className="border rounded-md px-3 py-3 w-full md:w-auto dark:bg-black dark:text-white"
+            onChange={(value) => handleStatusChange(value as StatusType)}
+            placeholder="Chọn trạng thái"
+          />
         </div>
       </div>
 
@@ -207,8 +275,12 @@ const HistoryBooked = () => {
             error={errors}
             title="Bảng lịch sử chi tiết"
             data={data ?? []}
-            columns={baseColumns}
+            columns={getColumns(status)}
             isLoading={loading}
+            pagination={{
+              currentPage: offset,
+              pageSize: limit,
+            }}
           />
           <Pagination
             limit={limit}
@@ -220,12 +292,17 @@ const HistoryBooked = () => {
               setSearchParams({
                 limit: newLimit.toString(),
                 offset: newOffset.toString(),
+                option: status,
               });
             }}
             onLimitChange={(newLimit) => {
               setLimit(newLimit);
               setOffset(0);
-              setSearchParams({ limit: newLimit.toString(), offset: "0" });
+              setSearchParams({
+                limit: newLimit.toString(),
+                offset: "0",
+                option: status,
+              });
             }}
           />
         </ComponentCard>

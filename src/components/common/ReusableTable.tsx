@@ -112,237 +112,237 @@ const ReusableTable = <T extends { id: string | number }>({
     <div className="dark:text-white">{error}</div>
   ) : (
     <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-black">
-      <div className="overflow-x-auto min-w-[1000px]">
-        <div className="max-h-[500px] overflow-y-auto dark:bg-black min-w-[900px]">
-          <Table className="dark:text-white ">
-            {/* Table Header */}
-            <TableHeader>
-              <TableRow>
-                <TableCell
-                  isHeader
-                  className="px-5 py-3 text-base font-semibold text-gray-500 dark:text-gray-300 text-start">
-                  <input
-                    type="checkbox"
-                    className="w-[18px] h-[18px]"
-                    checked={
-                      selectedIds?.length === data.length && data.length > 0
-                    }
-                    onChange={handleSelectAll}
-                    disabled={!setSelectedIds}
-                  />
-                </TableCell>
-                <TableCell
-                  isHeader
-                  className={`px-5 ${
-                    isManyColumns ? "text-[13px]" : "text-sm"
-                  } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start`}>
-                  STT
-                </TableCell>
-                {columns.map((col) => (
-                  <>
+      <div className="w-full overflow-x-auto">
+        <div className="min-w-[1000px]">
+          <div className="max-h-[500px] overflow-y-auto dark:bg-black min-w-[900px]">
+            <Table className="dark:text-white ">
+              {/* Table Header */}
+              <TableHeader>
+                <TableRow>
+                  <TableCell
+                    isHeader
+                    className="px-5 py-3 text-base font-semibold text-gray-500 dark:text-gray-300 text-start">
+                    <input
+                      type="checkbox"
+                      className="w-[18px] h-[18px]"
+                      checked={
+                        selectedIds?.length === data.length && data.length > 0
+                      }
+                      onChange={handleSelectAll}
+                      disabled={!setSelectedIds}
+                    />
+                  </TableCell>
+                  <TableCell
+                    isHeader
+                    className={`px-5 ${
+                      isManyColumns ? "text-[13px]" : "text-sm"
+                    } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start`}>
+                    STT
+                  </TableCell>
+                  {columns.map((col, idx) => (
                     <TableCell
-                      key={col.key as string}
+                      key={`${col.key as string}-${idx}`}
                       isHeader
                       className={`px-5 ${
                         isManyColumns ? "text-[13px]" : "text-sm"
                       } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start`}>
                       {col.label}
                     </TableCell>
-                  </>
-                ))}
-                {hasActionColumn && (
-                  <TableCell
-                    isHeader
-                    className={`px-5 ${
-                      isManyColumns ? "text-[13px]" : "text-sm"
-                    } dark:text-gray-300 py-3 text-base font-semibold 0 text-gray-500 ml-4 text-start`}>
-                    Hành động
-                  </TableCell>
-                )}
-              </TableRow>
-            </TableHeader>
+                  ))}
+                  {hasActionColumn && (
+                    <TableCell
+                      isHeader
+                      className={`px-5 ${
+                        isManyColumns ? "text-[13px]" : "text-sm"
+                      } dark:text-gray-300 py-3 text-base font-semibold 0 text-gray-500 ml-4 text-start`}>
+                      Hành động
+                    </TableCell>
+                  )}
+                </TableRow>
+              </TableHeader>
 
-            {/* Table Body */}
-            <TableBody>
-              {isLoading
-                ? Array.from({ length: 5 }).map((_, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="px-5 py-3">
-                        <Skeleton
-                          width={18}
-                          height={18}
-                          baseColor="#e5e7eb" // Light mode: xám nhạt
-                          highlightColor="#f3f4f6" // Light mode: sáng hơn
-                          className="dark:[&_*]:bg-black dark:[&_*]:bg-opacity-30 dark:[&_*]:shadow-[0_0_8px_rgba(255,255,255,0.1)]" // Dark mode: đen mờ + bóng
-                        />
-                      </TableCell>
-                      <TableCell className="px-5 py-3">
-                        <Skeleton
-                          width={18}
-                          height={18}
-                          baseColor="#e5e7eb" // Light mode: xám nhạt
-                          highlightColor="#f3f4f6" // Light mode: sáng hơn
-                          className="dark:[&_*]:bg-black dark:[&_*]:bg-opacity-30 dark:[&_*]:shadow-[0_0_8px_rgba(255,255,255,0.1)]" // Dark mode: đen mờ + bóng
-                        />
-                      </TableCell>
-                      {columns.map((col) => (
-                        <TableCell
-                          key={col.key as string}
-                          className={`px-5 py-3 text-sm text-gray-500 dark:text-gray-300  ${
-                            isManyColumns ? "text-[13px]" : "text-sm"
-                          }`}>
+              {/* Table Body */}
+              <TableBody>
+                {isLoading
+                  ? Array.from({ length: 5 }).map((_, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="px-5 py-3">
                           <Skeleton
-                            width="100%"
-                            height={28}
-                            baseColor="#e5e7eb"
-                            highlightColor="#f3f4f6"
-                            className="dark:[&_*]:bg-black dark:[&_*]:bg-opacity-30 dark:[&_*]:shadow-[0_0_8px_rgba(255,255,255,0.1)]"
+                            width={18}
+                            height={18}
+                            baseColor="#e5e7eb" // Light mode: xám nhạt
+                            highlightColor="#f3f4f6" // Light mode: sáng hơn
+                            className="dark:[&_*]:bg-black dark:[&_*]:bg-opacity-30 dark:[&_*]:shadow-[0_0_8px_rgba(255,255,255,0.1)]" // Dark mode: đen mờ + bóng
                           />
                         </TableCell>
-                      ))}
-                      {hasActionColumn && (
-                        <TableCell
-                          className={`flex gap-2 px-5 py-3  ${
-                            isManyColumns ? "text-[13px]" : "text-sm"
-                          }`}>
+                        <TableCell className="px-5 py-3">
                           <Skeleton
-                            width={80}
-                            height={32}
-                            baseColor="#e5e7eb"
-                            highlightColor="#f3f4f6"
-                            className="dark:[&_*]:bg-black dark:[&_*]:bg-opacity-30 dark:[&_*]:shadow-[0_0_8px_rgba(255,255,255,0.1)]"
-                          />
-                          <Skeleton
-                            width={80}
-                            height={32}
-                            baseColor="#e5e7eb"
-                            highlightColor="#f3f4f6"
-                            className="dark:[&_*]:bg-black dark:[&_*]:bg-opacity-30 dark:[&_*]:shadow-[0_0_8px_rgba(255,255,255,0.1)]"
-                          />
-                          <Skeleton
-                            width={50}
-                            height={32}
-                            baseColor="#e5e7eb"
-                            highlightColor="#f3f4f6"
-                            className="dark:[&_*]:bg-black dark:[&_*]:bg-opacity-30 dark:[&_*]:shadow-[0_0_8px_rgba(255,255,255,0.1)]"
+                            width={18}
+                            height={18}
+                            baseColor="#e5e7eb" // Light mode: xám nhạt
+                            highlightColor="#f3f4f6" // Light mode: sáng hơn
+                            className="dark:[&_*]:bg-black dark:[&_*]:bg-opacity-30 dark:[&_*]:shadow-[0_0_8px_rgba(255,255,255,0.1)]" // Dark mode: đen mờ + bóng
                           />
                         </TableCell>
-                      )}
-                    </TableRow>
-                  ))
-                : data.map((item, index) => {
-                    const stt =
-                      pagination?.currentPage && pagination?.pageSize
-                        ? pagination.currentPage * pagination.pageSize +
-                          index +
-                          1
-                        : index + 1;
-                    return (
-                      <TableRow key={item.id}>
-                        <TableCell
-                          className={`px-5 dark:text-gray-300 py-3  ${
-                            isManyColumns ? "text-[13px]" : "text-sm"
-                          }`}>
-                          <input
-                            type="checkbox"
-                            className="w-[18px] h-[18px]"
-                            checked={selectedIds?.includes(item.id)}
-                            onChange={() => handleSelectRow(item.id)}
-                            disabled={!setSelectedIds}
-                          />
-                        </TableCell>
-                        <TableCell
-                          className={`px-5 dark:text-gray-300 py-3 ${
-                            isManyColumns ? "text-[13px]" : "text-sm"
-                          }`}>
-                          {stt}
-                        </TableCell>
-
                         {columns.map((col) => (
                           <TableCell
                             key={col.key as string}
-                            className={`px-5 py-3 text-sm text-gray-500 dark:text-gray-300 0 ${
-                              isManyColumns ? "text-[13px]" : "text-sm 0"
+                            className={`px-5 py-3 text-sm text-gray-500 dark:text-gray-300  ${
+                              isManyColumns ? "text-[13px]" : "text-sm"
                             }`}>
-                            {col.type === "button" ? (
-                              <button className={col.classname}>
-                                {item[col.key] as string}
-                              </button>
-                            ) : col.type === "span" ? (
-                              <span className={col.classname}>
-                                {item[col.key] as string}
-                              </span>
-                            ) : (
-                              (item[col.key] as string)
-                            )}
+                            <Skeleton
+                              width="100%"
+                              height={28}
+                              baseColor="#e5e7eb"
+                              highlightColor="#f3f4f6"
+                              className="dark:[&_*]:bg-black dark:[&_*]:bg-opacity-30 dark:[&_*]:shadow-[0_0_8px_rgba(255,255,255,0.1)]"
+                            />
                           </TableCell>
                         ))}
                         {hasActionColumn && (
                           <TableCell
-                            className={`flex gap-2 px-5 py-3 items-center  ${
-                              isManyColumns ? "text-[13px]" : "text-sm "
+                            className={`flex gap-2 px-5 py-3  ${
+                              isManyColumns ? "text-[13px]" : "text-sm"
                             }`}>
-                            {onEdit && (
-                              <button
-                                onClick={() => onEdit(item)}
-                                className="bg-yellow-400 text-white 0 px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2">
-                                <PencilIcon />
-                              </button>
-                            )}
-                            {onDelete && role === 1 && (
-                              <button
-                                onClick={() => onDelete(item.id)}
-                                className="bg-red-400 text-white px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2 0">
-                                <RiDeleteBinLine />
-                              </button>
-                            )}
-
-                            {actions.length > 0 && (
-                              <div className="relative">
-                                <button
-                                  onClick={() => toggleDropdown(item.id)}
-                                  className="bg-gray-200 dark:bg-gray-800 dark:text-white text-gray-700 px-4 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 dropdown-toggle">
-                                  <HiDotsVertical />
-                                </button>
-
-                                <Dropdown
-                                  isOpen={dropdownOpenId === item.id}
-                                  onClose={() => setDropdownOpenId(null)}
-                                  className="w-50">
-                                  <div className="py-1">
-                                    {actions
-                                      .filter((action) =>
-                                        action.condition
-                                          ? action.condition(item)
-                                          : true
-                                      )
-                                      .map((action, index) => (
-                                        <button
-                                          key={index}
-                                          onClick={() => {
-                                            action.onClick(item);
-                                            setDropdownOpenId(null);
-                                          }}
-                                          className={`w-full dark:text-white dark:hover:bg-black dark:hover:bg-opacity-20 text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 transition-all duration-200 ${
-                                            action.className || ""
-                                          }`}>
-                                          {action.icon}
-                                          <span>
-                                            {action.label || "Action"}
-                                          </span>
-                                        </button>
-                                      ))}
-                                  </div>
-                                </Dropdown>
-                              </div>
-                            )}
+                            <Skeleton
+                              width={80}
+                              height={32}
+                              baseColor="#e5e7eb"
+                              highlightColor="#f3f4f6"
+                              className="dark:[&_*]:bg-black dark:[&_*]:bg-opacity-30 dark:[&_*]:shadow-[0_0_8px_rgba(255,255,255,0.1)]"
+                            />
+                            <Skeleton
+                              width={80}
+                              height={32}
+                              baseColor="#e5e7eb"
+                              highlightColor="#f3f4f6"
+                              className="dark:[&_*]:bg-black dark:[&_*]:bg-opacity-30 dark:[&_*]:shadow-[0_0_8px_rgba(255,255,255,0.1)]"
+                            />
+                            <Skeleton
+                              width={50}
+                              height={32}
+                              baseColor="#e5e7eb"
+                              highlightColor="#f3f4f6"
+                              className="dark:[&_*]:bg-black dark:[&_*]:bg-opacity-30 dark:[&_*]:shadow-[0_0_8px_rgba(255,255,255,0.1)]"
+                            />
                           </TableCell>
                         )}
                       </TableRow>
-                    );
-                  })}
-            </TableBody>
-          </Table>
+                    ))
+                  : data.map((item, index) => {
+                      const stt =
+                        pagination?.currentPage && pagination?.pageSize
+                          ? pagination.currentPage * pagination.pageSize +
+                            index +
+                            1
+                          : index + 1;
+                      return (
+                        <TableRow key={item.id}>
+                          <TableCell
+                            className={`px-5 dark:text-gray-300 py-3  ${
+                              isManyColumns ? "text-[13px]" : "text-sm"
+                            }`}>
+                            <input
+                              type="checkbox"
+                              className="w-[18px] h-[18px]"
+                              checked={selectedIds?.includes(item.id)}
+                              onChange={() => handleSelectRow(item.id)}
+                              disabled={!setSelectedIds}
+                            />
+                          </TableCell>
+                          <TableCell
+                            className={`px-5 dark:text-gray-300 py-3 ${
+                              isManyColumns ? "text-[13px]" : "text-sm"
+                            }`}>
+                            {stt}
+                          </TableCell>
+
+                          {columns.map((col) => (
+                            <TableCell
+                              key={col.key as string}
+                              className={`px-5 py-3 text-sm text-gray-500 dark:text-gray-300 0 ${
+                                isManyColumns ? "text-[13px]" : "text-sm 0"
+                              }`}>
+                              {col.type === "button" ? (
+                                <button className={col.classname}>
+                                  {item[col.key] as string}
+                                </button>
+                              ) : col.type === "span" ? (
+                                <span className={col.classname}>
+                                  {item[col.key] as string}
+                                </span>
+                              ) : (
+                                (item[col.key] as string)
+                              )}
+                            </TableCell>
+                          ))}
+                          {hasActionColumn && (
+                            <TableCell
+                              className={`flex gap-2 px-5 py-3 items-center  ${
+                                isManyColumns ? "text-[13px]" : "text-sm "
+                              }`}>
+                              {onEdit && (
+                                <button
+                                  onClick={() => onEdit(item)}
+                                  className="bg-yellow-400 text-white 0 px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2">
+                                  <PencilIcon />
+                                </button>
+                              )}
+                              {onDelete && role === 1 && (
+                                <button
+                                  onClick={() => onDelete(item.id)}
+                                  className="bg-red-400 text-white px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2 0">
+                                  <RiDeleteBinLine />
+                                </button>
+                              )}
+
+                              {actions.length > 0 && (
+                                <div className="relative">
+                                  <button
+                                    onClick={() => toggleDropdown(item.id)}
+                                    className="bg-gray-200 dark:bg-gray-800 dark:text-white text-gray-700 px-4 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 dropdown-toggle">
+                                    <HiDotsVertical />
+                                  </button>
+
+                                  <Dropdown
+                                    isOpen={dropdownOpenId === item.id}
+                                    onClose={() => setDropdownOpenId(null)}
+                                    className="w-50">
+                                    <div className="py-1">
+                                      {actions
+                                        .filter((action) =>
+                                          action.condition
+                                            ? action.condition(item)
+                                            : true
+                                        )
+                                        .map((action, index) => (
+                                          <button
+                                            key={index}
+                                            onClick={() => {
+                                              action.onClick(item);
+                                              setDropdownOpenId(null);
+                                            }}
+                                            className={`w-full dark:text-white dark:hover:bg-black dark:hover:bg-opacity-20 text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 transition-all duration-200 ${
+                                              action.className || ""
+                                            }`}>
+                                            {action.icon}
+                                            <span>
+                                              {action.label || "Action"}
+                                            </span>
+                                          </button>
+                                        ))}
+                                    </div>
+                                  </Dropdown>
+                                </div>
+                              )}
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      );
+                    })}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </div>
     </div>

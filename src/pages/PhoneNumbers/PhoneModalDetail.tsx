@@ -33,8 +33,6 @@ const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
   // Chỉ cần 1 useEffect để set dữ liệu ban đầu
   useEffect(() => {
     if (data) {
-      console.log("role", role);
-
       setPhone(data);
     } else {
       setPhone(initialPhoneNumber);

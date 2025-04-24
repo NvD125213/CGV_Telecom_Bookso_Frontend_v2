@@ -15,6 +15,7 @@ export default defineConfig({
       },
     }),
   ],
+
   server: {
     host: true, // Lắng nghe mọi địa chỉ IP
     port: 5173, // Đổi sang cổng public bạn muốn

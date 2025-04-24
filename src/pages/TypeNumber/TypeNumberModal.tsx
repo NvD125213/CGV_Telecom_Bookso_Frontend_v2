@@ -123,8 +123,6 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
     }
     try {
       if (!typeNumber.id) {
-        console.log(">>>", trimData);
-
         const res = await createTypeNumber(trimData);
         if (res?.status === 200) {
           Swal.fire({

@@ -105,6 +105,7 @@ export const fetchAllBookingPhones = async ({
 export const bookingPhone = async ({
   offset,
   quantity,
+  type_number,
   telco,
   search,
   signal,
@@ -113,10 +114,11 @@ export const bookingPhone = async ({
   quantity: number;
   telco: string;
   search: string;
+  type_number: string;
   signal?: AbortSignal;
 }) => {
   const res = await axiosInstance.get(
-    `/api/v1/booking/booking-phone-number?filter=${search}&telco=${telco}&limit=${quantity}&offset=${offset}`,
+    `/api/v1/booking/booking-phone-number?filter=${search}&telco=${telco}&limit=${quantity}&offset=${offset}&type_number=${type_number}`,
     { signal } // Transmit signal in config
   );
   return res;

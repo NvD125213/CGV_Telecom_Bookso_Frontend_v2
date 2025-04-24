@@ -12,4 +12,6 @@ export interface IHistoryBooked {
   provider_name: string;
   type_name: string;
   active: number;
+  booked_at: string;
+  released_at: string;
 }

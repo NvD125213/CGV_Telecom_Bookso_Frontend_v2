@@ -1,9 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom"; // Sửa "react-router" thành "react-router-dom"
-import {
-  releasePhoneNumber,
-  IReleasePhoneNumber,
-} from "../../services/phoneNumber";
+
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
 import Label from "../../components/form/Label";
@@ -22,11 +19,9 @@ import PhoneModalDetail from "./PhoneModalDetail";
 import Swal from "sweetalert2";
 import { FiEye } from "react-icons/fi";
 import { formatDate } from "../../helper/formatDateToISOString";
-import { MdOutlineNewReleases } from "react-icons/md";
 import Spinner from "../../components/common/LoadingSpinner";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
-import { CiExport } from "react-icons/ci";
 import { IoCloudDownloadOutline } from "react-icons/io5";
 import { IoCaretBackCircleOutline } from "react-icons/io5";
 import exportPivotTableToExcel from "../../helper/exportDataToExcel";
@@ -44,8 +39,8 @@ const getColumns = (status: string) => {
     classname?: string;
   }[] = [
     { key: "phone_number", label: "Số điện thoại" },
-    { key: "provider_name" as "provider_id", label: "Nhà cung cấp" },
-    { key: "type_name" as "type_number_id", label: "Loại số" },
+    { key: "provider_name", label: "Nhà cung cấp" },
+    { key: "type_name", label: "Loại số" },
     { key: "installation_fee", label: "Phí lắp đặt (đ)" },
     { key: "maintenance_fee", label: "Phí duy trì (đ)" },
     { key: "vanity_number_fee", label: "Phí số đẹp (đ)" },
@@ -64,17 +59,23 @@ const getColumns = (status: string) => {
     },
   ];
   if (status === "available") {
-    return [...columns, { key: "created_at", label: "Ngày tạo" }];
+    return [
+      ...columns,
+      { key: "created_at" as keyof IPhoneNumber, label: "Ngày tạo" },
+    ];
   }
   if (status === "booked") {
     return [
       ...columns,
-      { key: "updated_at", label: "Ngày đặt" },
-      { key: "booked_until", label: "Hạn đặt" },
+      { key: "updated_at" as keyof IPhoneNumber, label: "Ngày đặt" },
+      { key: "booked_until" as keyof IPhoneNumber, label: "Hạn đặt" },
     ];
   }
   if (status === "released") {
-    return [...columns, { key: "released_at", label: "Ngày triển khai" }];
+    return [
+      ...columns,
+      { key: "released_at" as keyof IPhoneNumber, label: "Ngày triển khai" },
+    ];
   }
 
   return columns;
@@ -260,119 +261,119 @@ function PhoneNumbers() {
     }
   };
 
-  const handleReleasedNumber = async (data: any) => {
-    setBookLoading(true);
-    try {
-      const { value: contractCode, isConfirmed } = await Swal.fire({
-        title: "Nhập Contract Code",
-        input: "text",
-        inputLabel: `Nhập mã giao dịch cho số ${data.phone_number}`,
-        inputPlaceholder: "Nhập mã giao dịch...",
-        showCancelButton: true,
-        confirmButtonText: "Xác nhận",
-        cancelButtonText: "Hủy",
-        inputValidator: (value) => {
-          if (!value) {
-            return "Mã giao dịch không được để trống!";
-          }
-        },
-      });
+  // const handleReleasedNumber = async (data: any) => {
+  //   setBookLoading(true);
+  //   try {
+  //     const { value: contractCode, isConfirmed } = await Swal.fire({
+  //       title: "Nhập Contract Code",
+  //       input: "text",
+  //       inputLabel: `Nhập mã giao dịch cho số ${data.phone_number}`,
+  //       inputPlaceholder: "Nhập mã giao dịch...",
+  //       showCancelButton: true,
+  //       confirmButtonText: "Xác nhận",
+  //       cancelButtonText: "Hủy",
+  //       inputValidator: (value) => {
+  //         if (!value) {
+  //           return "Mã giao dịch không được để trống!";
+  //         }
+  //       },
+  //     });
 
-      if (!isConfirmed) return;
+  //     if (!isConfirmed) return;
 
-      const transformedData: IReleasePhoneNumber = {
-        data_releases: [
-          {
-            username: user.sub,
-            phone_number: data.phone_number,
-            contract_code: contractCode,
-          },
-        ],
-      };
+  //     const transformedData: IReleasePhoneNumber = {
+  //       data_releases: [
+  //         {
+  //           username: user.sub,
+  //           phone_number: data.phone_number,
+  //           contract_code: contractCode,
+  //         },
+  //       ],
+  //     };
 
-      const res = await releasePhoneNumber(transformedData);
-      if (res.status === 200) {
-        await Swal.fire(
-          "Thành công",
-          `Đã giải phóng ${selectedRows.length} số điện thoại thành công!`,
-          "success"
-        );
-        setSelectedIds([]);
-        setSelectedRows([]);
-        await fetchData(quantity, status, offset);
-        setSearchParams({});
-      }
-    } catch (err: any) {
-      setError(err);
-      fetchData(quantity, status, offset);
-    } finally {
-      setBookLoading(false);
-    }
-  };
+  //     const res = await releasePhoneNumber(transformedData);
+  //     if (res.status === 200) {
+  //       await Swal.fire(
+  //         "Thành công",
+  //         `Đã triển khai ${selectedRows.length} số điện thoại thành công!`,
+  //         "success"
+  //       );
+  //       setSelectedIds([]);
+  //       setSelectedRows([]);
+  //       await fetchData(quantity, status, offset);
+  //       setSearchParams({});
+  //     }
+  //   } catch (err: any) {
+  //     setError(err);
+  //     fetchData(quantity, status, offset);
+  //   } finally {
+  //     setBookLoading(false);
+  //   }
+  // };
 
-  // Handle data released when choose many number
-  const handleManyRelease = async () => {
-    if (selectedRows.length === 0) {
-      alert("Vui lòng chọn ít nhất một số để giải phóng");
-      return;
-    }
+  // // Handle data released when choose many number
+  // const handleManyRelease = async () => {
+  //   if (selectedRows.length === 0) {
+  //     alert("Vui lòng chọn ít nhất một số để giải phóng");
+  //     return;
+  //   }
 
-    setBookLoading(true);
+  //   setBookLoading(true);
 
-    try {
-      const { value: contractCode, isConfirmed } = await Swal.fire({
-        title: "Nhập Contract Code",
-        input: "text",
-        inputLabel: `Nhập mã giao dịch cho ${selectedRows.length} số được chọn`,
-        inputPlaceholder: "Nhập mã giao dịch...",
-        showCancelButton: true,
-        confirmButtonText: "Xác nhận",
-        cancelButtonText: "Hủy",
-        inputValidator: (value) => {
-          if (!value) {
-            return "Mã giao dịch không được để trống!";
-          }
-        },
-      });
+  //   try {
+  //     const { value: contractCode, isConfirmed } = await Swal.fire({
+  //       title: "Nhập Contract Code",
+  //       input: "text",
+  //       inputLabel: `Nhập mã giao dịch cho ${selectedRows.length} số được chọn`,
+  //       inputPlaceholder: "Nhập mã giao dịch...",
+  //       showCancelButton: true,
+  //       confirmButtonText: "Xác nhận",
+  //       cancelButtonText: "Hủy",
+  //       inputValidator: (value) => {
+  //         if (!value) {
+  //           return "Mã giao dịch không được để trống!";
+  //         }
+  //       },
+  //     });
 
-      if (!isConfirmed) {
-        setBookLoading(false);
-        return;
-      }
+  //     if (!isConfirmed) {
+  //       setBookLoading(false);
+  //       return;
+  //     }
 
-      const dataReleases = selectedRows.map((row) => ({
-        username: user.sub,
-        phone_number: row.phone_number,
-        contract_code: contractCode,
-      }));
+  //     const dataReleases = selectedRows.map((row) => ({
+  //       username: user.sub,
+  //       phone_number: row.phone_number,
+  //       contract_code: contractCode,
+  //     }));
 
-      const transformedData: IReleasePhoneNumber = {
-        data_releases: dataReleases,
-      };
+  //     const transformedData: IReleasePhoneNumber = {
+  //       data_releases: dataReleases,
+  //     };
 
-      const res = await releasePhoneNumber(transformedData);
+  //     const res = await releasePhoneNumber(transformedData);
 
-      if (res.status === 200) {
-        await Swal.fire(
-          "Thành công",
-          `Đã giải phóng ${selectedRows.length} số điện thoại thành công!`,
-          "success"
-        );
-        setSelectedIds([]);
-        setSelectedRows([]);
-        setSearchParams({});
-        await fetchData(quantity, status, offset);
-      }
-    } catch (err: any) {
-      Swal.fire(
-        "Oops...",
-        `${err}` || "Có lỗi xảy ra khi triển khai số, vui lòng thử lại!",
-        "error"
-      );
-    } finally {
-      setBookLoading(false);
-    }
-  };
+  //     if (res.status === 200) {
+  //       await Swal.fire(
+  //         "Thành công",
+  //         `Đã giải phóng ${selectedRows.length} số điện thoại thành công!`,
+  //         "success"
+  //       );
+  //       setSelectedIds([]);
+  //       setSelectedRows([]);
+  //       setSearchParams({});
+  //       await fetchData(quantity, status, offset);
+  //     }
+  //   } catch (err: any) {
+  //     Swal.fire(
+  //       "Oops...",
+  //       `${err}` || "Có lỗi xảy ra khi triển khai số, vui lòng thử lại!",
+  //       "error"
+  //     );
+  //   } finally {
+  //     setBookLoading(false);
+  //   }
+  // };
 
   const handleRevoke = async () => {
     if (selectedRows.length === 0) {
@@ -401,7 +402,7 @@ function PhoneNumbers() {
         if (res.status === 200) {
           Swal.fire({
             title: "Thu hồi thành công!",
-            text: "Bạn đã thu hồi thành công danh sách số cho nó.",
+            text: "Bạn đã thu hồi thành công danh sách số.",
             icon: "success",
           });
           setSelectedIds([]);
@@ -624,12 +625,6 @@ function PhoneNumbers() {
                 {status === "booked" && user.role === 1 && (
                   <div className="flex items-end gap-2">
                     <button
-                      onClick={handleManyRelease}
-                      className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
-                      <CiExport size={22} />
-                      Triển khai
-                    </button>
-                    <button
                       onClick={handleRevoke}
                       className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
                       <IoCaretBackCircleOutline size={22} />
@@ -684,16 +679,16 @@ function PhoneNumbers() {
                     onClick: (row) => handleGetById(Number(row.id)),
                     label: "Chi tiết",
                   },
-                  ...(user.role === 1
-                    ? [
-                        {
-                          icon: <MdOutlineNewReleases />,
-                          onClick: (row: any) => handleReleasedNumber(row),
-                          label: "Triển khai",
-                          condition: () => status === "booked",
-                        },
-                      ]
-                    : []),
+                  // ...(user.role === 1
+                  //   ? [
+                  //       {
+                  //         icon: <MdOutlineNewReleases />,
+                  //         onClick: (row: any) => handleReleasedNumber(row),
+                  //         label: "Triển khai",
+                  //         condition: () => status === "booked",
+                  //       },
+                  //     ]
+                  //   : []),
                 ]}
                 onDelete={(id) => handleDelete(Number(id))}
               />

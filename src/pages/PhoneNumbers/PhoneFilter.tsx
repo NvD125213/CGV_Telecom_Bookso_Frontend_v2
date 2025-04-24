@@ -7,7 +7,7 @@ import Label from "../../components/form/Label";
 import Select from "../../components/form/Select";
 import Input from "../../components/form/input/InputField";
 import PhoneNumberModal from "./PhoneModalAdd";
-import { IPhoneNumber, IProvider } from "../../types";
+import { IPhoneNumber, IProvider, ITypeNumber } from "../../types";
 import { getProviders } from "../../services/provider";
 import useSelectData from "../../hooks/useSelectData";
 import ReusableTable from "../../components/common/ReusableTable";
@@ -15,13 +15,13 @@ import { FiEye } from "react-icons/fi";
 import { formatDate } from "../../helper/formatDateToISOString";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
+import { copyToClipBoard } from "../../helper/copyToClipboard";
 
 import SearchHelp from "../../components/instruct/InstructRule";
 import {
   booking,
   bookingPhone,
   deletePhone,
-  IBookPhoneNumber,
   getPhoneByID,
 } from "../../services/phoneNumber";
 import Pagination from "../../components/pagination/pagination";
@@ -31,6 +31,7 @@ import { FaRandom } from "react-icons/fa";
 import Swal from "sweetalert2";
 import Spinner from "../../components/common/LoadingSpinner";
 import PhoneRandomModal from "./PhoneRandomModal";
+import { getTypeNumber } from "../../services/typeNumber";
 
 interface PhoneNumberProps {
   total_pages: number;
@@ -72,6 +73,10 @@ function PhoneNumberFilters() {
   const [provider, setProvider] = useState<string | null>(
     searchParams.get("provider") || null
   );
+  const [typeNumber, setTypeNumber] = useState<string | null>(
+    searchParams.get("typeNumber") || null
+  );
+
   const [quantity, setQuantity] = useState(
     Number(searchParams.get("quantity")) || 20
   );
@@ -91,6 +96,7 @@ function PhoneNumberFilters() {
         const newParams = new URLSearchParams(prev);
         if (!newParams.get("quantity")) newParams.set("quantity", "20");
         if (!newParams.get("offset")) newParams.set("offset", "0");
+
         return newParams;
       });
     }
@@ -109,7 +115,9 @@ function PhoneNumberFilters() {
   const { data: providers } = useSelectData<IProvider>({
     service: getProviders,
   });
-
+  const { data: typeNumbers } = useSelectData<ITypeNumber>({
+    service: getTypeNumber,
+  });
   // Call api when change properties
   const fetchData = useCallback(async () => {
     // Cancel old request
@@ -127,6 +135,7 @@ function PhoneNumberFilters() {
         offset: offset,
         quantity,
         telco: provider || "",
+        type_number: typeNumber || "",
         search: search.replace(/\s+/g, " ").trim() || "",
         signal: controller.signal,
       });
@@ -144,10 +153,13 @@ function PhoneNumberFilters() {
           vanity_number_fee: formatNumber(phone?.vanity_number_fee),
         })
       );
-
       if (isMounted) {
         if (response.data.phone_numbers.length === 0) {
           setError("Không có dữ liệu");
+        } else if (formattedData.length === 0) {
+          setError(
+            "Dữ liệu số bạn chọn đã hết! Vui lòng chọn định dạng hoặc nhà cung cấp khác"
+          );
         } else {
           setError("");
         }
@@ -164,6 +176,8 @@ function PhoneNumberFilters() {
           else newParams.delete("provider");
           if (search) newParams.set("search", search);
           else newParams.delete("search");
+          if (typeNumber) newParams.set("typeNumber", typeNumber);
+          else newParams.delete("typeNumber");
           return newParams;
         });
       }
@@ -181,7 +195,7 @@ function PhoneNumberFilters() {
         controllerRef.current.abort();
       }
     };
-  }, [search, provider, quantity, offset, setSearchParams]);
+  }, [search, provider, typeNumber, quantity, offset, setSearchParams]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && search !== previousSearch) {
@@ -193,7 +207,7 @@ function PhoneNumberFilters() {
   // Call API when change offset, quantity, provider
   useEffect(() => {
     fetchData(); // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [offset, quantity, provider]);
+  }, [offset, quantity, provider, typeNumber]);
 
   const handleGetById = async (id: number) => {
     try {
@@ -224,11 +238,14 @@ function PhoneNumberFilters() {
       alert("Vui lòng chọn ít nhất 1 số điện thoại !");
       return;
     }
+    const selectedPhoneNumbers = data?.phone_numbers.filter((phone) =>
+      selectedIds.includes(phone.id)
+    );
 
-    const requestBody: IBookPhoneNumber = {
+    const requestBody = {
       id_phone_numbers: selectedIds,
+      phone_details: selectedPhoneNumbers?.map((p) => p.phone_number) || [],
     };
-
     setBookLoading(true);
     try {
       const result = await Swal.fire({
@@ -238,13 +255,38 @@ function PhoneNumberFilters() {
         showCancelButton: true,
         confirmButtonColor: "#3085d6",
         cancelButtonColor: "#d33",
-        confirmButtonText: "Thu hồi",
+        confirmButtonText: "Xác nhận",
       });
       if (result.isConfirmed) {
-        const res = await booking(requestBody);
+        console.log("Ra đây", requestBody);
+
+        const res = await booking({
+          id_phone_numbers: requestBody.id_phone_numbers,
+        });
         if (res.status === 200) {
-          Swal.fire("Book thành công!", "", "success");
-          fetchData();
+          Swal.fire({
+            title: "Book thành công",
+            html: `
+              <label for="message" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                Danh sách số số đã book:
+              </label>
+              <textarea id="message" rows="4" class="block max-h-[200px] w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 px-[10px]">${requestBody.phone_details?.join(
+                ", "
+              )}</textarea>
+            `,
+            showDenyButton: true,
+            icon: "success",
+            showCancelButton: true,
+            confirmButtonText: "Sao chép",
+            denyButtonText: "Bỏ qua",
+            allowOutsideClick: false,
+          }).then((result) => {
+            if (result.isConfirmed) {
+              copyToClipBoard(requestBody.phone_details || []);
+              Swal.fire("Đã sao chép!", "", "success");
+            }
+          });
+          // fetchData();
           setSelectedIds([]);
         }
       }
@@ -357,8 +399,30 @@ function PhoneNumberFilters() {
                       })),
                     ]}
                     className="dark:bg-black dark:text-white "
-                    onChange={(value) => setProvider(value)}
+                    onChange={(value) => {
+                      setProvider(value); // Cập nhật typeNumber
+                      setOffset(0); // Reset offset về 0
+                    }}
                     placeholder="Lựa chọn nhà cung cấp"
+                  />
+                </div>
+                <div>
+                  <Label>Định dạng số</Label>
+                  <Select
+                    options={[
+                      { label: "Tất cả", value: "" },
+                      ...typeNumbers.map((type) => ({
+                        label: type.name,
+                        value: type.name,
+                        key: type.id,
+                      })),
+                    ]}
+                    className="dark:bg-black dark:text-white "
+                    onChange={(value) => {
+                      setTypeNumber(value); // Cập nhật typeNumber
+                      setOffset(0); // Reset offset về 0
+                    }}
+                    placeholder="Lựa chọn định dạng số"
                   />
                 </div>
                 <div className="flex items-end gap-2">

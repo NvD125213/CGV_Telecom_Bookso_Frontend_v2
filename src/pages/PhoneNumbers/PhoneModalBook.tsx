@@ -9,6 +9,7 @@ interface IBookPhoneNumber {
   user_name: string;
   id_phone_number: string | number;
   phone_number: string;
+  id_phone_numbers: number[];
 }
 
 interface PhoneNumberProps {
@@ -26,6 +27,7 @@ const PhoneModalBook: React.FC<PhoneNumberProps> = ({
     user_name: "",
     id_phone_number: "",
     phone_number: "",
+    id_phone_numbers: [],
   });
 
   const { user } = useSelector((state: RootState) => state.auth.user);
@@ -43,6 +45,7 @@ const PhoneModalBook: React.FC<PhoneNumberProps> = ({
         user_name: user?.sub || "",
         id_phone_number: data.id_phone_number,
         phone_number: data.phone_number,
+        id_phone_numbers: [Number(data.id_phone_number)],
       });
     }
   }, [data, user]);
