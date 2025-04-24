@@ -63,44 +63,46 @@ export const bookingPhoneForOption = async ({
   quantity,
   status,
   offset,
+  search,
 }: {
   quantity: number;
   status: string;
   offset: number;
+  search?: string;
 }) => {
   const res = await axiosInstance.get(
-    `/api/v1/booking/booking-phone-number-for-option?quantity=${quantity}&option=${status}&offset=${offset}`
+    `/api/v1/booking/booking-phone-number-for-option?quantity=${quantity}&option=${status}&offset=${offset}&filter=${search}`
   );
   return res;
 };
 
-export const fetchAllBookingPhones = async ({
-  quantity,
-  status,
-}: {
-  quantity: number;
-  status: string;
-}) => {
-  let allData: any[] = [];
-  let offset = 0;
-  let hasMore = true;
+// export const fetchAllBookingPhones = async ({
+//   quantity,
+//   status,
+// }: {
+//   quantity: number;
+//   status: string;
+// }) => {
+//   let allData: any[] = [];
+//   let offset = 0;
+//   let hasMore = true;
 
-  while (hasMore) {
-    const res = await bookingPhoneForOption({ quantity, status, offset });
-    const data = res.data; // Giả sử API trả về { data: [] }
+//   while (hasMore) {
+//     const res = await bookingPhoneForOption({ quantity, status, offset });
+//     const data = res.data; // Giả sử API trả về { data: [] }
 
-    if (data.length > 0) {
-      allData = [...allData, ...data];
-      offset += data.length; // Tăng offset theo số lượng dữ liệu lấy được
-    }
+//     if (data.length > 0) {
+//       allData = [...allData, ...data];
+//       offset += data.length; // Tăng offset theo số lượng dữ liệu lấy được
+//     }
 
-    if (data.length < quantity) {
-      hasMore = false; // Dừng nếu số dữ liệu ít hơn quantity (trang cuối)
-    }
-  }
+//     if (data.length < quantity) {
+//       hasMore = false; // Dừng nếu số dữ liệu ít hơn quantity (trang cuối)
+//     }
+//   }
 
-  return allData;
-};
+//   return allData;
+// };
 
 export const bookingPhone = async ({
   offset,

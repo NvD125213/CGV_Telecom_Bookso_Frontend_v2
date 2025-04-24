@@ -110,7 +110,8 @@ function PhoneNumbers() {
   const fetchData = async (
     quantity: number,
     status: string,
-    offset: number
+    offset: number,
+    search?: string
   ) => {
     setLoading(true);
     try {
@@ -118,6 +119,7 @@ function PhoneNumbers() {
         quantity,
         status,
         offset,
+        search: search || "",
       });
 
       const formatNumber = (num: any) =>
@@ -153,6 +155,7 @@ function PhoneNumbers() {
         quantity: quantity.toString(),
         status,
         offset: offset.toString(),
+        ...(search ? { search } : {}),
       });
     } catch (error) {
       console.error("Lỗi khi gọi API:", error);
@@ -197,24 +200,15 @@ function PhoneNumbers() {
     );
   };
 
-  const onChangeInputSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearch(value.trim().replace(/\s+/g, " "));
-    if (value === "") {
-      setSafeData(data?.phone_numbers ?? []);
-      return;
-    }
-  };
-
   const handleOnKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       if (search === "") {
         const originalData = data?.phone_numbers ?? [];
-        setSafeData(originalData);
+        fetchData(quantity, status, offset, search);
         setError(originalData.length === 0 ? "Không có dữ liệu" : "");
       } else {
         const result = handleSearch(search) ?? [];
-        setSafeData(result);
+        fetchData(quantity, status, offset, search);
         setError(result.length === 0 ? "Không có dữ liệu" : "");
       }
     }
@@ -449,6 +443,7 @@ function PhoneNumbers() {
 
       try {
         const firstRes = await bookingPhoneForOption({
+          search: search || "",
           quantity: limit,
           status,
           offset: currentPage,
@@ -465,6 +460,7 @@ function PhoneNumbers() {
               quantity: limit,
               status,
               offset: currentPage,
+              search: search,
             });
 
             if (nextRes?.data?.phone_numbers) {
@@ -508,6 +504,7 @@ function PhoneNumbers() {
             quantity: limit,
             status,
             offset: 0,
+            search: search || "",
           });
           pagesPerStatus[status] = res?.data?.total_pages || 1;
           totalRequests += pagesPerStatus[status];
@@ -527,6 +524,7 @@ function PhoneNumbers() {
               quantity: limit,
               status,
               offset: page,
+              search: search,
             });
 
             if (res?.data?.phone_numbers) {
@@ -612,12 +610,13 @@ function PhoneNumbers() {
                   />
                 </div>
                 <div>
-                  <Label>Tìm kiếm theo số điện thoại</Label>
+                  <Label htmlFor="inputTwo">Tìm kiếm theo đầu số</Label>
                   <Input
-                    placeholder="Nhập vào số điện thoại tìm kiếm..."
-                    name="search"
+                    type="text"
+                    id="inputTwo"
+                    placeholder="Nhập đầu số..."
                     value={search}
-                    onChange={onChangeInputSearch}
+                    onChange={(e) => setSearch(e.target.value)}
                     onKeyDown={handleOnKeyDown}
                   />
                 </div>
