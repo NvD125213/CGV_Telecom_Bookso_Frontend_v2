@@ -133,7 +133,6 @@ function PhoneNumbers() {
           updated_at: phone.updated_at ? formatDate(phone.updated_at) : "0",
           created_at: phone.created_at ? formatDate(phone.created_at) : "0",
           released_at: phone.released_at ? formatDate(phone.released_at) : "0",
-
           installation_fee: formatNumber(phone?.installation_fee),
           maintenance_fee: formatNumber(phone?.maintenance_fee),
           vanity_number_fee: formatNumber(phone?.vanity_number_fee),
@@ -443,7 +442,7 @@ function PhoneNumbers() {
 
       try {
         const firstRes = await bookingPhoneForOption({
-          search: search || "",
+          search: "",
           quantity: limit,
           status,
           offset: currentPage,
@@ -460,7 +459,7 @@ function PhoneNumbers() {
               quantity: limit,
               status,
               offset: currentPage,
-              search: search,
+              search: "",
             });
 
             if (nextRes?.data?.phone_numbers) {
@@ -504,7 +503,7 @@ function PhoneNumbers() {
             quantity: limit,
             status,
             offset: 0,
-            search: search || "",
+            search: "",
           });
           pagesPerStatus[status] = res?.data?.total_pages || 1;
           totalRequests += pagesPerStatus[status];
@@ -524,7 +523,7 @@ function PhoneNumbers() {
               quantity: limit,
               status,
               offset: page,
-              search: search,
+              search: "",
             });
 
             if (res?.data?.phone_numbers) {
