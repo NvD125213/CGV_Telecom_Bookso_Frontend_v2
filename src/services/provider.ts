@@ -1,5 +1,6 @@
 import axiosInstance from "../config/apiToken";
 import { IProvider } from "../types";
+import Swal from "sweetalert2";
 
 export const newProvider = {
   id: "",
@@ -50,6 +51,19 @@ export const deleteProvider = async (id: string) => {
     const res = await axiosInstance.delete(`/api/v1/provider/${id}`);
     return res.data;
   } catch (error: any) {
-    throw new Error(error);
+    if (error.status == 400) {
+      if (
+        error.response.data.detail ==
+        "Cannot delete provider with existing phone numbers"
+      ) {
+        Swal.fire(
+          "Oops...",
+          "Đang tồn tại số điện thoại sử dụng nhà cung cấp này ",
+          "error"
+        );
+      }
+    } else {
+      throw new Error(error);
+    }
   }
 };

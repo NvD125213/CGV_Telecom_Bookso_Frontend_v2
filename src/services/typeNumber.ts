@@ -1,5 +1,6 @@
 import axiosInstance from "../config/apiToken";
 import { ITypeNumber } from "../types";
+import Swal from "sweetalert2";
 
 export const newTypeNumber = {
   id: "",
@@ -48,11 +49,22 @@ export const updateTypeNumber = async (id: string, data: ITypeNumber) => {
 // Delete provider by id
 export const deleteTypeNumber = async (id: string) => {
   try {
-    const res = await axiosInstance.delete(
-      `/api/v1/type_number/{type_number_id }?id_type_number=${id}`
-    );
+    const res = await axiosInstance.delete(`/api/v1/type_number/${id}`);
     return res;
-  } catch (error) {
-    console.error("Failed to delete type:", error);
+  } catch (error: any) {
+    if (error.status === 400) {
+      if (
+        error.response.data.detail ===
+        "Cannot delete type number with existing phone numbers"
+      ) {
+        Swal.fire(
+          "Oops...",
+          "Đang tồn tại số điện thoại sử dụng định dạng này ",
+          "error"
+        );
+      }
+    } else {
+      throw new Error(error);
+    }
   }
 };

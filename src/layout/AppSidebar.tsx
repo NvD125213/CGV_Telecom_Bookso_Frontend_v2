@@ -338,14 +338,14 @@ const AppSidebar: React.FC = () => {
             <>
               <img
                 className="dark:hidden"
-                src="/public/Logo/Logo company.png"
+                src="/public/Logo/Logo_company.png"
                 alt="Logo"
                 width={180}
                 height={50}
               />
               <img
                 className="hidden dark:block"
-                src="/public/Logo/Logo company.png"
+                src="/public/Logo/Logo_company.png"
                 alt="Logo"
                 width={180}
                 height={50}
@@ -353,7 +353,7 @@ const AppSidebar: React.FC = () => {
             </>
           ) : (
             <img
-              src="/public/Logo/Artboard 2.png"
+              src="/public/Logo/Artboard_2.png"
               alt="Logo"
               width={180}
               height={180}
