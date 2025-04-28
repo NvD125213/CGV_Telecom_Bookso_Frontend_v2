@@ -198,7 +198,7 @@ const ProviderReport = () => {
           </div>
         </div>
 
-        <div className="h-[600px]">
+        <div className="h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
