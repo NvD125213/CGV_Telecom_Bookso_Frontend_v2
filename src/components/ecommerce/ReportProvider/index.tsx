@@ -1,14 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import ApexCharts from "react-apexcharts";
 import ComponentCard from "../../common/ComponentCard";
 import { getDashBoard } from "../../../services/report";
 import debounce from "lodash/debounce";
@@ -16,6 +7,7 @@ import debounce from "lodash/debounce";
 interface TotalAvailable {
   provider: string;
   quantity: number;
+  quantity_booked: number;
 }
 
 interface BookedBySales {
@@ -28,6 +20,14 @@ interface DashboardData {
   deployed: number;
   total_available: TotalAvailable[];
   booked_by_sales: BookedBySales[];
+}
+
+interface ChartDataItem {
+  name: string;
+  quantity?: number;
+  quantity_booked?: number;
+  total?: number;
+  value?: number;
 }
 
 const ProviderReport = () => {
@@ -48,25 +48,25 @@ const ProviderReport = () => {
     booked_by_sales: [],
   });
   const [loading, setLoading] = useState(false);
+  const [chartColors] = useState({
+    totalAvailable: ["#4CAF50", "#2196F3"], // Màu xanh lá cho số lượng có sẵn, màu xanh dương cho số lượng đã book
+    bookedBySales: ["#FF9800"], // Màu cam cho sale đã book
+  });
 
-  // Hàm lấy year từ value
   const getYear = (value: string): string => {
     return value.split("/")[0] || currentDate.getFullYear().toString();
   };
 
-  // Hàm lấy month từ value
   const getMonth = (value: string): string => {
     return (
       value.split("/")[1] || String(currentDate.getMonth() + 1).padStart(2, "0")
     );
   };
 
-  // Hàm lấy day từ value
   const getDay = (value: string): string => {
     return value.split("/")[2] || "";
   };
 
-  // Hàm call API với debounce
   const fetchData = useCallback(
     debounce(async (year: string, month: string, day: string) => {
       try {
@@ -76,7 +76,6 @@ const ProviderReport = () => {
           month: parseInt(month),
         };
 
-        // Chỉ thêm day vào params nếu có giá trị
         if (day && day.length > 0) {
           params.day = parseInt(day);
         }
@@ -92,7 +91,6 @@ const ProviderReport = () => {
     []
   );
 
-  // Call API lần đầu khi component mount
   useEffect(() => {
     const currentYear = currentDate.getFullYear().toString();
     const currentMonth = String(currentDate.getMonth() + 1).padStart(2, "0");
@@ -100,57 +98,352 @@ const ProviderReport = () => {
   }, [fetchData]);
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, ""); // Chỉ cho phép nhập số
-
-    // Format: YYYYMMDD
+    let value = e.target.value.replace(/\D/g, "");
     if (value.length > 0) {
-      // Nếu đã nhập đủ 4 số năm
       if (value.length > 4) {
-        // Thêm dấu / sau năm
         value = value.slice(0, 4) + "/" + value.slice(4);
       }
-      // Nếu đã nhập đủ 2 số tháng
       if (value.length > 7) {
-        // Thêm dấu / sau tháng
         value = value.slice(0, 7) + "/" + value.slice(7);
       }
-      // Giới hạn độ dài tối đa là 10 ký tự (YYYY/MM/DD)
       value = value.slice(0, 10);
     }
 
     setDate(value);
-
-    // Lấy year, month, day và call API
     const year = getYear(value);
     const month = getMonth(value);
     const day = getDay(value);
     fetchData(year, month, day);
   };
 
-  // Dữ liệu cho biểu đồ cột
-  const chartData =
+  const chartData: ChartDataItem[] =
     selectedData === "total_available"
       ? data.total_available
           .map((item) => ({
             name: item.provider,
-            value: item.quantity,
+            quantity: item.quantity,
+            quantity_booked: item.quantity_booked,
+            total: (item.quantity || 0) + (item.quantity_booked || 0),
           }))
-          .sort((a, b) => b.value - a.value)
+          .sort((a, b) => (b.total || 0) - (a.total || 0))
       : data.booked_by_sales
           .map((item) => ({
             name: item.user_name,
             value: item.quantity,
           }))
-          .sort((a, b) => b.value - a.value);
+          .sort((a, b) => (b.value || 0) - (a.value || 0));
 
-  // Tìm giá trị lớn nhất
-  const maxValue = Math.max(...chartData.map((item) => item.value));
-  // Làm tròn lên số chẵn gần nhất
-  const yAxisMax = Math.ceil(maxValue / 10) * 10;
+  const getChartOptions = () => {
+    if (selectedData === "total_available") {
+      // Sắp xếp dữ liệu theo tổng (quantity + quantity_booked) giảm dần
+      const sortedData = [...chartData].sort((a, b) => {
+        const totalA = (a.quantity || 0) + (a.quantity_booked || 0);
+        const totalB = (b.quantity || 0) + (b.quantity_booked || 0);
+        return totalB - totalA;
+      });
+
+      const categories = sortedData.map((item) => item.name);
+      const series = [
+        {
+          name: "Số lượng có sẵn",
+          data: sortedData.map((item) => item.quantity || 0),
+        },
+        {
+          name: "Số lượng đã book",
+          data: sortedData.map((item) => item.quantity_booked || 0),
+        },
+      ];
+
+      // Tính toán lại yAxisMax với thêm khoảng trống
+      const maxTotal = Math.max(
+        ...sortedData.map(
+          (item) => (item.quantity || 0) + (item.quantity_booked || 0)
+        )
+      );
+      const yAxisMax = (() => {
+        const base = 20; // Chọn bội số gần nhất như 20, 50, 100, v.v.
+        return Math.ceil(maxTotal / base) * base;
+      })();
+
+      return {
+        series,
+        options: {
+          chart: {
+            type: "bar",
+            height: 800,
+            stacked: true,
+            toolbar: {
+              show: false,
+            },
+            fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
+            spacing: {
+              top: 20,
+              right: 20,
+              bottom: 20,
+              left: 20,
+            },
+          },
+          plotOptions: {
+            bar: {
+              horizontal: true,
+              barHeight: "85%", // Tăng barHeight vì đã giảm spacing
+              dataLabels: {
+                position: "center",
+              },
+            },
+          },
+          stroke: {
+            width: 1,
+            colors: ["#fff"],
+          },
+          title: {
+            text: "Thống kê số lượng theo nhà cung cấp",
+            align: "left",
+            style: {
+              fontSize: "16px",
+              fontWeight: "bold",
+              fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
+              color: "#333",
+            },
+          },
+          xaxis: {
+            categories,
+            labels: {
+              formatter: function (val: any) {
+                return val.toFixed(0);
+              },
+            },
+            max: yAxisMax,
+          },
+          yaxis: {
+            labels: {
+              style: {
+                fontSize: "12px",
+                fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
+              },
+            },
+          },
+          tooltip: {
+            shared: true,
+            intersect: false,
+            y: {
+              formatter: function (val: any) {
+                return val.toFixed(0);
+              },
+            },
+            custom: function ({ series, seriesIndex, dataPointIndex, w }) {
+              const data = sortedData[dataPointIndex];
+              const total = (data.quantity || 0) + (data.quantity_booked || 0);
+              return `<div class="p-2">
+                <div><b>${data.name}</b></div>
+                <div>Số lượng có sẵn: ${data.quantity}</div>
+                <div>Số lượng đã book: ${data.quantity_booked}</div>
+                <div><b>Tổng: ${total}</b></div>
+              </div>`;
+            },
+          },
+          fill: {
+            opacity: 1,
+          },
+          legend: {
+            position: "top",
+            horizontalAlign: "left",
+            offsetX: 40,
+          },
+          colors: chartColors.totalAvailable,
+          dataLabels: {
+            enabled: true,
+            formatter: function (val) {
+              return val === 1 ? "" : val > 0 ? val.toFixed(0) : "";
+            },
+            style: {
+              colors: ["#fff"],
+              fontSize: "14px",
+              fontWeight: "bold",
+            },
+          },
+          grid: {
+            xaxis: {
+              lines: {
+                show: false,
+              },
+            },
+            yaxis: {
+              lines: {
+                show: false,
+              },
+            },
+            padding: {
+              top: 10,
+              right: 10,
+              bottom: 10,
+              left: 10,
+            },
+          },
+        },
+      };
+    } else {
+      // Xử lý cho booked_by_sales
+      const sortedData = [...chartData].sort(
+        (a, b) => (b.value || 0) - (a.value || 0)
+      );
+
+      const maxValue = Math.max(...sortedData.map((item) => item.value || 0));
+      const xAxisMax = (() => {
+        const numDigits = maxValue.toString().length;
+        const base = Math.pow(10, numDigits - 1);
+        // Tăng thêm khoảng trống
+        return Math.ceil(maxValue / base) * base;
+      })();
+
+      return {
+        series: [
+          {
+            name: "Sale đã book",
+            data: sortedData.map((item) => item.value || 0),
+          },
+        ],
+        options: {
+          chart: {
+            type: "bar",
+            height: 800,
+            toolbar: {
+              show: false,
+            },
+            fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
+            spacing: {
+              top: 20,
+              right: 20,
+              bottom: 20,
+              left: 20,
+            },
+          },
+          plotOptions: {
+            bar: {
+              horizontal: true,
+              barHeight: "30%",
+              distributed: true,
+              dataLabels: {
+                position: "center",
+              },
+            },
+          },
+          xaxis: {
+            categories: sortedData.map((item) => item.name),
+            labels: {
+              formatter: function (val) {
+                return val.toFixed(0);
+              },
+              style: {
+                fontSize: "13px",
+                fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
+              },
+            },
+            max: xAxisMax, // Sử dụng giá trị max mới
+          },
+          yaxis: {
+            title: {
+              text: undefined,
+            },
+            labels: {
+              style: {
+                fontSize: "13px",
+                fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
+              },
+            },
+          },
+          grid: {
+            xaxis: {
+              lines: {
+                show: false,
+              },
+            },
+            yaxis: {
+              lines: {
+                show: false,
+              },
+            },
+            padding: {
+              top: 10,
+              right: 10,
+              bottom: 10,
+              left: 10,
+            },
+          },
+          tooltip: {
+            y: {
+              formatter: function (val) {
+                return val.toFixed(0);
+              },
+            },
+            custom: function ({ series, seriesIndex, dataPointIndex, w }) {
+              const data = sortedData[dataPointIndex];
+              return `<div class="p-2">
+                <div><b>${data.name}</b></div>
+                <div>Số lượng đã book: ${data.value}</div>
+              </div>`;
+            },
+          },
+          colors: chartColors.bookedBySales,
+          dataLabels: {
+            enabled: true,
+            formatter: function (val) {
+              return val === 1 ? "" : val > 0 ? val.toFixed(0) : "";
+            },
+            style: {
+              colors: ["#fff"],
+              fontSize: "14px",
+              fontWeight: "bold",
+            },
+          },
+          title: {
+            text: "Thống kê số lượng theo sale",
+            align: "left",
+            style: {
+              fontSize: "16px",
+              fontWeight: "bold",
+              fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
+              color: "#333",
+            },
+          },
+          padding: {
+            left: 20,
+            right: 20,
+          },
+          // Thêm spacing giữa các cột
+          states: {
+            normal: {
+              filter: {
+                type: "none",
+              },
+            },
+            hover: {
+              filter: {
+                type: "darken",
+                value: 0.9,
+              },
+            },
+          },
+          // Tăng khoảng cách giữa các cột
+          chart: {
+            toolbar: {
+              show: false,
+            },
+            animations: {
+              enabled: true,
+            },
+            spacing: {
+              between: 15,
+            },
+          },
+        },
+      };
+    }
+  };
 
   return (
     <ComponentCard>
-      <div className="p-4">
+      <div className="p-3">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
@@ -166,17 +459,6 @@ const ProviderReport = () => {
             </div>
           </div>
           <div className="flex gap-2">
-            <button
-              className={`px-4 py-2 rounded 
-                bg-blue-500 text-white
-              `}>
-              Booked: {data.booked}
-            </button>
-            <button
-              className={`px-4 py-2 rounded bg-green-500 text-white
-              `}>
-              Deployed: {data.deployed}
-            </button>
             <button
               className={`px-4 py-2 rounded ${
                 selectedData === "total_available"
@@ -198,63 +480,15 @@ const ProviderReport = () => {
           </div>
         </div>
 
-        <div className="h-[400px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={chartData}
-              layout="vertical"
-              barSize={30}
-              barGap={20}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" domain={[0, yAxisMax]} />
-              <YAxis
-                type="category"
-                dataKey="name"
-                width={150}
-                tick={{ fontSize: 12 }}
-              />
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const data = payload[0].payload;
-                    return (
-                      <div className="bg-white dark:bg-gray-800 p-2 border border-gray-200 dark:border-gray-700 rounded shadow">
-                        <p className="font-bold text-black dark:text-white">
-                          {data.name}
-                        </p>
-                        <p className="text-black dark:text-white">
-                          {selectedData === "total_available"
-                            ? "Tổng số có sẵn"
-                            : "Sale đã book"}
-                          : {data.value}
-                        </p>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-              <Legend />
-              <Bar
-                dataKey="value"
-                fill={
-                  selectedData === "total_available" ? "#8884d8" : "#82ca9d"
-                }
-                name={
-                  selectedData === "total_available"
-                    ? "Tổng số có sẵn"
-                    : "Sale đã book"
-                }
-                className="text-black dark:text-white"
-                label={{
-                  position: "right",
-                  fill:
-                    selectedData === "total_available" ? "#8884d8" : "#82ca9d",
-                  fontSize: 12,
-                }}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="h-[500px] w-full">
+          <ApexCharts
+            key={selectedData}
+            options={getChartOptions().options}
+            series={getChartOptions().series}
+            type="bar"
+            height="100%"
+            width="100%"
+          />
         </div>
       </div>
     </ComponentCard>
