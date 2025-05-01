@@ -49,8 +49,8 @@ const ProviderReport = () => {
   });
   const [loading, setLoading] = useState(false);
   const [chartColors] = useState({
-    totalAvailable: ["#4CAF50", "#2196F3"], // Màu xanh lá cho số lượng có sẵn, màu xanh dương cho số lượng đã book
-    bookedBySales: ["#FF9800"], // Màu cam cho sale đã book
+    totalAvailable: ["#4CAF50", "#2196F3"],
+    bookedBySales: ["#FF9800"],
   });
 
   const getYear = (value: string): string => {
@@ -135,7 +135,6 @@ const ProviderReport = () => {
 
   const getChartOptions = () => {
     if (selectedData === "total_available") {
-      // Sắp xếp dữ liệu theo tổng (quantity + quantity_booked) giảm dần
       const sortedData = [...chartData].sort((a, b) => {
         const totalA = (a.quantity || 0) + (a.quantity_booked || 0);
         const totalB = (b.quantity || 0) + (b.quantity_booked || 0);
@@ -154,16 +153,15 @@ const ProviderReport = () => {
         },
       ];
 
-      // Tính toán lại yAxisMax với thêm khoảng trống
       const maxTotal = Math.max(
         ...sortedData.map(
           (item) => (item.quantity || 0) + (item.quantity_booked || 0)
         )
       );
-      const yAxisMax = (() => {
-        const base = 20; // Chọn bội số gần nhất như 20, 50, 100, v.v.
-        return Math.ceil(maxTotal / base) * base;
-      })();
+      const numDigits = maxTotal.toString().length;
+      const base = Math.pow(10, numDigits - 1);
+      const yAxisMax = Math.ceil(maxTotal / base) * base;
+      const threshold = maxTotal / 100; // Ngưỡng để ẩn label
 
       return {
         series,
@@ -177,19 +175,29 @@ const ProviderReport = () => {
             },
             fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
             spacing: {
-              top: 20,
-              right: 20,
-              bottom: 20,
-              left: 20,
+              top: 5,
+              right: 5,
+              bottom: 5,
+              left: 0,
+            },
+            animations: {
+              enabled: false,
             },
           },
           plotOptions: {
             bar: {
               horizontal: true,
-              barHeight: "85%", // Tăng barHeight vì đã giảm spacing
+              barHeight: "80%",
+
               dataLabels: {
                 position: "center",
               },
+              columnWidth: "90%",
+              rangeBarOverlap: false,
+              rangeBarGroupRows: false,
+              borderRadius: 0,
+              startingShape: "flat",
+              endingShape: "flat",
             },
           },
           stroke: {
@@ -214,6 +222,21 @@ const ProviderReport = () => {
               },
             },
             max: yAxisMax,
+            tickAmount: 5,
+            axisBorder: {
+              show: true,
+            },
+            axisTicks: {
+              show: false,
+            },
+            position: "bottom",
+            crosshairs: {
+              show: false,
+            },
+            tooltip: {
+              enabled: false,
+            },
+            min: 0,
           },
           yaxis: {
             labels: {
@@ -221,6 +244,13 @@ const ProviderReport = () => {
                 fontSize: "12px",
                 fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
               },
+              offsetX: 0,
+            },
+            axisBorder: {
+              show: true,
+            },
+            axisTicks: {
+              show: false,
             },
           },
           tooltip: {
@@ -231,7 +261,17 @@ const ProviderReport = () => {
                 return val.toFixed(0);
               },
             },
-            custom: function ({ series, seriesIndex, dataPointIndex, w }) {
+            custom: function ({
+              series,
+              seriesIndex,
+              dataPointIndex,
+              w,
+            }: {
+              series: any;
+              seriesIndex: number;
+              dataPointIndex: number;
+              w: any;
+            }) {
               const data = sortedData[dataPointIndex];
               const total = (data.quantity || 0) + (data.quantity_booked || 0);
               return `<div class="p-2">
@@ -253,13 +293,41 @@ const ProviderReport = () => {
           colors: chartColors.totalAvailable,
           dataLabels: {
             enabled: true,
-            formatter: function (val) {
+            formatter: function (val, { seriesIndex, dataPointIndex, w }) {
+              const total = w.globals.seriesTotals[dataPointIndex];
+              if (total < threshold) {
+                return "";
+              }
               return val === 1 ? "" : val > 0 ? val.toFixed(0) : "";
             },
             style: {
               colors: ["#fff"],
               fontSize: "14px",
               fontWeight: "bold",
+            },
+            textAnchor: "middle",
+            offsetX: 0,
+            offsetY: 0,
+            background: {
+              enabled: false,
+            },
+            dropShadow: {
+              enabled: false,
+            },
+            custom: function ({ seriesIndex, dataPointIndex, w }) {
+              const value = w.globals.series[seriesIndex][dataPointIndex];
+              const total = w.globals.seriesTotals[dataPointIndex];
+              if (total < threshold) {
+                return "";
+              }
+              const percentage = (value / total) * 100;
+              let fontSize = "14px";
+              if (percentage < 10) {
+                fontSize = "10px";
+              } else if (percentage < 20) {
+                fontSize = "12px";
+              }
+              return `<div style="font-size: ${fontSize}">${value}</div>`;
             },
           },
           grid: {
@@ -274,27 +342,26 @@ const ProviderReport = () => {
               },
             },
             padding: {
-              top: 10,
-              right: 10,
-              bottom: 10,
-              left: 10,
+              top: 0,
+              right: 0,
+              bottom: 0,
+              left: 0,
             },
+            borderColor: "#f1f1f1",
+            strokeDashArray: 0,
           },
         },
       };
     } else {
-      // Xử lý cho booked_by_sales
       const sortedData = [...chartData].sort(
         (a, b) => (b.value || 0) - (a.value || 0)
       );
 
       const maxValue = Math.max(...sortedData.map((item) => item.value || 0));
-      const xAxisMax = (() => {
-        const numDigits = maxValue.toString().length;
-        const base = Math.pow(10, numDigits - 1);
-        // Tăng thêm khoảng trống
-        return Math.ceil(maxValue / base) * base;
-      })();
+      const numDigits = maxValue.toString().length;
+      const base = Math.pow(10, numDigits - 1);
+      const xAxisMax = Math.ceil(maxValue / base) * base;
+      const threshold = maxValue / 100; // Ngưỡng để ẩn label
 
       return {
         series: [
@@ -312,10 +379,13 @@ const ProviderReport = () => {
             },
             fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
             spacing: {
-              top: 20,
-              right: 20,
-              bottom: 20,
-              left: 20,
+              top: 5,
+              right: 5,
+              bottom: 5,
+              left: 0,
+            },
+            animations: {
+              enabled: false,
             },
           },
           plotOptions: {
@@ -326,6 +396,12 @@ const ProviderReport = () => {
               dataLabels: {
                 position: "center",
               },
+              columnWidth: "95%",
+              rangeBarOverlap: false,
+              rangeBarGroupRows: false,
+              borderRadius: 0,
+              startingShape: "flat",
+              endingShape: "flat",
             },
           },
           xaxis: {
@@ -339,17 +415,35 @@ const ProviderReport = () => {
                 fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
               },
             },
-            max: xAxisMax, // Sử dụng giá trị max mới
+            max: xAxisMax,
+            axisBorder: {
+              show: true,
+            },
+            axisTicks: {
+              show: false,
+            },
+            position: "bottom",
+            crosshairs: {
+              show: false,
+            },
+            tooltip: {
+              enabled: false,
+            },
+            min: 0,
           },
           yaxis: {
-            title: {
-              text: undefined,
-            },
             labels: {
               style: {
-                fontSize: "13px",
+                fontSize: "12px",
                 fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
               },
+              offsetX: 0,
+            },
+            axisBorder: {
+              show: true,
+            },
+            axisTicks: {
+              show: false,
             },
           },
           grid: {
@@ -364,11 +458,13 @@ const ProviderReport = () => {
               },
             },
             padding: {
-              top: 10,
-              right: 10,
-              bottom: 10,
-              left: 10,
+              top: 0,
+              right: 0,
+              bottom: 0,
+              left: 0,
             },
+            borderColor: "#f1f1f1",
+            strokeDashArray: 0,
           },
           tooltip: {
             y: {
@@ -388,12 +484,39 @@ const ProviderReport = () => {
           dataLabels: {
             enabled: true,
             formatter: function (val) {
+              if (val < threshold) {
+                return "";
+              }
               return val === 1 ? "" : val > 0 ? val.toFixed(0) : "";
             },
             style: {
               colors: ["#fff"],
               fontSize: "14px",
               fontWeight: "bold",
+            },
+            textAnchor: "middle",
+            offsetX: 0,
+            offsetY: 0,
+            background: {
+              enabled: false,
+            },
+            dropShadow: {
+              enabled: false,
+            },
+            custom: function ({ seriesIndex, dataPointIndex, w }) {
+              const value = w.globals.series[seriesIndex][dataPointIndex];
+              if (value < threshold) {
+                return "";
+              }
+              const maxValue = Math.max(...w.globals.series[seriesIndex]);
+              const percentage = (value / maxValue) * 100;
+              let fontSize = "14px";
+              if (percentage < 10) {
+                fontSize = "10px";
+              } else if (percentage < 20) {
+                fontSize = "12px";
+              }
+              return `<div style="font-size: ${fontSize}">${value}</div>`;
             },
           },
           title: {
@@ -410,7 +533,6 @@ const ProviderReport = () => {
             left: 20,
             right: 20,
           },
-          // Thêm spacing giữa các cột
           states: {
             normal: {
               filter: {
@@ -424,7 +546,6 @@ const ProviderReport = () => {
               },
             },
           },
-          // Tăng khoảng cách giữa các cột
           chart: {
             toolbar: {
               show: false,
