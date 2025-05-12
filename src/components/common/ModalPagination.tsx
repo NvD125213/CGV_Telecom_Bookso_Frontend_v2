@@ -1,7 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Modal } from "../../components/ui/modal";
 import Pagination from "../pagination/pagination";
 import ReusableTable from "./ReusableTable";
+import { getDetailReportByOption } from "../../services/report";
+import { formatDate } from "../../helper/formatDateToISOString";
+import useSelectData from "../../hooks/useSelectData";
+import Select from "../form/Select";
+import { IProvider } from "../../types";
+import { ITypeNumber } from "../../types";
+import { getProviders } from "../../services/provider";
+import { getTypeNumber } from "../../services/typeNumber";
+import Input from "../form/input/InputField";
+import Button from "../ui/button/Button";
 
 interface Column {
   key: string;
@@ -12,26 +22,18 @@ interface ModalPaginationProps {
   isOpen: boolean;
   title: string;
   description?: string;
-  data: any[]; // Đảm bảo kiểu dữ liệu phù hợp
   columns: Column[];
-  totalPages: number;
-  limit: number;
-  offset: number;
+  option: string; // Add option prop for API call
   year?: number;
   month?: number;
   day?: number;
-  error?: string;
-  fetchData: (params: {
-    limit: number;
-    offset: number;
-    year?: number;
-    month?: number;
-    day?: number;
-  }) => void;
+  type_number?: string;
+  telco?: string;
+  username?: string;
+  filter?: string;
   onClose: () => void;
-  selectedIds?: (string | number)[];
-  setSelectedIds?: React.Dispatch<React.SetStateAction<(string | number)[]>>;
-  isLoading?: boolean;
+  selectedIds?: number[]; // Change type to number[] only
+  setSelectedIds?: React.Dispatch<React.SetStateAction<number[]>>; // Change type to number[] only
   currentPage: number;
   pageSize: number;
 }
@@ -40,57 +42,159 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
   isOpen,
   title,
   description,
-  data,
   columns,
-  totalPages,
-  limit,
-  offset,
+  option,
   year,
   month,
   day,
-  fetchData,
+  telco,
+  type_number,
+  username,
+  filter,
   onClose,
   selectedIds,
   setSelectedIds,
-  isLoading = false,
-  error = "",
   currentPage = 0,
   pageSize = 1,
 }) => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filteredData, setFilteredData] = useState(data);
-  const [errors, setErrors] = useState(error);
+  const [searchUserName, setSearchUserName] = useState("");
+  const [searchNumber, setSearchNumber] = useState("");
+  const [searchTelco, setSearchTelco] = useState("");
+  const [searchTypeNumber, setSearchTypeNumber] = useState("");
+  const [apiSearchParams, setApiSearchParams] = useState({
+    username: "",
+    number: "",
+    telco: "",
+    typeNumber: "",
+  });
+  const [data, setData] = useState<any[]>([]);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    limit: pageSize,
+    offset: currentPage,
+    totalPages: 1,
+  });
 
+  const fetchData = useCallback(async () => {
+    if (!isOpen) return;
+
+    setIsLoading(true);
+    setError("");
+    try {
+      const now = new Date();
+      const validYear =
+        typeof year === "number" && !isNaN(year) ? year : now.getFullYear();
+      const response = await getDetailReportByOption({
+        option: option || undefined,
+        limit: pagination.limit,
+        offset: pagination.offset,
+        year: validYear,
+        month: typeof month === "number" ? month : now.getMonth() + 1,
+        day: typeof day === "number" ? day : now.getDate(),
+        telco: apiSearchParams.telco || telco,
+        filter: apiSearchParams.number || filter,
+        type_number: apiSearchParams.typeNumber || type_number,
+        username: apiSearchParams.username || username,
+      });
+
+      const formattedData = response.data.data.map((item: any) => ({
+        ...item,
+        booked_until: item.booked_until ? formatDate(item.booked_until) : "0",
+        booked_at: item.booked_at ? formatDate(item.booked_at) : "0",
+        released_at: item.released_at ? formatDate(item.released_at) : "0",
+      }));
+
+      setData(formattedData);
+      setPagination((prev) => ({
+        ...prev,
+        totalPages: response.data.total_pages,
+      }));
+    } catch (error: any) {
+      console.log("Lỗi khi lấy dữ liệu:", error.response?.data?.detail);
+      setError(
+        error.response?.data?.detail || "Đã xảy ra lỗi, vui lòng thử lại."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [
+    isOpen,
+    option,
+    pagination.limit,
+    pagination.offset,
+    year,
+    month,
+    day,
+    telco,
+    filter,
+    type_number,
+    username,
+    apiSearchParams,
+  ]);
+
+  // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setSearchTerm("");
-      setErrors("");
+      setSearchUserName("");
+      setSearchNumber("");
+      setSearchTelco("");
+      setSearchTypeNumber("");
+      setApiSearchParams({
+        username: "",
+        number: "",
+        telco: "",
+        typeNumber: "",
+      });
+      setError("");
+      setData([]);
+      setPagination({
+        limit: pageSize,
+        offset: currentPage,
+        totalPages: 1,
+      });
     }
-    const lowercasedFilter = searchTerm.toLowerCase();
-    const filtered = data.filter((item) =>
-      item.user_name.toLowerCase().includes(lowercasedFilter)
-    );
-    if (filtered.length === 0) {
-      setErrors("Không có dữ liệu");
-    } else {
-      setErrors("");
-    }
-    setFilteredData(filtered);
-  }, [searchTerm, data, isOpen]);
+  }, [isOpen, pageSize, currentPage]);
 
+  // Fetch data when modal opens or pagination changes
   useEffect(() => {
     if (isOpen) {
-      fetchData({ limit, offset, year, month, day });
+      fetchData();
     }
-  }, [isOpen, limit, offset, year, month, day, fetchData]);
+  }, [isOpen, pagination.limit, pagination.offset, apiSearchParams]);
+
+  // Handle empty data state
+  useEffect(() => {
+    if (!isLoading && data.length === 0 && isOpen) {
+      setError("Không có dữ liệu");
+    } else {
+      setError("");
+    }
+  }, [data, isLoading, isOpen]);
 
   const handlePageChange = (newLimit: number, newOffset: number) => {
-    fetchData({ limit: newLimit, offset: newOffset, year, month, day });
+    setPagination((prev) => ({
+      ...prev,
+      limit: newLimit,
+      offset: newOffset,
+    }));
   };
 
   const handleLimitChange = (newLimit: number) => {
-    fetchData({ limit: newLimit, offset: 0, year, month, day }); // Reset offset về 0 khi thay đổi limit
+    setPagination((prev) => ({
+      ...prev,
+      limit: newLimit,
+      offset: 0,
+    }));
   };
+
+  const { data: providers } = useSelectData<IProvider>({
+    service: getProviders,
+  });
+
+  const { data: types } = useSelectData<ITypeNumber>({
+    service: getTypeNumber,
+  });
 
   return (
     <Modal
@@ -98,7 +202,6 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
       onClose={onClose}
       className="max-w-[90%] min-h-[600px] m-4">
       <div className="relative w-full p-4 overflow-y-auto bg-white rounded-3xl dark:bg-gray-900 lg:p-11">
-        {/* Tiêu đề */}
         <div className="px-2 pr-14">
           <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
             {title}
@@ -110,45 +213,111 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
           )}
         </div>
 
-        {/* Thanh tìm kiếm */}
-        <div className="grid gap-6 mb-6 md:grid-cols-3">
+        <div className="grid gap-6 mb-6 md:grid-cols-5">
           <div>
             <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-              Nhập tên
+              Tìm kiếm theo nhân viên
             </label>
-            <input
+            <Input
               type="text"
-              id="first_name"
-              placeholder="Tìm kiếm theo user_name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-              required
+              id="username"
+              placeholder="Nhập tên nhân viên..."
+              value={searchUserName}
+              onChange={(e) => setSearchUserName(e.target.value)}
             />
+          </div>
+          <div>
+            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+              Tìm kiếm theo số điện thoại
+            </label>
+            <Input
+              type="text"
+              id="filter"
+              placeholder="Nhập số điện thoại..."
+              value={searchNumber}
+              onChange={(e) => setSearchNumber(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+              Tìm kiếm theo nhà mạng
+            </label>
+            <Select
+              options={[
+                { label: "Tất cả", value: "" },
+                ...types.map((type) => ({
+                  label: type.name,
+                  value: type.name,
+                  key: type.id,
+                })),
+              ]}
+              className="dark:bg-black dark:text-white "
+              onChange={(value: any) => {
+                setSearchTypeNumber(value);
+              }}
+              placeholder="Chọn nhà mạng"
+            />
+          </div>
+          <div>
+            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+              Tìm kiếm theo loại số
+            </label>
+            <Select
+              options={[
+                { label: "Tất cả", value: "" },
+                ...providers.map((provider) => ({
+                  label: provider.name,
+                  value: provider.name,
+                  key: provider.id,
+                })),
+              ]}
+              className="dark:bg-black dark:text-white "
+              onChange={(value: any) => {
+                setSearchTelco(value);
+              }}
+              placeholder="Chọn loại số"
+            />
+          </div>
+          <div className="flex justify-start items-end gap-2">
+            <Button
+              onClick={() => {
+                setApiSearchParams({
+                  username: searchUserName,
+                  number: searchNumber,
+                  telco: searchTelco,
+                  typeNumber: searchTypeNumber,
+                });
+              }}
+              className="px-4 py-3 max-h-[44px] text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+              Tìm kiếm
+            </Button>
           </div>
         </div>
 
-        {/* Bảng dữ liệu */}
         <ReusableTable
-          error={errors}
-          data={filteredData}
+          title={title}
+          error={error}
+          data={data}
           columns={columns}
           selectedIds={selectedIds}
           setSelectedIds={setSelectedIds}
           pagination={{
-            currentPage: currentPage,
-            pageSize: pageSize,
+            currentPage: pagination.offset,
+            pageSize: pagination.limit,
           }}
-          onCheck={(selectedIds) => setSelectedIds?.(selectedIds)}
+          onCheck={(selectedIds) => {
+            if (setSelectedIds) {
+              setSelectedIds(selectedIds.map((id) => Number(id)));
+            }
+          }}
           isLoading={isLoading}
         />
 
-        {/* Pagination */}
         <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
           <Pagination
-            limit={limit}
-            offset={offset}
-            totalPages={totalPages}
+            limit={pagination.limit}
+            offset={pagination.offset}
+            totalPages={pagination.totalPages}
             onPageChange={handlePageChange}
             onLimitChange={handleLimitChange}
           />

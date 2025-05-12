@@ -6,13 +6,15 @@ import ComponentCard from "../../components/common/ComponentCard";
 import Label from "../../components/form/Label";
 import Select from "../../components/form/Select";
 import Input from "../../components/form/input/InputField";
-import { IPhoneNumber } from "../../types";
+import { IPhoneNumber, IProvider, ITypeNumber } from "../../types";
 import {
   bookingPhoneForOption,
   getPhoneByID,
   deletePhone,
   revokeNumber,
 } from "../../services/phoneNumber";
+import { getProviders } from "../../services/provider";
+import useSelectData from "../../hooks/useSelectData";
 import ReusableTable from "../../components/common/ReusableTable";
 import Pagination from "../../components/pagination/pagination";
 import PhoneModalDetail from "./PhoneModalDetail";
@@ -25,6 +27,7 @@ import { RootState } from "../../store";
 import { IoCloudDownloadOutline } from "react-icons/io5";
 import { IoCaretBackCircleOutline } from "react-icons/io5";
 import exportPivotTableToExcel from "../../helper/exportDataToExcel";
+import { getTypeNumber } from "../../services/typeNumber";
 
 interface PhoneNumberProps {
   total_pages: number;
@@ -86,6 +89,9 @@ function PhoneNumbers() {
   const [openModal, setOpenModal] = useState(false);
   const [selectedPhone, setSelectedPhone] = useState<IPhoneNumber | null>(null);
   const [search, setSearch] = useState<string>("");
+  const [searchProvider, setSearchProvider] = useState<string>("");
+  const [searchTypeNumber, setSearchTypeNumber] = useState<string>("");
+
   const [safeData, setSafeData] = useState<IPhoneNumber[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -107,11 +113,22 @@ function PhoneNumbers() {
 
   const user = useSelector((state: RootState) => state.auth.user);
 
+  // Get list providers
+  const { data: providers } = useSelectData<IProvider>({
+    service: getProviders,
+  });
+
+  // Get list type number
+  const { data: type_numbers } = useSelectData<ITypeNumber>({
+    service: getTypeNumber,
+  });
   const fetchData = async (
     quantity: number,
     status: string,
     offset: number,
-    search?: string
+    search?: string,
+    provider?: string,
+    type_number?: string
   ) => {
     setLoading(true);
     try {
@@ -119,7 +136,9 @@ function PhoneNumbers() {
         quantity,
         status,
         offset,
-        search: search || "",
+        search: search?.trim(),
+        provider: provider?.trim(),
+        type_number: type_number?.trim(), // Make sure we trim the type_number
       });
 
       const formatNumber = (num: any) =>
@@ -150,27 +169,48 @@ function PhoneNumbers() {
         phone_numbers: formattedData,
       });
 
-      setSearchParams({
+      // Only include non-empty parameters in the URL
+      const params: Record<string, string> = {
         quantity: quantity.toString(),
         status,
         offset: offset.toString(),
-        ...(search ? { search } : {}),
-      });
+      };
+
+      if (search) {
+        params.search = search;
+      }
+
+      if (provider) {
+        params.provider = provider;
+      }
+
+      if (type_number) {
+        params.type_number = type_number;
+      }
+
+      setSearchParams(params);
     } catch (error) {
       console.error("Lỗi khi gọi API:", error);
     } finally {
-      setTimeout(() => setLoading(false), 1000);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData(quantity, status, offset); // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchData(
+      quantity,
+      status,
+      offset,
+      search,
+      searchProvider,
+      searchTypeNumber
+    ); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quantity, status, offset]);
 
   const handleChangeStatus = (value: string) => {
     setStatus(value);
     setOffset(0);
-    fetchData(quantity, value, 0);
+    fetchData(quantity, value, 0, search, searchProvider, searchTypeNumber);
   };
 
   const handleGetById = async (id: number) => {
@@ -201,13 +241,27 @@ function PhoneNumbers() {
 
   const handleOnKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      if (search === "") {
+      if (search == "") {
         const originalData = data?.phone_numbers ?? [];
-        fetchData(quantity, status, offset, search);
+        fetchData(
+          quantity,
+          status,
+          offset,
+          search,
+          searchProvider,
+          searchTypeNumber
+        );
         setError(originalData.length === 0 ? "Không có dữ liệu" : "");
       } else {
         const result = handleSearch(search) ?? [];
-        fetchData(quantity, status, offset, search);
+        fetchData(
+          quantity,
+          status,
+          offset,
+          search,
+          searchProvider,
+          searchTypeNumber
+        );
         setError(result.length === 0 ? "Không có dữ liệu" : "");
       }
     }
@@ -254,120 +308,6 @@ function PhoneNumbers() {
     }
   };
 
-  // const handleReleasedNumber = async (data: any) => {
-  //   setBookLoading(true);
-  //   try {
-  //     const { value: contractCode, isConfirmed } = await Swal.fire({
-  //       title: "Nhập Contract Code",
-  //       input: "text",
-  //       inputLabel: `Nhập mã giao dịch cho số ${data.phone_number}`,
-  //       inputPlaceholder: "Nhập mã giao dịch...",
-  //       showCancelButton: true,
-  //       confirmButtonText: "Xác nhận",
-  //       cancelButtonText: "Hủy",
-  //       inputValidator: (value) => {
-  //         if (!value) {
-  //           return "Mã giao dịch không được để trống!";
-  //         }
-  //       },
-  //     });
-
-  //     if (!isConfirmed) return;
-
-  //     const transformedData: IReleasePhoneNumber = {
-  //       data_releases: [
-  //         {
-  //           username: user.sub,
-  //           phone_number: data.phone_number,
-  //           contract_code: contractCode,
-  //         },
-  //       ],
-  //     };
-
-  //     const res = await releasePhoneNumber(transformedData);
-  //     if (res.status === 200) {
-  //       await Swal.fire(
-  //         "Thành công",
-  //         `Đã triển khai ${selectedRows.length} số điện thoại thành công!`,
-  //         "success"
-  //       );
-  //       setSelectedIds([]);
-  //       setSelectedRows([]);
-  //       await fetchData(quantity, status, offset);
-  //       setSearchParams({});
-  //     }
-  //   } catch (err: any) {
-  //     setError(err);
-  //     fetchData(quantity, status, offset);
-  //   } finally {
-  //     setBookLoading(false);
-  //   }
-  // };
-
-  // // Handle data released when choose many number
-  // const handleManyRelease = async () => {
-  //   if (selectedRows.length === 0) {
-  //     alert("Vui lòng chọn ít nhất một số để giải phóng");
-  //     return;
-  //   }
-
-  //   setBookLoading(true);
-
-  //   try {
-  //     const { value: contractCode, isConfirmed } = await Swal.fire({
-  //       title: "Nhập Contract Code",
-  //       input: "text",
-  //       inputLabel: `Nhập mã giao dịch cho ${selectedRows.length} số được chọn`,
-  //       inputPlaceholder: "Nhập mã giao dịch...",
-  //       showCancelButton: true,
-  //       confirmButtonText: "Xác nhận",
-  //       cancelButtonText: "Hủy",
-  //       inputValidator: (value) => {
-  //         if (!value) {
-  //           return "Mã giao dịch không được để trống!";
-  //         }
-  //       },
-  //     });
-
-  //     if (!isConfirmed) {
-  //       setBookLoading(false);
-  //       return;
-  //     }
-
-  //     const dataReleases = selectedRows.map((row) => ({
-  //       username: user.sub,
-  //       phone_number: row.phone_number,
-  //       contract_code: contractCode,
-  //     }));
-
-  //     const transformedData: IReleasePhoneNumber = {
-  //       data_releases: dataReleases,
-  //     };
-
-  //     const res = await releasePhoneNumber(transformedData);
-
-  //     if (res.status === 200) {
-  //       await Swal.fire(
-  //         "Thành công",
-  //         `Đã giải phóng ${selectedRows.length} số điện thoại thành công!`,
-  //         "success"
-  //       );
-  //       setSelectedIds([]);
-  //       setSelectedRows([]);
-  //       setSearchParams({});
-  //       await fetchData(quantity, status, offset);
-  //     }
-  //   } catch (err: any) {
-  //     Swal.fire(
-  //       "Oops...",
-  //       `${err}` || "Có lỗi xảy ra khi triển khai số, vui lòng thử lại!",
-  //       "error"
-  //     );
-  //   } finally {
-  //     setBookLoading(false);
-  //   }
-  // };
-
   const handleRevoke = async () => {
     if (selectedRows.length === 0) {
       alert("Vui lòng chọn ít nhất một số để thu hồi");
@@ -400,7 +340,14 @@ function PhoneNumbers() {
           });
           setSelectedIds([]);
           setSelectedRows([]);
-          await fetchData(quantity, status, offset);
+          await fetchData(
+            quantity,
+            status,
+            offset,
+            search,
+            searchProvider,
+            searchTypeNumber
+          );
           setSearchParams({});
         }
       }
@@ -619,7 +566,62 @@ function PhoneNumbers() {
                     onKeyDown={handleOnKeyDown}
                   />
                 </div>
-
+                <div>
+                  <Label htmlFor="providerSelect">
+                    Tìm kiếm theo nhà cung cấp
+                  </Label>
+                  <Select
+                    options={[
+                      { label: "Tất cả", value: "" },
+                      ...(providers?.map((provider) => ({
+                        label: provider.name,
+                        value: provider.name,
+                      })) || []),
+                    ]}
+                    placeholder="Chọn nhà cung cấp..."
+                    defaultValue={searchProvider}
+                    onChange={(value) => {
+                      setSearchProvider(value);
+                      fetchData(
+                        quantity,
+                        status,
+                        offset,
+                        search,
+                        value,
+                        searchTypeNumber
+                      );
+                    }}
+                    className="dark:bg-dark-900"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="typeSelect">Tìm kiếm theo định dạng số</Label>
+                  <Select
+                    options={[
+                      { label: "Tất cả", value: "" },
+                      ...(type_numbers?.map((type) => ({
+                        label: type.name,
+                        value: type.name,
+                      })) || []),
+                    ]}
+                    placeholder="Chọn định dạng số..."
+                    defaultValue={searchTypeNumber}
+                    onChange={(value) => {
+                      console.log("Type number selected:", value); // Debug log
+                      setSearchTypeNumber(value);
+                      // Make sure we're passing the current search and provider values
+                      fetchData(
+                        quantity,
+                        status,
+                        offset,
+                        search,
+                        searchProvider,
+                        value
+                      );
+                    }}
+                    className="dark:bg-dark-900"
+                  />
+                </div>
                 {status === "booked" && user.role === 1 && (
                   <div className="flex items-end gap-2">
                     <button
@@ -677,16 +679,6 @@ function PhoneNumbers() {
                     onClick: (row) => handleGetById(Number(row.id)),
                     label: "Chi tiết",
                   },
-                  // ...(user.role === 1
-                  //   ? [
-                  //       {
-                  //         icon: <MdOutlineNewReleases />,
-                  //         onClick: (row: any) => handleReleasedNumber(row),
-                  //         label: "Triển khai",
-                  //         condition: () => status === "booked",
-                  //       },
-                  //     ]
-                  //   : []),
                 ]}
                 onDelete={(id) => handleDelete(Number(id))}
               />

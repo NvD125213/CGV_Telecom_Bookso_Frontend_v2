@@ -5,4 +5,8 @@ export interface IReportDate {
   option?: string;
   limit?: number;
   offset?: number;
+  telco?: string;
+  username?: string;
+  type_number?: string;
+  filter?: string;
 }

@@ -9,6 +9,7 @@ import {
   TableIcon,
 } from "../icons";
 import { MdOutlineProductionQuantityLimits } from "react-icons/md";
+import { GrChannel } from "react-icons/gr";
 
 import { useSidebar } from "../context/SidebarContext";
 import { FaCloudUploadAlt } from "react-icons/fa";
@@ -53,6 +54,11 @@ const navItems: NavItem[] = [
     icon: <BsPhone />,
     name: "Định dạng số",
     path: "/type-numbers",
+  },
+  {
+    name: "Kênh số",
+    path: "/digital-channel",
+    icon: <GrChannel />,
   },
   {
     name: "Số điện thoại",

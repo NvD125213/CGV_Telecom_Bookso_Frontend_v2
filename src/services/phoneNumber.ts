@@ -64,45 +64,36 @@ export const bookingPhoneForOption = async ({
   status,
   offset,
   search,
+  provider,
+  type_number,
 }: {
   quantity: number;
   status: string;
   offset: number;
   search?: string;
+  provider?: string;
+  type_number?: string;
 }) => {
+  const params = new URLSearchParams();
+  params.append("quantity", quantity.toString());
+  params.append("option", status);
+  params.append("offset", offset.toString());
+
+  if (search) {
+    params.append("filter", search);
+  }
+  if (provider) {
+    params.append("telco", provider);
+  }
+  if (type_number) {
+    params.append("type_number", type_number);
+  }
+
   const res = await axiosInstance.get(
-    `/api/v1/booking/booking-phone-number-for-option?quantity=${quantity}&option=${status}&offset=${offset}&filter=${search}`
+    `/api/v2/booking/booking-phone-number-for-option?${params.toString()}`
   );
   return res;
 };
-
-// export const fetchAllBookingPhones = async ({
-//   quantity,
-//   status,
-// }: {
-//   quantity: number;
-//   status: string;
-// }) => {
-//   let allData: any[] = [];
-//   let offset = 0;
-//   let hasMore = true;
-
-//   while (hasMore) {
-//     const res = await bookingPhoneForOption({ quantity, status, offset });
-//     const data = res.data; // Giả sử API trả về { data: [] }
-
-//     if (data.length > 0) {
-//       allData = [...allData, ...data];
-//       offset += data.length; // Tăng offset theo số lượng dữ liệu lấy được
-//     }
-
-//     if (data.length < quantity) {
-//       hasMore = false; // Dừng nếu số dữ liệu ít hơn quantity (trang cuối)
-//     }
-//   }
-
-//   return allData;
-// };
 
 export const bookingPhone = async ({
   offset,
@@ -120,7 +111,7 @@ export const bookingPhone = async ({
   signal?: AbortSignal;
 }) => {
   const res = await axiosInstance.get(
-    `/api/v1/booking/booking-phone-number?filter=${search}&telco=${telco}&limit=${quantity}&offset=${offset}&type_number=${type_number}`,
+    `/api/v2/booking/booking-phone-number?filter=${search}&telco=${telco}&limit=${quantity}&offset=${offset}&type_number=${type_number}`,
     { signal } // Transmit signal in config
   );
   return res;

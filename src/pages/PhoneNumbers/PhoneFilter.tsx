@@ -27,7 +27,6 @@ import {
 import Pagination from "../../components/pagination/pagination";
 import PhoneModalDetail from "./PhoneModalDetail";
 import { FaRandom } from "react-icons/fa";
-
 import Swal from "sweetalert2";
 import Spinner from "../../components/common/LoadingSpinner";
 import PhoneRandomModal from "./PhoneRandomModal";
@@ -374,19 +373,17 @@ function PhoneNumberFilters() {
 
             <ComponentCard>
               <div className=" grid grid-cols-1 gap-4 lg:grid-cols-3">
-                {user.role === 1 && (
-                  <div>
-                    <Label htmlFor="inputTwo">Tìm kiếm theo đầu số</Label>
-                    <Input
-                      type="text"
-                      id="inputTwo"
-                      placeholder="Nhập đầu số..."
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                    />
-                  </div>
-                )}
+                <div>
+                  <Label htmlFor="inputTwo">Tìm kiếm theo đầu số</Label>
+                  <Input
+                    type="text"
+                    id="inputTwo"
+                    placeholder="Nhập đầu số..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                  />
+                </div>
                 <div>
                   <Label>Nhà cung cấp</Label>
                   <Select

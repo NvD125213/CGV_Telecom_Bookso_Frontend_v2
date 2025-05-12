@@ -36,7 +36,7 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
       const rawNumber = convertTimeToNumber(data.booking_expiration);
       const formattedExpiration = data.booking_expiration
         ? formatBookingExpiration(rawNumber)
-        : "00.00.00";
+        : "000.00.00";
 
       if (parseBookingExpiration(formattedExpiration) === 0) {
         alert("Thời gian giữ không được bằng 0");
@@ -49,7 +49,7 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
     } else {
       setTypeNumber({
         ...newTypeNumber,
-        booking_expiration: "00.00.00",
+        booking_expiration: "000.00.00",
       });
       setInitialData(null);
     }
@@ -174,11 +174,11 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
         },
         {
           name: "booking_expiration",
-          label: `Thời gian chờ triển khai (HH.MM.SS)`,
+          label: `Thời gian chờ triển khai (HHH.MM.SS)`,
           type: "text",
-          value: typeNumber.booking_expiration || "00.00.00",
+          value: typeNumber.booking_expiration || "000.00.00",
           onChange: (value) => setValue("booking_expiration", value as string),
-          placeholder: "00.00.00",
+          placeholder: "000.00.00",
           error: errors.booking_expiration,
         },
         {

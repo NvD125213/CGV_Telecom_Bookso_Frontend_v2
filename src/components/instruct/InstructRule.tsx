@@ -6,17 +6,20 @@ const SearchHelp = () => {
     Swal.fire({
       title: "📱 Hướng dẫn tìm kiếm số điện thoại",
       html: `
-        <div style="text-align: left; font-size: 15px; line-height: 1.6;">
-          <p>Bạn có thể dùng <code>*</code> để đại diện cho chuỗi số bất kỳ:</p>
-          <ul style="padding-left: 1rem; margin-top: 0.5rem;">
-            <li>🔹 <code><b>*79</b></code> → chứa số <b>79 ở cuối</b>.</li>
-            <li>🔹 <code><b>0909*</b></code> → chứa số <b>0909 ở đầu</b>.</li>
-            <li>🔹 <code><b>999</b></code> → chứa <b>999 ở bất kỳ vị trí nào</b>.</li>
-            <li>🔹 <code><b>0909*99</b></code> → <b>bắt đầu bằng 0909</b> và <b>kết thúc bằng 99</b>.</li>
-          </ul>
-          <hr style="margin: 1rem 0;" />
-          <p>✨ Ký tự <code>*</code> có thể thay thế cho mọi dãy số không xác định. Hãy kết hợp linh hoạt để có kết quả tìm kiếm chính xác.</p>
-        </div>
+      <div style="text-align: left; font-size: 15px; line-height: 1.6;">
+        <p>Bạn có thể dùng <code>*</code> để đại diện cho chuỗi số bất kỳ:</p>
+        <ul style="padding-left: 1rem; margin-top: 0.5rem;">
+          <li>🔹 <code><b>*79</b></code> → chứa số <b>79 ở cuối</b>.</li>
+          <li>🔹 <code><b>0909*</b></code> → chứa số <b>0909 ở đầu</b>.</li>
+          <li>🔹 <code><b>999</b></code> → chứa <b>999 ở bất kỳ vị trí nào</b>.</li>
+          <li>🔹 <code><b>0909*99</b></code> → <b>bắt đầu bằng 0909</b> và <b>kết thúc bằng 99</b>.</li>
+        </ul>
+        <hr style="margin: 1rem 0;" />
+        <p>✨ Ký tự <code>*</code> có thể thay thế cho mọi dãy số không xác định. Hãy kết hợp linh hoạt để có kết quả tìm kiếm chính xác.</p>
+        <p><b>🔒 Lưu ý:</b> Nếu bạn là <b>người dùng</b>, bạn chỉ được phép tìm kiếm theo <b>dạng đuôi số</b> (ví dụ: <code>*89</code>, <code>*7658</code>...). 
+        Bạn <b>không có quyền</b> tìm kiếm theo <b>đầu số</b> (ví dụ: <code>089*</code>, <code>0976*</code>...).</p>
+      </div>
+
       `,
       icon: "info",
       confirmButtonText: "Đã hiểu 👍",

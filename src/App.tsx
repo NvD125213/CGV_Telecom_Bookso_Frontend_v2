@@ -29,6 +29,7 @@ import { Provider } from "react-redux";
 import { store } from "./store";
 import { PrivateRoute } from "./routes/privateRoutes";
 import { PublicRoute } from "./routes/publicRoute";
+import DigitalChannel from "./pages/DigitalChannel/test";
 
 export default function App() {
   return (
@@ -50,6 +51,7 @@ export default function App() {
               <Route path="/form-elements" element={<FormElements />} />
               <Route index path="/" element={<Home />} />
               <Route path="/history-booked" element={<HistoryBooked />} />
+              <Route path="/digital-channel" element={<DigitalChannel />} />
               {/* 
               <Route path="/calendar" element={<Calendar />} /> */}
               {/* <Route path="/blank" element={<Blank />} /> */}

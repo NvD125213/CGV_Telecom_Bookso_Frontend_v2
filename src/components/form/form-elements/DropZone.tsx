@@ -88,7 +88,7 @@ const DropzoneComponent: React.FC<DropzoneComponentProps> = ({
             Tải xuống file Excel
           </h2>
           <Link
-            to="/public/files/sample_file.xlsx"
+            to="/files/sample_file.xlsx"
             className="font-medium text-sm text-blue-600 dark:text-blue-500 hover:underline mr-2"
             target="_blank"
             download>

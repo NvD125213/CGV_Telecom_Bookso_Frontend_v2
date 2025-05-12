@@ -18,7 +18,7 @@ export const getDashBoard = async (params: IReportDate) => {
 export const getDetailReportByOption = async (params: IReportDate) => {
   try {
     const response = await axiosInstance.get(
-      "/api/v1/report/detail-report-by-option",
+      "/api/v2/report/detail-report-by-option",
       {
         params,
       }
