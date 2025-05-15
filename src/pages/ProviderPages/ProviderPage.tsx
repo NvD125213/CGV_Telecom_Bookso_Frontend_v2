@@ -39,11 +39,10 @@ const ProviderPage = () => {
   const [errorData, setErrorData] = useState("");
   const user = useSelector((state: RootState) => state.auth.user);
 
-  const getAllData = async (delay = 0) => {
+  const getAllData = async () => {
     setError(null);
     setLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, delay));
       const res = await getProviders();
       const sortedProvider = sortByPriority(res, priorityList);
       const mappedProviders: IProvider[] = sortedProvider.map((item) => ({
@@ -60,8 +59,6 @@ const ProviderPage = () => {
       }
     } catch (err: any) {
       setError(`${err}`);
-    } finally {
-      setTimeout(() => setLoading(false), 1000);
     }
   };
 

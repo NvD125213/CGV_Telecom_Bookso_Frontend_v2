@@ -1,17 +1,22 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { IoCaretBackCircleOutline } from "react-icons/io5";
+import { useSelector, useDispatch } from "react-redux";
+import Swal from "sweetalert2";
 import { Modal } from "../../components/ui/modal";
-import Pagination from "../pagination/pagination";
-import ReusableTable from "./ReusableTable";
-import { getDetailReportByOption } from "../../services/report";
 import { formatDate } from "../../helper/formatDateToISOString";
 import useSelectData from "../../hooks/useSelectData";
-import Select from "../form/Select";
-import { IProvider } from "../../types";
-import { ITypeNumber } from "../../types";
+import { revokeNumber } from "../../services/phoneNumber";
 import { getProviders } from "../../services/provider";
+import { getDetailReportByOption } from "../../services/report";
 import { getTypeNumber } from "../../services/typeNumber";
+import { RootState } from "../../store";
+import { IProvider, ITypeNumber } from "../../types";
 import Input from "../form/input/InputField";
+import Select from "../form/Select";
+import Pagination from "../pagination/pagination";
 import Button from "../ui/button/Button";
+import ReusableTable from "./ReusableTable";
+import { setRevokeSuccess, triggerRefresh } from "../../store/reportSlice";
 
 interface Column {
   key: string;
@@ -36,6 +41,7 @@ interface ModalPaginationProps {
   setSelectedIds?: React.Dispatch<React.SetStateAction<number[]>>; // Change type to number[] only
   currentPage: number;
   pageSize: number;
+  onSuccess?: () => Promise<void>; // Add onSuccess prop
 }
 
 const ModalPagination: React.FC<ModalPaginationProps> = ({
@@ -56,6 +62,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
   setSelectedIds,
   currentPage = 0,
   pageSize = 1,
+  onSuccess,
 }) => {
   const [searchUserName, setSearchUserName] = useState("");
   const [searchNumber, setSearchNumber] = useState("");
@@ -70,11 +77,15 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
   const [data, setData] = useState<any[]>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const selectedRows = data.filter((item) => selectedIds?.includes(item.id));
   const [pagination, setPagination] = useState({
     limit: pageSize,
     offset: currentPage,
     totalPages: 1,
   });
+
+  const dispatch = useDispatch();
+  const user = useSelector((state: RootState) => state.auth.user);
 
   const fetchData = useCallback(async () => {
     if (!isOpen) return;
@@ -85,13 +96,14 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
       const now = new Date();
       const validYear =
         typeof year === "number" && !isNaN(year) ? year : now.getFullYear();
+
       const response = await getDetailReportByOption({
         option: option || undefined,
         limit: pagination.limit,
         offset: pagination.offset,
         year: validYear,
         month: typeof month === "number" ? month : now.getMonth() + 1,
-        day: typeof day === "number" ? day : now.getDate(),
+        day: day ? Number(day) : undefined,
         telco: apiSearchParams.telco || telco,
         filter: apiSearchParams.number || filter,
         type_number: apiSearchParams.typeNumber || type_number,
@@ -196,6 +208,50 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
     service: getTypeNumber,
   });
 
+  const handleRevoke = async () => {
+    if (selectedRows.length === 0) {
+      alert("Vui lòng chọn ít nhất một số để thu hồi");
+      return;
+    }
+    const dataRevoke = {
+      id_phone_numbers: selectedRows.map((row) => row.id),
+    };
+
+    try {
+      const result = await Swal.fire({
+        title: "Bạn có chắc chắn?",
+        text: "Hãy kiểm tra lại danh sách số bạn muốn thu hồi!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Thu hồi",
+      });
+
+      if (result.isConfirmed) {
+        const res = await revokeNumber(dataRevoke);
+        if (res.status === 200) {
+          Swal.fire({
+            title: "Thu hồi thành công!",
+            text: "Bạn đã thu hồi thành công danh sách số.",
+            icon: "success",
+          });
+          setSelectedIds?.([]);
+          dispatch(setRevokeSuccess(true));
+          dispatch(triggerRefresh());
+          fetchData();
+          await onSuccess?.();
+        }
+      }
+    } catch (err: any) {
+      Swal.fire(
+        "Oops...",
+        `${err}` || "Có lỗi xảy ra khi thu hồi, vui lòng thử lại!",
+        "error"
+      );
+    }
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -213,7 +269,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
           )}
         </div>
 
-        <div className="grid gap-6 mb-6 md:grid-cols-5">
+        <div className="grid gap-4 mb-6 py-3 md:grid-cols-5">
           <div>
             <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
               Tìm kiếm theo nhân viên
@@ -291,6 +347,16 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
               className="px-4 py-3 max-h-[44px] text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
               Tìm kiếm
             </Button>
+            {user.role === 1 && option == "booked" && (
+              <div className="flex items-end gap-2">
+                <button
+                  onClick={handleRevoke}
+                  className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+                  <IoCaretBackCircleOutline size={22} />
+                  Thu hồi
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -300,6 +366,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
           data={data}
           columns={columns}
           selectedIds={selectedIds}
+          role={user.role}
           setSelectedIds={setSelectedIds}
           pagination={{
             currentPage: pagination.offset,

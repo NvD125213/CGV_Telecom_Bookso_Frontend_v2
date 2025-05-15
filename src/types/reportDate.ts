@@ -9,4 +9,5 @@ export interface IReportDate {
   username?: string;
   type_number?: string;
   filter?: string;
+  option_type?: string;
 }

@@ -11,17 +11,24 @@ import ReusableTable from "../../components/common/ReusableTable";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
 
-function convertSecondsToTime(seconds: any) {
+function convertSecondsToTime(seconds: number): string {
+  if (!seconds || seconds < 0) return "0s";
+
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
 
-  // Format lại chuỗi trả về: ví dụ 2h 05m 09s
-  const formattedHours = hours > 0 ? hours + "h " : "";
-  const formattedMinutes = (minutes < 10 ? "0" : "") + minutes + "m ";
-  const formattedSeconds = (secs < 10 ? "0" : "") + secs + "s";
+  const parts: string[] = [];
 
-  return formattedHours + formattedMinutes + formattedSeconds;
+  if (hours > 0) {
+    parts.push(`${hours}h`);
+  }
+  if (minutes > 0 || hours > 0) {
+    parts.push(`${minutes.toString().padStart(2, "0")}m`);
+  }
+  parts.push(`${secs.toString().padStart(2, "0")}s`);
+
+  return parts.join(" ");
 }
 
 const columns: { key: keyof ITypeNumber; label: string }[] = [

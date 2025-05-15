@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
-import { PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
-import ComponentCard from "../../common/ComponentCard";
+import { useEffect, useRef, useState } from "react";
+import { Cell, Legend, Pie, PieChart, Tooltip } from "recharts";
 import { getDashBoard } from "../../../services/report";
-import ModalPagination from "../../common/ModalPagination";
 import { IReportDetail } from "../../../types";
+import ComponentCard from "../../common/ComponentCard";
+import ModalPagination from "../../common/ModalPagination";
 
 const COLORS = ["#0088FE", "#FFBB28", "#00C49F"];
 
@@ -31,7 +31,6 @@ const getColumns = (status: string) => {
 
   return baseColumns;
 };
-
 const NumberStatusPieChart = () => {
   const [data, setData] = useState([
     { name: "Đã Book", value: 0, detail: "booked" },
@@ -46,43 +45,35 @@ const NumberStatusPieChart = () => {
   const [day, setDay] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const prevSelectedEntry = useRef<typeof selectedEntry>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
-  // Fetch dashboard data
+  const fetchData = async () => {
+    try {
+      const response = await getDashBoard({
+        year,
+        month,
+        day: day ? parseInt(day) : undefined,
+      });
+
+      setData([
+        {
+          name: "Đã Book",
+          value: response?.data?.booked || 0,
+          detail: "booked",
+        },
+        {
+          name: "Đã Triển Khai",
+          value: response?.data?.deployed || 0,
+          detail: "released",
+        },
+      ]);
+    } catch (error: any) {
+      console.log("Lỗi khi lấy dữ liệu:", error.response?.data?.detail);
+    }
+  };
+
   useEffect(() => {
-    let isMounted = true;
-
-    const fetchData = async () => {
-      try {
-        const response = await getDashBoard({
-          year,
-          month,
-          day: day ? parseInt(day) : undefined,
-        });
-
-        if (isMounted) {
-          setData([
-            {
-              name: "Đã Book",
-              value: response?.data?.booked || 0,
-              detail: "booked",
-            },
-            {
-              name: "Đã Triển Khai",
-              value: response?.data?.deployed || 0,
-              detail: "released",
-            },
-          ]);
-        }
-      } catch (error: any) {
-        console.log("Lỗi khi lấy dữ liệu:", error.response?.data?.detail);
-      }
-    };
-
     fetchData();
-
-    return () => {
-      isMounted = false;
-    };
   }, [year, month, day]);
 
   const handleClick = (entry: any) => {
@@ -163,16 +154,22 @@ const NumberStatusPieChart = () => {
       </div>
 
       <ModalPagination
+        onSuccess={async () => {
+          await fetchData();
+        }}
         isOpen={isModalOpen}
         title={`Chi tiết về danh sách số ${selectedEntry?.name || ""}`}
         columns={getColumns(selectedEntry?.detail || "")}
         option={selectedEntry?.detail || ""}
         year={year}
         month={month}
-        day={day ? parseInt(day) : undefined}
+        {...(day ? { day: parseInt(day) } : {})}
         onClose={() => setIsModalOpen(false)}
         currentPage={0}
         pageSize={5}
+        {...(selectedEntry?.detail !== "released"
+          ? { selectedIds, setSelectedIds }
+          : {})}
       />
     </ComponentCard>
   );

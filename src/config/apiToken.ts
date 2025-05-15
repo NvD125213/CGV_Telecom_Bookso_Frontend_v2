@@ -1,6 +1,13 @@
 import axios from "axios";
 import Cookies from "js-cookie";
 
+// Biến toàn cục để inject hàm reset từ context
+let resetTimerFn: (() => void) | null = null;
+
+export const setAxiosInactivityHandler = (resetFn: () => void) => {
+  resetTimerFn = resetFn;
+};
+
 const axiosInstance = axios.create({
   baseURL: "http://13.228.23.40:8000/",
 });
@@ -11,8 +18,14 @@ axiosInstance.interceptors.request.use(
   async (config) => {
     const token = Cookies.get("token");
     if (token) {
-      config.headers.Authorization = ` Bearer ${token} `;
+      config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Reset timeout nếu có hàm reset từ context
+    if (resetTimerFn) {
+      resetTimerFn();
+    }
+
     return config;
   },
   (err) => Promise.reject(err)
@@ -31,7 +44,6 @@ axiosInstance.interceptors.response.use(
         return Promise.reject(err);
       }
 
-      // Xóa token cũ ngay lập tức
       Cookies.remove("token");
 
       try {
@@ -49,23 +61,20 @@ axiosInstance.interceptors.response.use(
           throw new Error("Không nhận được access token mới");
         }
 
-        // Lưu token mới
         Cookies.set("token", newAccessToken, {
           sameSite: "None",
           secure: true,
         });
+
         originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
         return axiosInstance(originalRequest);
       } catch (refreshErr: any) {
-        console.log("Lỗi ở đây >>", refreshErr);
+        console.log("Lỗi làm mới token:", refreshErr);
 
         if (!isAlertShown) {
           isAlertShown = true;
-          if (refreshErr.status === 401) {
-            alert("Phiên đăng nhập đã hết hạn");
-          } else if (refreshErr.status === 403) {
-            alert("Yêu cầu bị từ chối!");
-          }
+
+          alert("Phiên đăng nhập đã hết hạn");
 
           document.location.href = "/signin";
           Cookies.remove("refreshToken");

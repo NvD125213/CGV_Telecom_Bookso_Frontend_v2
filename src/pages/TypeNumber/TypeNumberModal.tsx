@@ -96,6 +96,7 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
     if (!validateForm()) return;
 
     // Convert booking_expiration to type number
+
     const submitData = {
       ...typeNumber,
       booking_expiration: String(

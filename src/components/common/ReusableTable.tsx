@@ -114,7 +114,7 @@ const ReusableTable = <T extends { id: string | number }>({
     <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-black">
       <div className="w-full overflow-x-auto">
         <div className="min-w-[1000px]">
-          <div className="max-h-[500px] overflow-y-auto dark:bg-black min-w-[900px]">
+          <div className="max-h-[800px] overflow-y-auto dark:bg-black min-w-[900px]">
             <Table className="dark:text-white ">
               {/* Table Header */}
               <TableHeader>

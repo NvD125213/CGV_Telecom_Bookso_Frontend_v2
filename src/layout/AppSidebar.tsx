@@ -15,6 +15,7 @@ import { useSidebar } from "../context/SidebarContext";
 import { FaCloudUploadAlt } from "react-icons/fa";
 import { FaCalendarCheck } from "react-icons/fa";
 import { SiAmazonsimpleemailservice } from "react-icons/si";
+import { RiBaseStationLine } from "react-icons/ri";
 import { BsPhone } from "react-icons/bs";
 import { useSelector } from "react-redux";
 import { RootState } from "../store";
@@ -59,6 +60,11 @@ const navItems: NavItem[] = [
     name: "Kênh số",
     path: "/digital-channel",
     icon: <GrChannel />,
+  },
+  {
+    name: "Lịch sử online",
+    path: "/time-online",
+    icon: <RiBaseStationLine />,
   },
   {
     name: "Số điện thoại",
@@ -124,8 +130,8 @@ const AppSidebar: React.FC = () => {
           (subItem) =>
             !(
               user?.role !== 1 &&
-              (subItem.path === "/upload-file" ||
-                subItem.path === "/limit-booking")
+              (subItem.path == "/upload-file" ||
+                subItem.path == "/limit-booking")
             )
         );
       }
@@ -134,7 +140,9 @@ const AppSidebar: React.FC = () => {
     .filter((item) => {
       return !(
         user?.role !== 1 &&
-        (item.path === "/providers" || item.path === "/type-numbers")
+        (item.path === "/providers" ||
+          item.path === "/type-numbers" ||
+          item.path == "/time-online")
       );
     });
 

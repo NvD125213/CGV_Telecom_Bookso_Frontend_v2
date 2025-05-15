@@ -3,7 +3,7 @@ import { IReportDate } from "../types";
 
 export const getDashBoard = async (params: IReportDate) => {
   try {
-    let url = `/api/v1/report/dashboard?year=${params.year}&month=${params.month}`;
+    let url = `/api/v2/report/dashboard?year=${params.year}&month=${params.month}`;
     if (params.day) {
       url += `&day=${params.day}`;
     }
@@ -23,6 +23,7 @@ export const getDetailReportByOption = async (params: IReportDate) => {
         params,
       }
     );
+
     return response;
   } catch (error) {
     console.error("Failed to fetch detail report by option:", error);
@@ -33,7 +34,7 @@ export const getDetailReportByOption = async (params: IReportDate) => {
 export const getDetailReportCurrent = async (params: IReportDate) => {
   try {
     const response = await axiosInstance.get(
-      "/api/v1/report/booking-by-current",
+      "/api/v2/report/booking-by-current",
       {
         params,
       }
@@ -64,7 +65,7 @@ export const getNumberCurrent = async (params: IReportDate) => {
 export const getBookingByCurrent = async (params: IReportDate) => {
   try {
     const response = await axiosInstance.get(
-      "/api/v1/report/booking-by-current",
+      "/api/v2/report/booking-by-current",
       { params }
     );
     return response;
@@ -75,4 +76,14 @@ export const getBookingByCurrent = async (params: IReportDate) => {
     );
     throw error;
   }
+};
+
+export const getBookingStatusBySales = async (params: IReportDate) => {
+  const response = await axiosInstance.get(
+    "/api/v2/report/booking-status-by-sales",
+    {
+      params,
+    }
+  );
+  return response;
 };

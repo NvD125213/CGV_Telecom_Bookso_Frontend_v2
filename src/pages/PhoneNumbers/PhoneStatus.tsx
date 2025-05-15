@@ -1,33 +1,35 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom"; // Sửa "react-router" thành "react-router-dom"
 
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+import { FiEye } from "react-icons/fi";
+import {
+  IoCaretBackCircleOutline,
+  IoCloudDownloadOutline,
+} from "react-icons/io5";
+import { useSelector } from "react-redux";
+import Swal from "sweetalert2";
 import ComponentCard from "../../components/common/ComponentCard";
+import Spinner from "../../components/common/LoadingSpinner";
+import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+import ReusableTable from "../../components/common/ReusableTable";
 import Label from "../../components/form/Label";
 import Select from "../../components/form/Select";
 import Input from "../../components/form/input/InputField";
-import { IPhoneNumber, IProvider, ITypeNumber } from "../../types";
+import Pagination from "../../components/pagination/pagination";
+import exportPivotTableToExcel from "../../helper/exportDataToExcel";
+import { formatDate } from "../../helper/formatDateToISOString";
+import useSelectData from "../../hooks/useSelectData";
 import {
   bookingPhoneForOption,
-  getPhoneByID,
   deletePhone,
+  getPhoneByID,
   revokeNumber,
 } from "../../services/phoneNumber";
 import { getProviders } from "../../services/provider";
-import useSelectData from "../../hooks/useSelectData";
-import ReusableTable from "../../components/common/ReusableTable";
-import Pagination from "../../components/pagination/pagination";
-import PhoneModalDetail from "./PhoneModalDetail";
-import Swal from "sweetalert2";
-import { FiEye } from "react-icons/fi";
-import { formatDate } from "../../helper/formatDateToISOString";
-import Spinner from "../../components/common/LoadingSpinner";
-import { useSelector } from "react-redux";
-import { RootState } from "../../store";
-import { IoCloudDownloadOutline } from "react-icons/io5";
-import { IoCaretBackCircleOutline } from "react-icons/io5";
-import exportPivotTableToExcel from "../../helper/exportDataToExcel";
 import { getTypeNumber } from "../../services/typeNumber";
+import { RootState } from "../../store";
+import { IPhoneNumber, IProvider, ITypeNumber } from "../../types";
+import PhoneModalDetail from "./PhoneModalDetail";
 
 interface PhoneNumberProps {
   total_pages: number;
@@ -70,6 +72,7 @@ const getColumns = (status: string) => {
   if (status === "booked") {
     return [
       ...columns,
+      { key: "user_name" as keyof IPhoneNumber, label: "Người book" },
       { key: "updated_at" as keyof IPhoneNumber, label: "Ngày đặt" },
       { key: "booked_until" as keyof IPhoneNumber, label: "Hạn đặt" },
     ];
@@ -77,6 +80,11 @@ const getColumns = (status: string) => {
   if (status === "released") {
     return [
       ...columns,
+      { key: "user_name" as keyof IPhoneNumber, label: "Người book" },
+      {
+        key: "user_name_release" as keyof IPhoneNumber,
+        label: "Người triển khai",
+      },
       { key: "released_at" as keyof IPhoneNumber, label: "Ngày triển khai" },
     ];
   }
@@ -540,7 +548,7 @@ function PhoneNumbers() {
           <div className="space-y-6">
             <ComponentCard>
               <div
-                className={`grid grid-cols-1 items-end gap-4 lg:grid-cols-4`}>
+                className={`grid grid-cols-1 items-end gap-4 lg:grid-cols-3`}>
                 <div>
                   <Label>Trạng thái</Label>
                   <Select
@@ -622,16 +630,7 @@ function PhoneNumbers() {
                     className="dark:bg-dark-900"
                   />
                 </div>
-                {status === "booked" && user.role === 1 && (
-                  <div className="flex items-end gap-2">
-                    <button
-                      onClick={handleRevoke}
-                      className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
-                      <IoCaretBackCircleOutline size={22} />
-                      Thu hồi
-                    </button>
-                  </div>
-                )}
+
                 <div className="flex items-center gap-2">
                   <Select
                     placeholder="Option export"
@@ -648,12 +647,23 @@ function PhoneNumbers() {
                       },
                     ]}
                   />
+
                   <button
                     onClick={() => handleExport(exportOption)}
                     className="flex flex-1 items-center justify-center w-10 h-10 rounded-full border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:bg-black dark:text-white">
                     <IoCloudDownloadOutline size={20} />
                   </button>
                 </div>
+                {status === "booked" && user.role === 1 && (
+                  <div className="flex items-end gap-2">
+                    <button
+                      onClick={handleRevoke}
+                      className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+                      <IoCaretBackCircleOutline size={22} />
+                      Thu hồi
+                    </button>
+                  </div>
+                )}
               </div>
 
               <ReusableTable
