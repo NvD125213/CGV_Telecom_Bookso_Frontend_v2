@@ -110,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
-      timeout: 20000,
+      timeout: 5000,
       withCredentials: true,
       query: {
         token,
@@ -118,7 +118,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     newSocket.on("connect", () => {
-      console.log("[Socket] Đã kết nối - ID:", newSocket.id);
       setIsConnected(true);
     });
 
@@ -126,8 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       console.log("[Socket] Ngắt kết nối - Lý do:", reason);
       setIsConnected(false);
       if (reason === "io server disconnect") {
-        console.log("[Socket] Server disconnect - thử reconnect");
-        newSocket.connect(); // thủ công reconnect nếu server chủ động ngắt
+        newSocket.connect();
       }
     });
 
@@ -136,18 +134,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     newSocket.on("reconnect", (attempt) => {
-      console.log("[Socket] Đã reconnect sau", attempt, "lần");
       setIsConnected(true);
     });
 
     newSocket.on("reconnect_failed", () => {
       console.log("[Socket] Reconnect thất bại sau 5 lần");
-      clearSession(); // chỉ logout ở đây
+      clearSession();
     });
 
     newSocket.on("connect_error", (err) => {
       console.log("[Socket] Lỗi kết nối:", err.message);
-      // KHÔNG gọi clearSession ở đây để cho phép reconnect
     });
 
     setSocket(newSocket);

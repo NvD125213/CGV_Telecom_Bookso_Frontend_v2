@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface Option {
   value: string;
@@ -11,6 +11,7 @@ interface SelectProps {
   onChange: (value: string) => void;
   className?: string;
   defaultValue?: string;
+  value?: string;
 }
 
 const Select: React.FC<SelectProps> = ({
@@ -19,14 +20,24 @@ const Select: React.FC<SelectProps> = ({
   onChange,
   className = "",
   defaultValue = "",
+  value,
 }) => {
-  // Manage the selected value
-  const [selectedValue, setSelectedValue] = useState<string>(defaultValue);
+  // Use value if provided (controlled mode), otherwise use internal state (uncontrolled mode)
+  const [selectedValue, setSelectedValue] = useState<string>(
+    value || defaultValue
+  );
+
+  // Update internal state when value prop changes
+  useEffect(() => {
+    if (value !== undefined) {
+      setSelectedValue(value);
+    }
+  }, [value]);
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    setSelectedValue(value);
-    onChange(value); // Trigger parent handler
+    const newValue = e.target.value;
+    setSelectedValue(newValue);
+    onChange(newValue); // Trigger parent handler
   };
 
   return (
@@ -37,14 +48,12 @@ const Select: React.FC<SelectProps> = ({
           : "text-gray-400 dark:text-gray-400"
       } ${className}`}
       value={selectedValue}
-      onChange={handleChange}
-    >
+      onChange={handleChange}>
       {/* Placeholder option */}
       <option
         value=""
         disabled
-        className="text-gray-700 dark:bg-gray-900 dark:text-gray-400"
-      >
+        className="text-gray-700 dark:bg-gray-900 dark:text-gray-400">
         {placeholder}
       </option>
       {/* Map over options */}
@@ -52,8 +61,7 @@ const Select: React.FC<SelectProps> = ({
         <option
           key={option.value}
           value={option.value}
-          className="text-gray-700 dark:bg-gray-900 dark:text-gray-400"
-        >
+          className="text-gray-700 dark:bg-gray-900 dark:text-gray-400">
           {option.label}
         </option>
       ))}

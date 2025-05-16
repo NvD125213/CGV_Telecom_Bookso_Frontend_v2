@@ -97,16 +97,21 @@ const SessionPage = () => {
     setLoading(true);
     try {
       const params: any = {
-        search,
         page: currentPage,
         page_size: size,
       };
 
+      // Only add search parameter if it's not empty
+      if (search && search.trim()) {
+        params.search = search.trim();
+      }
+
+      // Only add date parameters if we have a valid date
       if (date) {
         const [year, month, day] = date.split("-");
-        if (year && year !== "0") params.year = year;
-        if (month && month !== "0") params.month = month;
-        if (day && day !== "0") params.day = day;
+        if (year && year !== "0" && year !== "00") params.year = year;
+        if (month && month !== "0" && month !== "00") params.month = month;
+        if (day && day !== "0" && day !== "00") params.day = day;
       }
 
       const res = await getTimeOnline(params);
@@ -149,37 +154,46 @@ const SessionPage = () => {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       setPage(1);
-      setSearchQuery(searchTerm);
 
-      // Tạo ngày tháng cho API nếu có thông tin
+      // Only set search query if there's actual content
+      const trimmedSearch = searchTerm.trim();
+      setSearchQuery(trimmedSearch);
+
+      // Tạo ngày tháng cho API nếu có thông tin hợp lệ
       let newDate = "";
-      if (year) {
+      if (year && year !== "0" && year !== "00") {
         const fullYear =
           year.length === 2
             ? parseInt(year) < 50
               ? `20${year}`
               : `19${year}`
             : year;
-        const paddedMonth = month ? month.padStart(2, "0") : "00";
-        const paddedDay = day ? day.padStart(2, "0") : "00";
-        newDate = `${fullYear}-${paddedMonth}-${paddedDay}`;
+        const paddedMonth =
+          month && month !== "0" ? month.padStart(2, "0") : "00";
+        const paddedDay = day && day !== "0" ? day.padStart(2, "0") : "00";
+
+        // Only set date if we have at least a valid year
+        if (fullYear !== "00") {
+          newDate = `${fullYear}-${paddedMonth}-${paddedDay}`;
+        }
       }
 
       setSearchDate(newDate);
 
-      const newParams = new URLSearchParams(searchParams);
+      const newParams = new URLSearchParams();
       newParams.set("page", "1");
       newParams.set("page_size", String(pageSize));
-      if (searchTerm) {
-        newParams.set("search", searchTerm);
-      } else {
-        newParams.delete("search");
+
+      // Only add search parameter if it has content
+      if (trimmedSearch) {
+        newParams.set("search", trimmedSearch);
       }
-      if (newDate) {
+
+      // Only add date parameter if it's valid
+      if (newDate && newDate !== "0000-00-00") {
         newParams.set("date", newDate);
-      } else {
-        newParams.delete("date");
       }
+
       setSearchParams(newParams);
     }
   };

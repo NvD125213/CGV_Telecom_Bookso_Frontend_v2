@@ -10,6 +10,7 @@ import {
 } from "../icons";
 import { MdOutlineProductionQuantityLimits } from "react-icons/md";
 import { GrChannel } from "react-icons/gr";
+import { MdOutlineMiscellaneousServices } from "react-icons/md";
 
 import { useSidebar } from "../context/SidebarContext";
 import { FaCloudUploadAlt } from "react-icons/fa";
@@ -19,6 +20,7 @@ import { RiBaseStationLine } from "react-icons/ri";
 import { BsPhone } from "react-icons/bs";
 import { useSelector } from "react-redux";
 import { RootState } from "../store";
+import SidebarWidget from "./SidebarWidget";
 
 // import SidebarWidget from "./SidebarWidget";
 
@@ -96,27 +98,15 @@ const navItems: NavItem[] = [
       },
     ],
   },
-  // {
-  //   name: "Mẫu",
-  //   icon: <ListIcon />,
-  //   subItems: [{ name: "Form Elements", path: "/form-elements", pro: false }],
-  // },
-  // {
-  //   name: "Bảng",
-  //   icon: <TableIcon />,
-  //   subItems: [{ name: "Basic Tables", path: "/basic-tables", pro: false }],
-  // },
-  // {
-  //   name: "Trang",
-  //   icon: <TableIcon />,
-  //   subItems: [
-  //     { name: "Blank Page", path: "/blank", pro: false },
-  //     { name: "404 Error", path: "/error-404", pro: false },
-  //   ],
-  // },
 ];
 
-const othersItems: NavItem[] = [];
+const othersItems: NavItem[] = [
+  {
+    name: "Quản lý dịch vụ",
+    path: "/service-management",
+    icon: <MdOutlineMiscellaneousServices />,
+  },
+];
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
@@ -393,7 +383,7 @@ const AppSidebar: React.FC = () => {
               </h2>
               {renderMenuItems(filteredNavItems, "main")}
             </div>
-            {/* <div className="">
+            <div className="">
               <h2
                 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
                   !isExpanded && !isHovered
@@ -407,10 +397,10 @@ const AppSidebar: React.FC = () => {
                 )}
               </h2>
               {renderMenuItems(othersItems, "others")}
-            </div> */}
+            </div>
           </div>
         </nav>
-        {/* {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null} */}
+        {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null}
       </div>
     </aside>
   );

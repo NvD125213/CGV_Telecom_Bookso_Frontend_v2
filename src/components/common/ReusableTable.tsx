@@ -1,3 +1,4 @@
+import React, { ReactNode } from "react";
 import {
   Table,
   TableBody,
@@ -22,10 +23,10 @@ interface Action<T> {
 }
 
 interface Props<T> {
-  title: string;
+  title: ReactNode;
   data?: T[];
   columns: {
-    key: keyof T;
+    key: string;
     label: string;
     type?: string;
     classname?: string;
@@ -43,9 +44,10 @@ interface Props<T> {
     currentPage: number;
     pageSize: number;
   };
+  showStt?: boolean;
 }
 
-const ReusableTable = <T extends { id: string | number }>({
+const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
   data = [],
   columns,
   onEdit,
@@ -58,6 +60,7 @@ const ReusableTable = <T extends { id: string | number }>({
   error = "",
   pagination,
   role,
+  showStt = true,
 }: Props<T>) => {
   const [dropdownOpenId, setDropdownOpenId] = useState<string | number | null>(
     null
@@ -132,13 +135,15 @@ const ReusableTable = <T extends { id: string | number }>({
                       disabled={!setSelectedIds}
                     />
                   </TableCell>
-                  <TableCell
-                    isHeader
-                    className={`px-5 ${
-                      isManyColumns ? "text-[13px]" : "text-sm"
-                    } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start`}>
-                    STT
-                  </TableCell>
+                  {showStt && (
+                    <TableCell
+                      isHeader
+                      className={`px-5 ${
+                        isManyColumns ? "text-[13px]" : "text-sm"
+                      } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start`}>
+                      STT
+                    </TableCell>
+                  )}
                   {columns.map((col, idx) => (
                     <TableCell
                       key={`${col.key as string}-${idx}`}
@@ -175,15 +180,17 @@ const ReusableTable = <T extends { id: string | number }>({
                             className="dark:[&_*]:bg-black dark:[&_*]:bg-opacity-30 dark:[&_*]:shadow-[0_0_8px_rgba(255,255,255,0.1)]" // Dark mode: đen mờ + bóng
                           />
                         </TableCell>
-                        <TableCell className="px-5 py-3">
-                          <Skeleton
-                            width={18}
-                            height={18}
-                            baseColor="#e5e7eb" // Light mode: xám nhạt
-                            highlightColor="#f3f4f6" // Light mode: sáng hơn
-                            className="dark:[&_*]:bg-black dark:[&_*]:bg-opacity-30 dark:[&_*]:shadow-[0_0_8px_rgba(255,255,255,0.1)]" // Dark mode: đen mờ + bóng
-                          />
-                        </TableCell>
+                        {showStt && (
+                          <TableCell className="px-5 py-3">
+                            <Skeleton
+                              width={18}
+                              height={18}
+                              baseColor="#e5e7eb" // Light mode: xám nhạt
+                              highlightColor="#f3f4f6" // Light mode: sáng hơn
+                              className="dark:[&_*]:bg-black dark:[&_*]:bg-opacity-30 dark:[&_*]:shadow-[0_0_8px_rgba(255,255,255,0.1)]" // Dark mode: đen mờ + bóng
+                            />
+                          </TableCell>
+                        )}
                         {columns.map((col) => (
                           <TableCell
                             key={col.key as string}
@@ -250,13 +257,14 @@ const ReusableTable = <T extends { id: string | number }>({
                               disabled={!setSelectedIds}
                             />
                           </TableCell>
-                          <TableCell
-                            className={`px-5 dark:text-gray-300 py-3 ${
-                              isManyColumns ? "text-[13px]" : "text-sm"
-                            }`}>
-                            {stt}
-                          </TableCell>
-
+                          {showStt && (
+                            <TableCell
+                              className={`px-5 dark:text-gray-300 py-3 ${
+                                isManyColumns ? "text-[13px]" : "text-sm"
+                              }`}>
+                              {stt}
+                            </TableCell>
+                          )}
                           {columns.map((col) => (
                             <TableCell
                               key={col.key as string}

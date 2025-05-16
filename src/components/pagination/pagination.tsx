@@ -4,19 +4,31 @@ interface PaginationProps {
   limit: number;
   offset: number;
   totalPages: number;
+  totalResults?: number;
+  paginationMode?: "page" | "total";
   onPageChange: (limit: number, offset: number) => void;
   onLimitChange: (limit: number) => void;
+  showLimitSelector?: boolean;
 }
 
 const Pagination: React.FC<PaginationProps> = ({
   limit,
   offset,
   totalPages,
+  totalResults,
+  paginationMode = "page",
   onPageChange,
   onLimitChange,
+  showLimitSelector = true,
 }) => {
   // Với yêu cầu offset = 0, 1, 2..., currentPage = offset + 1
   const currentPage = offset + 1;
+
+  // Calculate start and end items for total results display
+  const startItem = totalResults ? (currentPage - 1) * limit + 1 : 0;
+  const endItem = totalResults
+    ? Math.min(currentPage * limit, totalResults)
+    : 0;
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
@@ -54,26 +66,33 @@ const Pagination: React.FC<PaginationProps> = ({
   };
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4">
-      <div className="flex items-center">
-        <select
-          value={limit}
-          onChange={handleLimitChange}
-          className="border dark:text-gray-300 border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
-          {[5, 10, 20, 50, 100].map((value) => (
-            <option
-              className="dark:bg-black dark:text-white "
-              key={value}
-              value={value}>
-              {value}
-            </option>
-          ))}
-        </select>
-        <span className="ml-2 text-gray-600 dark:text-white">/ page</span>
-      </div>
+    <div className={`flex flex-wrap items-center justify-between gap-4`}>
+      {showLimitSelector && (
+        <div className="flex items-center">
+          <select
+            value={limit}
+            onChange={handleLimitChange}
+            className="border dark:text-gray-300 border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+            {[5, 10, 20, 50, 100].map((value) => (
+              <option
+                className="dark:bg-black dark:text-white "
+                key={value}
+                value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+          <span className="ml-2 text-gray-600 dark:text-white">/ page</span>
+        </div>
+      )}
 
-      <nav aria-label="Pagination">
-        <ul className="flex items-center gap-1">
+      <nav
+        aria-label="Pagination"
+        className={!showLimitSelector ? "w-full" : ""}>
+        <ul
+          className={`flex items-center gap-1 ${
+            !showLimitSelector ? "justify-end" : "justify-center"
+          }`}>
           <li>
             <button
               onClick={handlePrevPage}
@@ -87,6 +106,7 @@ const Pagination: React.FC<PaginationProps> = ({
             </button>
           </li>
 
+          {/* Always show page numbers, regardless of pagination mode */}
           {getVisiblePages().map((page) => (
             <li key={page}>
               <button

@@ -54,8 +54,10 @@ const ProviderPage = () => {
 
       if (!res || res.length === 0) {
         setErrorData("Không có dữ liệu");
+        setLoading(false);
       } else {
         setErrorData("");
+        setLoading(false);
       }
     } catch (err: any) {
       setError(`${err}`);

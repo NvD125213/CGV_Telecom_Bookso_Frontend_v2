@@ -47,11 +47,10 @@ const TypeNumberPages = () => {
 
   const user = useSelector((state: RootState) => state.auth.user);
 
-  const getAllData = async (delay = 0) => {
+  const getAllData = async () => {
     setError(null);
     setLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, delay));
       const res = await getTypeNumber();
 
       if (res && res.length > 0) {
@@ -61,14 +60,14 @@ const TypeNumberPages = () => {
         }));
         setTypes(formatData);
         setErrorData("");
+        setLoading(false);
       } else {
         setTypes([]);
         setErrorData("Không có dữ liệu");
+        setLoading(false);
       }
     } catch (err: any) {
       setError(`${err}`);
-    } finally {
-      setTimeout(() => setLoading(false), 1000);
     }
   };
 
