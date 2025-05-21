@@ -106,7 +106,10 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
         }).then((result) => {
           if (result.isConfirmed) {
             copyToClipBoard(res.data);
+            onSuccess();
             Swal.fire("Sao chép thành công!", "", "success");
+          } else {
+            onSuccess();
           }
         });
       }

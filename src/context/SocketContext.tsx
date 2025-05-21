@@ -44,7 +44,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const sendMessage = (message: string) => {
     if (socket && isConnected) {
-      console.log("[Socket] Sending message:", message);
       socket.emit("chat message", message);
     } else {
       console.warn("[Socket] Cannot send message - socket not connected");
@@ -52,10 +51,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const clearSession = () => {
-    console.log("[Auth] Clearing session...");
     dispatch(logout());
     if (socket) {
-      console.log("[Auth] Disconnecting socket...");
       socket.disconnect();
       setSocket(null);
       setIsConnected(false);
@@ -65,7 +62,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const logoutSocket = () => {
     if (socket) {
-      console.log("[Socket] Emitting logout event");
       socket.emit("logout");
       clearSession();
     }
@@ -122,7 +118,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     newSocket.on("disconnect", (reason) => {
-      console.log("[Socket] Ngắt kết nối - Lý do:", reason);
       setIsConnected(false);
       if (reason === "io server disconnect") {
         newSocket.connect();
@@ -130,7 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     newSocket.on("reconnect_attempt", (attempt) => {
-      console.log("[Socket] Thử reconnect lần", attempt);
+      console.log("[Socket] reconnect", attempt);
     });
 
     newSocket.on("reconnect", (attempt) => {
@@ -138,8 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     newSocket.on("reconnect_failed", () => {
-      console.log("[Socket] Reconnect thất bại sau 5 lần");
-      clearSession();
+      console.log("[Socket] Reconnect thất bại");
     });
 
     newSocket.on("connect_error", (err) => {
@@ -150,7 +144,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     startInactivityTimer();
 
     return () => {
-      console.log("[Socket] Cleanup: Disconnect socket");
       newSocket.disconnect();
       setSocket(null);
       setIsConnected(false);

@@ -37,6 +37,10 @@ interface PhoneNumberProps {
   phone_numbers: IPhoneNumber[];
 }
 
+interface PhoneNumberFiltersProps {
+  onCheck?: (selectedIds: number[], selectedRows: IPhoneNumber[]) => void;
+}
+
 const columns: {
   key: keyof IPhoneNumber;
   label: string;
@@ -58,7 +62,7 @@ const columns: {
   },
 ];
 
-function PhoneNumberFilters() {
+function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [openModal, setOpenModal] = useState(false);
   const [openModalDetail, setOpenModalDetail] = useState(false);
@@ -162,11 +166,35 @@ function PhoneNumberFilters() {
         } else {
           setError("");
         }
+
+        // Update data first
         setData({
           ...response.data,
           phone_numbers: formattedData,
         });
-        setSelectedIds([]);
+
+        // Then update selectedIds based on new data
+        const newDataIds = formattedData.map((item: IPhoneNumber) =>
+          Number(item.id)
+        );
+        const updatedSelectedIds = selectedIds.filter((id) =>
+          newDataIds.includes(id)
+        );
+
+        // Only update selectedIds if there are changes
+        if (
+          JSON.stringify(updatedSelectedIds) !== JSON.stringify(selectedIds)
+        ) {
+          setSelectedIds(updatedSelectedIds);
+          // Notify parent component about the updated selection
+          onCheck?.(
+            updatedSelectedIds,
+            formattedData.filter((item: IPhoneNumber) =>
+              updatedSelectedIds.includes(Number(item.id))
+            )
+          );
+        }
+
         setSearchParams((prev) => {
           const newParams = new URLSearchParams(prev);
           newParams.set("quantity", quantity.toString());
@@ -194,7 +222,16 @@ function PhoneNumberFilters() {
         controllerRef.current.abort();
       }
     };
-  }, [search, provider, typeNumber, quantity, offset, setSearchParams]);
+  }, [
+    search,
+    provider,
+    typeNumber,
+    quantity,
+    offset,
+    setSearchParams,
+    selectedIds,
+    onCheck,
+  ]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && search !== previousSearch) {
@@ -240,7 +277,6 @@ function PhoneNumberFilters() {
     const selectedPhoneNumbers = data?.phone_numbers.filter((phone) =>
       selectedIds.includes(phone.id)
     );
-
     const requestBody = {
       id_phone_numbers: selectedIds,
       phone_details: selectedPhoneNumbers?.map((p) => p.phone_number) || [],
@@ -257,8 +293,6 @@ function PhoneNumberFilters() {
         confirmButtonText: "Xác nhận",
       });
       if (result.isConfirmed) {
-        console.log("Ra đây", requestBody);
-
         const res = await booking({
           id_phone_numbers: requestBody.id_phone_numbers,
         });
@@ -282,10 +316,13 @@ function PhoneNumberFilters() {
           }).then((result) => {
             if (result.isConfirmed) {
               copyToClipBoard(requestBody.phone_details || []);
+              fetchData();
               Swal.fire("Đã sao chép!", "", "success");
+            } else {
+              fetchData();
             }
           });
-          // fetchData();
+          fetchData();
           setSelectedIds([]);
         }
       }
@@ -303,6 +340,7 @@ function PhoneNumberFilters() {
       }
 
       fetchData();
+      setSelectedIds([]);
     } finally {
       setBookLoading(false);
     }
@@ -311,7 +349,6 @@ function PhoneNumberFilters() {
   // Handle delete number event
   const handleDelete = async (id: any) => {
     if (typeof id !== "number" || isNaN(id)) {
-      console.error("Invalid ID:", id);
       Swal.fire("Lỗi", "ID không hợp lệ");
       return;
     }
@@ -345,6 +382,63 @@ function PhoneNumberFilters() {
         "error"
       );
     }
+  };
+
+  // Update the handleSelectAll function
+  const handleSelectAll = () => {
+    if (!setSelectedIds || !data?.phone_numbers) {
+      return;
+    }
+
+    const currentPageIds = data.phone_numbers.map((item) => Number(item.id));
+
+    if (currentPageIds.every((id) => selectedIds.includes(id))) {
+      // If all current page items are selected, deselect only current page items
+      const newSelectedIds = selectedIds.filter(
+        (id) => !currentPageIds.includes(id)
+      );
+      setSelectedIds(newSelectedIds);
+      onCheck?.(
+        newSelectedIds,
+        data.phone_numbers.filter((item) =>
+          newSelectedIds.includes(Number(item.id))
+        )
+      );
+    } else {
+      // If not all current page items are selected, select all current page items
+      const newSelectedIds = [...new Set([...selectedIds, ...currentPageIds])];
+      setSelectedIds(newSelectedIds);
+      onCheck?.(
+        newSelectedIds,
+        data.phone_numbers.filter((item) =>
+          newSelectedIds.includes(Number(item.id))
+        )
+      );
+    }
+  };
+
+  // Update the handleSelectRow function
+  const handleSelectRow = (id: string | number) => {
+    if (!setSelectedIds || !data?.phone_numbers) {
+      return;
+    }
+
+    const numericId = Number(id);
+    let updatedSelection: number[];
+    const updatedRows: IPhoneNumber[] = data.phone_numbers.filter((item) =>
+      updatedSelection.includes(Number(item.id))
+    );
+
+    if (selectedIds.includes(numericId)) {
+      updatedSelection = selectedIds.filter(
+        (selectedId) => selectedId !== numericId
+      );
+    } else {
+      updatedSelection = [...selectedIds, numericId];
+    }
+
+    setSelectedIds(updatedSelection);
+    onCheck?.(updatedSelection, updatedRows);
   };
 
   return (
@@ -395,10 +489,11 @@ function PhoneNumberFilters() {
                         key: provider.id,
                       })),
                     ]}
-                    className="dark:bg-black dark:text-white "
+                    className="dark:bg-black dark:text-white"
+                    value={provider || ""}
                     onChange={(value) => {
-                      setProvider(value); // Cập nhật typeNumber
-                      setOffset(0); // Reset offset về 0
+                      setProvider(value);
+                      setOffset(0);
                     }}
                     placeholder="Lựa chọn nhà cung cấp"
                   />
@@ -414,10 +509,11 @@ function PhoneNumberFilters() {
                         key: type.id,
                       })),
                     ]}
-                    className="dark:bg-black dark:text-white "
+                    className="dark:bg-black dark:text-white"
+                    value={typeNumber || ""}
                     onChange={(value) => {
-                      setTypeNumber(value); // Cập nhật typeNumber
-                      setOffset(0); // Reset offset về 0
+                      setTypeNumber(value);
+                      setOffset(0);
                     }}
                     placeholder="Lựa chọn định dạng số"
                   />

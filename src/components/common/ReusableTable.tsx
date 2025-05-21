@@ -44,7 +44,7 @@ interface Props<T> {
     currentPage: number;
     pageSize: number;
   };
-  showStt?: boolean;
+  showId?: boolean; // Renamed from showStt to showId for clarity
 }
 
 const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
@@ -58,9 +58,8 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
   setSelectedIds,
   isLoading = false,
   error = "",
-  pagination,
   role,
-  showStt = true,
+  showId = true, // Renamed from showStt to showId
 }: Props<T>) => {
   const [dropdownOpenId, setDropdownOpenId] = useState<string | number | null>(
     null
@@ -68,9 +67,12 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
   const hasActionColumn = onEdit || onDelete || actions.length > 0;
 
   const handleSelectAll = () => {
-    if (!setSelectedIds) return;
-    if (!selectedIds) return;
-
+    if (!setSelectedIds) {
+      return;
+    }
+    if (!selectedIds) {
+      return;
+    }
     if (data.every((item) => selectedIds.includes(item.id))) {
       setSelectedIds([]);
       onCheck?.([], []);
@@ -84,8 +86,12 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
   };
 
   const handleSelectRow = (id: string | number) => {
-    if (!setSelectedIds) return;
-    if (!selectedIds) return;
+    if (!setSelectedIds) {
+      return;
+    }
+    if (!selectedIds) {
+      return;
+    }
 
     let updatedSelection: (string | number)[];
     let updatedRows: T[];
@@ -118,7 +124,7 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
       <div className="w-full overflow-x-auto">
         <div className="min-w-[1000px]">
           <div className="max-h-[800px] overflow-y-auto dark:bg-black min-w-[900px]">
-            <Table className="dark:text-white ">
+            <Table className="dark:text-white">
               {/* Table Header */}
               <TableHeader>
                 <TableRow>
@@ -135,18 +141,18 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
                       disabled={!setSelectedIds}
                     />
                   </TableCell>
-                  {showStt && (
+                  {showId && (
                     <TableCell
                       isHeader
                       className={`px-5 ${
                         isManyColumns ? "text-[13px]" : "text-sm"
                       } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start`}>
-                      STT
+                      ID
                     </TableCell>
                   )}
                   {columns.map((col, idx) => (
                     <TableCell
-                      key={`${col.key as string}-${idx}`}
+                      key={`${col.key}-${idx}`}
                       isHeader
                       className={`px-5 ${
                         isManyColumns ? "text-[13px]" : "text-sm"
@@ -159,7 +165,7 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
                       isHeader
                       className={`px-5 ${
                         isManyColumns ? "text-[13px]" : "text-sm"
-                      } dark:text-gray-300 py-3 text-base font-semibold 0 text-gray-500 ml-4 text-start`}>
+                      } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start`}>
                       Hành động
                     </TableCell>
                   )}
@@ -175,26 +181,26 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
                           <Skeleton
                             width={18}
                             height={18}
-                            baseColor="#e5e7eb" // Light mode: xám nhạt
-                            highlightColor="#f3f4f6" // Light mode: sáng hơn
-                            className="dark:[&_*]:bg-black dark:[&_*]:bg-opacity-30 dark:[&_*]:shadow-[0_0_8px_rgba(255,255,255,0.1)]" // Dark mode: đen mờ + bóng
+                            baseColor="#e5e7eb"
+                            highlightColor="#f3f4f6"
+                            className="dark:[&_*]:bg-black dark:[&_*]:bg-opacity-30 dark:[&_*]:shadow-[0_0_8px_rgba(255,255,255,0.1)]"
                           />
                         </TableCell>
-                        {showStt && (
+                        {showId && (
                           <TableCell className="px-5 py-3">
                             <Skeleton
-                              width={18}
+                              width={50}
                               height={18}
-                              baseColor="#e5e7eb" // Light mode: xám nhạt
-                              highlightColor="#f3f4f6" // Light mode: sáng hơn
-                              className="dark:[&_*]:bg-black dark:[&_*]:bg-opacity-30 dark:[&_*]:shadow-[0_0_8px_rgba(255,255,255,0.1)]" // Dark mode: đen mờ + bóng
+                              baseColor="#e5e7eb"
+                              highlightColor="#f3f4f6"
+                              className="dark:[&_*]:bg-black dark:[&_*]:bg-opacity-30 dark:[&_*]:shadow-[0_0_8px_rgba(255,255,255,0.1)]"
                             />
                           </TableCell>
                         )}
                         {columns.map((col) => (
                           <TableCell
-                            key={col.key as string}
-                            className={`px-5 py-3 text-sm text-gray-500 dark:text-gray-300  ${
+                            key={col.key}
+                            className={`px-5 py-3 text-sm text-gray-500 dark:text-gray-300 ${
                               isManyColumns ? "text-[13px]" : "text-sm"
                             }`}>
                             <Skeleton
@@ -208,7 +214,7 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
                         ))}
                         {hasActionColumn && (
                           <TableCell
-                            className={`flex gap-2 px-5 py-3  ${
+                            className={`flex gap-2 px-5 py-3 ${
                               isManyColumns ? "text-[13px]" : "text-sm"
                             }`}>
                             <Skeleton
@@ -236,118 +242,108 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
                         )}
                       </TableRow>
                     ))
-                  : data.map((item, index) => {
-                      const stt =
-                        pagination?.currentPage && pagination?.pageSize
-                          ? pagination.currentPage * pagination.pageSize +
-                            index +
-                            1
-                          : index + 1;
-                      return (
-                        <TableRow key={item.id}>
+                  : data.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell
+                          className={`px-5 dark:text-gray-300 py-3 ${
+                            isManyColumns ? "text-[13px]" : "text-sm"
+                          }`}>
+                          <input
+                            type="checkbox"
+                            className="w-[18px] h-[18px]"
+                            checked={selectedIds?.includes(item.id)}
+                            onChange={() => handleSelectRow(item.id)}
+                            disabled={!setSelectedIds}
+                          />
+                        </TableCell>
+                        {showId && (
                           <TableCell
-                            className={`px-5 dark:text-gray-300 py-3  ${
+                            className={`px-5 dark:text-gray-300 py-3 ${
                               isManyColumns ? "text-[13px]" : "text-sm"
                             }`}>
-                            <input
-                              type="checkbox"
-                              className="w-[18px] h-[18px]"
-                              checked={selectedIds?.includes(item.id)}
-                              onChange={() => handleSelectRow(item.id)}
-                              disabled={!setSelectedIds}
-                            />
+                            {item.id}
                           </TableCell>
-                          {showStt && (
-                            <TableCell
-                              className={`px-5 dark:text-gray-300 py-3 ${
-                                isManyColumns ? "text-[13px]" : "text-sm"
-                              }`}>
-                              {stt}
-                            </TableCell>
-                          )}
-                          {columns.map((col) => (
-                            <TableCell
-                              key={col.key as string}
-                              className={`px-5 py-3 text-sm text-gray-500 dark:text-gray-300 0 ${
-                                isManyColumns ? "text-[13px]" : "text-sm 0"
-                              }`}>
-                              {col.type === "button" ? (
-                                <button className={col.classname}>
-                                  {item[col.key] as string}
-                                </button>
-                              ) : col.type === "span" ? (
-                                <span className={col.classname}>
-                                  {item[col.key] as string}
-                                </span>
-                              ) : (
-                                (item[col.key] as string)
-                              )}
-                            </TableCell>
-                          ))}
-                          {hasActionColumn && (
-                            <TableCell
-                              className={`flex gap-2 px-5 py-3 items-center  ${
-                                isManyColumns ? "text-[13px]" : "text-sm "
-                              }`}>
-                              {onEdit && (
+                        )}
+                        {columns.map((col) => (
+                          <TableCell
+                            key={col.key}
+                            className={`px-5 py-3 text-sm text-gray-500 dark:text-gray-300 ${
+                              isManyColumns ? "text-[13px]" : "text-sm"
+                            }`}>
+                            {col.type === "button" ? (
+                              <button className={col.classname}>
+                                {item[col.key] as string}
+                              </button>
+                            ) : col.type === "span" ? (
+                              <span className={col.classname}>
+                                {item[col.key] as string}
+                              </span>
+                            ) : (
+                              (item[col.key] as string)
+                            )}
+                          </TableCell>
+                        ))}
+                        {hasActionColumn && (
+                          <TableCell
+                            className={`flex gap-2 px-5 py-3 items-center ${
+                              isManyColumns ? "text-[13px]" : "text-sm"
+                            }`}>
+                            {onEdit && (
+                              <button
+                                onClick={() => onEdit(item)}
+                                className="bg-yellow-400 text-white px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2">
+                                <PencilIcon />
+                              </button>
+                            )}
+                            {onDelete && role === 1 && (
+                              <button
+                                onClick={() => onDelete(item.id)}
+                                className="bg-red-400 text-white px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2">
+                                <RiDeleteBinLine />
+                              </button>
+                            )}
+                            {actions.length > 0 && (
+                              <div className="relative">
                                 <button
-                                  onClick={() => onEdit(item)}
-                                  className="bg-yellow-400 text-white 0 px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2">
-                                  <PencilIcon />
+                                  onClick={() => toggleDropdown(item.id)}
+                                  className="bg-gray-200 dark:bg-gray-800 dark:text-white text-gray-700 px-4 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 dropdown-toggle">
+                                  <HiDotsVertical />
                                 </button>
-                              )}
-                              {onDelete && role === 1 && (
-                                <button
-                                  onClick={() => onDelete(item.id)}
-                                  className="bg-red-400 text-white px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2 0">
-                                  <RiDeleteBinLine />
-                                </button>
-                              )}
-
-                              {actions.length > 0 && (
-                                <div className="relative">
-                                  <button
-                                    onClick={() => toggleDropdown(item.id)}
-                                    className="bg-gray-200 dark:bg-gray-800 dark:text-white text-gray-700 px-4 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 dropdown-toggle">
-                                    <HiDotsVertical />
-                                  </button>
-
-                                  <Dropdown
-                                    isOpen={dropdownOpenId === item.id}
-                                    onClose={() => setDropdownOpenId(null)}
-                                    className="w-50">
-                                    <div className="py-1">
-                                      {actions
-                                        .filter((action) =>
-                                          action.condition
-                                            ? action.condition(item)
-                                            : true
-                                        )
-                                        .map((action, index) => (
-                                          <button
-                                            key={index}
-                                            onClick={() => {
-                                              action.onClick(item);
-                                              setDropdownOpenId(null);
-                                            }}
-                                            className={`w-full dark:text-white dark:hover:bg-black dark:hover:bg-opacity-20 text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 transition-all duration-200 ${
-                                              action.className || ""
-                                            }`}>
-                                            {action.icon}
-                                            <span>
-                                              {action.label || "Action"}
-                                            </span>
-                                          </button>
-                                        ))}
-                                    </div>
-                                  </Dropdown>
-                                </div>
-                              )}
-                            </TableCell>
-                          )}
-                        </TableRow>
-                      );
-                    })}
+                                <Dropdown
+                                  isOpen={dropdownOpenId === item.id}
+                                  onClose={() => setDropdownOpenId(null)}
+                                  className="w-50">
+                                  <div className="py-1">
+                                    {actions
+                                      .filter((action) =>
+                                        action.condition
+                                          ? action.condition(item)
+                                          : true
+                                      )
+                                      .map((action, index) => (
+                                        <button
+                                          key={index}
+                                          onClick={() => {
+                                            action.onClick(item);
+                                            setDropdownOpenId(null);
+                                          }}
+                                          className={`w-full dark:text-white dark:hover:bg-black dark:hover:bg-opacity-20 text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 transition-all duration-200 ${
+                                            action.className || ""
+                                          }`}>
+                                          {action.icon}
+                                          <span>
+                                            {action.label || "Action"}
+                                          </span>
+                                        </button>
+                                      ))}
+                                  </div>
+                                </Dropdown>
+                              </div>
+                            )}
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))}
               </TableBody>
             </Table>
           </div>

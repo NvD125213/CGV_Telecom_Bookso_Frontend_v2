@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { getTimeOnline } from "../../services/sessionLogin";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
@@ -10,6 +10,7 @@ import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
 import Pagination from "../../components/pagination/pagination";
 import { useSearchParams } from "react-router-dom";
+import InputDate from "../../components/common/InputDateFormat";
 
 const columns: { key: keyof SessionData; label: string }[] = [
   { key: "username", label: "Tên tài khoản" },
@@ -20,6 +21,11 @@ type SessionRow = SessionData & { id: string | number };
 
 const SessionPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  // Initialize searchDate with current yyyy-mm or URL param
+  const currentDate = new Date();
+  const defaultDate = `${currentDate.getFullYear()}-${String(
+    currentDate.getMonth() + 1
+  ).padStart(2, "0")}`;
   const [historySession, setHistorySession] = useState<SessionRow[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>(
     searchParams.get("search") || ""
@@ -28,11 +34,8 @@ const SessionPage = () => {
     searchParams.get("search") || ""
   );
   const [searchDate, setSearchDate] = useState<string>(
-    searchParams.get("date") || ""
+    searchParams.get("date") || defaultDate
   );
-  const [day, setDay] = useState<string>("");
-  const [month, setMonth] = useState<string>("");
-  const [year, setYear] = useState<string>("");
 
   const [pageSize, setPageSize] = useState<number>(() => {
     const size = searchParams.get("page_size");
@@ -47,6 +50,7 @@ const SessionPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorData, setErrorData] = useState("");
+
   useEffect(() => {
     const newParams = new URLSearchParams(searchParams);
     let shouldUpdate = false;
@@ -82,7 +86,6 @@ const SessionPage = () => {
     }
   }, [searchParams, page, pageSize, searchQuery, searchDate, setSearchParams]);
 
-  // Gọi API dựa vào searchQuery và dateQuery
   useEffect(() => {
     fetchData(searchQuery, page, pageSize, searchDate);
   }, [page, pageSize, searchQuery, searchDate]);
@@ -101,17 +104,25 @@ const SessionPage = () => {
         page_size: size,
       };
 
-      // Only add search parameter if it's not empty
       if (search && search.trim()) {
         params.search = search.trim();
       }
 
-      // Only add date parameters if we have a valid date
       if (date) {
-        const [year, month, day] = date.split("-");
-        if (year && year !== "0" && year !== "00") params.year = year;
-        if (month && month !== "0" && month !== "00") params.month = month;
-        if (day && day !== "0" && day !== "00") params.day = day;
+        const parts = date.split("-");
+        if (parts.length === 1) {
+          // yyyy
+          params.year = parts[0];
+        } else if (parts.length === 2) {
+          // yyyy-mm
+          params.year = parts[0];
+          params.month = parts[1];
+        } else if (parts.length === 3) {
+          // yyyy-mm-dd
+          params.year = parts[0];
+          params.month = parts[1];
+          params.day = parts[2];
+        }
       }
 
       const res = await getTimeOnline(params);
@@ -131,67 +142,61 @@ const SessionPage = () => {
     }
   };
 
-  const handleDateInput = (value: string, type: "day" | "month" | "year") => {
-    const sanitizedValue = value.replace(/\D/g, "");
-
-    let formattedValue = sanitizedValue;
-    if (type === "day") {
-      const dayValue = parseInt(sanitizedValue, 10);
-      formattedValue =
-        dayValue > 0 && dayValue <= 31 ? dayValue.toString() : "";
-      setDay(formattedValue);
-    } else if (type === "month") {
-      const monthValue = parseInt(sanitizedValue, 10);
-      formattedValue =
-        monthValue > 0 && monthValue <= 12 ? monthValue.toString() : "";
-      setMonth(formattedValue);
-    } else if (type === "year") {
-      formattedValue = sanitizedValue.slice(0, 4);
-      setYear(formattedValue);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       setPage(1);
-
-      // Only set search query if there's actual content
       const trimmedSearch = searchTerm.trim();
       setSearchQuery(trimmedSearch);
-
-      // Tạo ngày tháng cho API nếu có thông tin hợp lệ
-      let newDate = "";
-      if (year && year !== "0" && year !== "00") {
-        const fullYear =
-          year.length === 2
-            ? parseInt(year) < 50
-              ? `20${year}`
-              : `19${year}`
-            : year;
-        const paddedMonth =
-          month && month !== "0" ? month.padStart(2, "0") : "00";
-        const paddedDay = day && day !== "0" ? day.padStart(2, "0") : "00";
-
-        // Only set date if we have at least a valid year
-        if (fullYear !== "00") {
-          newDate = `${fullYear}-${paddedMonth}-${paddedDay}`;
-        }
-      }
-
-      setSearchDate(newDate);
 
       const newParams = new URLSearchParams();
       newParams.set("page", "1");
       newParams.set("page_size", String(pageSize));
 
-      // Only add search parameter if it has content
       if (trimmedSearch) {
         newParams.set("search", trimmedSearch);
       }
 
-      // Only add date parameter if it's valid
-      if (newDate && newDate !== "0000-00-00") {
-        newParams.set("date", newDate);
+      if (searchDate && searchDate !== "0000-00-00") {
+        newParams.set("date", searchDate);
+      }
+
+      setSearchParams(newParams);
+    }
+  };
+
+  const handleDateKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    value: string
+  ) => {
+    if (e.key === "Enter") {
+      setPage(1);
+      let isoDate = "";
+      const parts = value.split("/").filter((part) => part && part !== "00");
+      if (parts.length === 1) {
+        // yyyy
+        isoDate = parts[0].padStart(4, "0");
+      } else if (parts.length === 2) {
+        // mm/yyyy
+        isoDate = `${parts[1].padStart(4, "0")}-${parts[0].padStart(2, "0")}`;
+      } else if (parts.length === 3) {
+        // dd/mm/yyyy
+        isoDate = `${parts[2].padStart(4, "0")}-${parts[1].padStart(
+          2,
+          "0"
+        )}-${parts[0].padStart(2, "0")}`;
+      }
+      setSearchDate(isoDate);
+
+      const newParams = new URLSearchParams();
+      newParams.set("page", "1");
+      newParams.set("page_size", String(pageSize));
+
+      if (searchQuery) {
+        newParams.set("search", searchQuery);
+      }
+
+      if (isoDate) {
+        newParams.set("date", isoDate);
       }
 
       setSearchParams(newParams);
@@ -203,7 +208,8 @@ const SessionPage = () => {
     const newParams = new URLSearchParams(searchParams);
     newParams.set("page", String(newPage));
     newParams.set("page_size", String(pageSize));
-    if (searchTerm) newParams.set("search", searchTerm);
+    if (searchQuery) newParams.set("search", searchQuery);
+    if (searchDate) newParams.set("date", searchDate);
     setSearchParams(newParams);
   };
 
@@ -213,36 +219,28 @@ const SessionPage = () => {
     const newParams = new URLSearchParams(searchParams);
     newParams.set("page", "1");
     newParams.set("page_size", String(newLimit));
-    if (searchTerm) newParams.set("search", searchTerm);
+    if (searchQuery) newParams.set("search", searchQuery);
+    if (searchDate) newParams.set("date", searchDate);
     setSearchParams(newParams);
   };
 
   useEffect(() => {
     const search = searchParams.get("search") || "";
-    const date = searchParams.get("date") || "";
+    const date = searchParams.get("date") || defaultDate;
     setSearchTerm(search);
     setSearchQuery(search);
     setSearchDate(date);
   }, [searchParams]);
 
-  // Cập nhật các ô input khi searchDate thay đổi từ URL
-  useEffect(() => {
-    if (searchDate) {
-      const [y, m, d] = searchDate.split("-");
-      setDay(d);
-      setMonth(m);
-      // Hiển thị năm đầy đủ 4 chữ số
-      setYear(y);
-    } else {
-      setDay("");
-      setMonth("");
-      setYear("");
-    }
-  }, [searchDate]);
-
   const onPaginationChange = (newOffset: number) => {
-    const newPage = newOffset + 1; // Convert offset to page number
+    const newPage = newOffset + 1;
     handlePageChange(newPage);
+  };
+
+  const validator = {
+    validate(value: string): string {
+      return value.replace(/[^\d/]/g, "").slice(0, 10);
+    },
   };
 
   return (
@@ -251,52 +249,31 @@ const SessionPage = () => {
       <div className="space-y-6">
         {error && <div className="text-red-500">{error}</div>}
         <ComponentCard>
-          <div className="flex justify-start gap-4 mb-4">
+          <div className="flex justify-start gap-4 mb-4 py-4">
             <div>
               <Label>Tìm kiếm</Label>
               <Input
                 placeholder="Tìm theo tên tài khoản..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={handleKeyDown}
+                onKeyDown={handleSearchKeyDown}
               />
             </div>
             <div>
-              <div className="flex gap-2">
-                <div>
-                  <Label>Ngày</Label>
-                  <Input
-                    type="text"
-                    placeholder="Ngày"
-                    value={day}
-                    onChange={(e) => handleDateInput(e.target.value, "day")}
-                    onKeyDown={handleKeyDown}
-                    className="w-12"
-                  />
-                </div>
-                <div>
-                  <Label>Tháng</Label>
-                  <Input
-                    type="text"
-                    placeholder="Tháng"
-                    value={month}
-                    onChange={(e) => handleDateInput(e.target.value, "month")}
-                    onKeyDown={handleKeyDown}
-                    className="w-12"
-                  />
-                </div>
-                <div>
-                  <Label>Năm</Label>
-                  <Input
-                    type="text"
-                    placeholder="Năm"
-                    value={year}
-                    onChange={(e) => handleDateInput(e.target.value, "year")}
-                    onKeyDown={handleKeyDown}
-                    className="w-16"
-                  />
-                </div>
-              </div>
+              <Label>Ngày hoạt động</Label>
+              <InputDate
+                value={
+                  searchDate
+                    ? searchDate
+                        .split("-")
+                        .reverse()
+                        .map((part) => part.padStart(2, "0"))
+                        .join("/")
+                    : ""
+                }
+                validator={validator}
+                onKeyDown={handleDateKeyDown}
+              />
             </div>
           </div>
           <ReusableTable
@@ -309,7 +286,7 @@ const SessionPage = () => {
           />
           <Pagination
             limit={pageSize}
-            offset={page - 1} // Convert 1-based page to 0-based offset
+            offset={page - 1}
             totalPages={totalPages}
             onPageChange={(_limit, newOffset) => onPaginationChange(newOffset)}
             onLimitChange={handleLimitChange}

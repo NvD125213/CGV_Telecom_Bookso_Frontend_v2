@@ -296,7 +296,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
           </div>
           <div>
             <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-              Tìm kiếm theo nhà mạng
+              Tìm kiếm theo loại số
             </label>
             <Select
               options={[
@@ -316,7 +316,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
           </div>
           <div>
             <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-              Tìm kiếm theo loại số
+              Tìm kiếm theo nhà mạng
             </label>
             <Select
               options={[

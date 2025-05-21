@@ -59,15 +59,18 @@ const UploadExcel = () => {
 
           try {
             const objErr = JSON.parse(jsonPart);
+            console.log(objErr.message);
 
             if (
-              objErr.message === "Add data failed. provider does not exist."
+              objErr.message ===
+              "Add data failed. provider does not exist. File: "
             ) {
               setErrors(
                 "Xuất hiện nhà cung cấp không tồn tại! Hãy kiểm tra lại danh sách tên nhà cung cấp của bạn."
               );
             } else if (
-              objErr.message === "Add data failed. Type number does not exist."
+              objErr.message ===
+              "Add data failed. Type number does not exist. File: "
             ) {
               setErrors(
                 "Xuất hiện loại số không tồn tại! Hãy kiểm tra lại danh sách loại số của bạn."

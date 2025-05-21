@@ -1,6 +1,5 @@
 import React, { useState, useEffect, ReactNode } from "react";
 import {
-  getPublicNumber1900,
   getPublicNumberVoiceGTel,
   getPublicNumberVPBX,
   DigitelDataType,
@@ -21,20 +20,7 @@ import Pagination from "../../components/pagination/pagination";
 import Select from "../../components/form/Select";
 
 // Define types for different data sources
-type DataSource = "digitel" | "gvoice" | "vpbx" | "gigafone";
-
-// Define column configurations for each data source
-const digitelColumns = [
-  { key: "phone_number", label: "Số điện thoại" },
-  { key: "number_type", label: "Loại số" },
-  { key: "commitment_fee", label: "Phí cam kết" },
-  { key: "subscription_fee", label: "Phí hàng tháng" },
-  { key: "vtl_fee", label: "Giá tại Viettel" },
-  { key: "vnpt_fee", label: "Giá tại VNPT" },
-  { key: "vms_fee", label: "Giá tại VMS" },
-  { key: "vnm_fee", label: "Giá tại VNM" },
-  { key: "other_fee", label: "Giá khác" },
-];
+type DataSource = "gvoice" | "vpbx" | "gigafone";
 
 const gvoiceColumns = (status: string) => {
   const columns: {
@@ -95,12 +81,11 @@ interface PrefixType {
 }
 
 const DigitalChannel = () => {
-  const { search, page, perPage, setSearch, setPage, setPerPage } =
-    useQueryString<{ search: string; page: string; perPage: string }>([
-      "search",
-      "page",
-      "perPage",
-    ]);
+  const { search, page, perPage, setPage, setPerPage } = useQueryString<{
+    search: string;
+    page: string;
+    perPage: string;
+  }>(["search", "page", "perPage"]);
 
   // Local state quản lý input và dữ liệu
   const [searchTerm, setSearchTerm] = useState<string>(search || "");
@@ -109,7 +94,7 @@ const DigitalChannel = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorData, setErrorData] = useState("");
-  const [dataSource, setDataSource] = useState<DataSource>("digitel");
+  const [dataSource, setDataSource] = useState<DataSource>("gvoice");
   const [allVPBXData, setAllVPBXData] = useState<VPBXDataType[]>([]);
   const [prefix, setPrefix] = useState<PrefixType>({
     value: "ListPublicDVGTGT.aspx",
@@ -155,9 +140,6 @@ const DigitalChannel = () => {
         // Choose API based on data source
         let res;
         switch (dataSource) {
-          case "digitel":
-            res = await getPublicNumber1900(params);
-            break;
           case "gigafone":
             res = await getPublicNumberGigafore(params);
             break;
@@ -306,8 +288,6 @@ const DigitalChannel = () => {
 
   const getTableTitle = (): ReactNode => {
     switch (dataSource) {
-      case "digitel":
-        return "Danh sách đầu số Digitel";
       case "gvoice":
         return "Danh sách đầu số Gvoice GTel";
       case "vpbx":
@@ -328,8 +308,6 @@ const DigitalChannel = () => {
 
   const getColumns = () => {
     switch (dataSource) {
-      case "digitel":
-        return digitelColumns;
       case "gvoice":
         return gvoiceColumns(prefix.value);
       case "vpbx":
@@ -360,10 +338,6 @@ const DigitalChannel = () => {
               <Label>Nguồn dữ liệu</Label>
               <Select
                 options={[
-                  {
-                    label: "Digitel",
-                    value: "digitel",
-                  },
                   {
                     label: "Gtel",
                     value: "gvoice",
