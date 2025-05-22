@@ -35,6 +35,10 @@ const columns: { key: keyof ITypeNumber; label: string }[] = [
   // { key: "id", label: "ID" },
   { key: "name", label: "Định dạng số" },
   { key: "booking_expiration", label: "Thời hạn chờ triển khai" },
+  {
+    key: "weekend_booking_expiration",
+    label: "Thời hạn chờ triển khai cuối tuần",
+  },
 ];
 
 const TypeNumberPages = () => {
@@ -57,6 +61,9 @@ const TypeNumberPages = () => {
         const formatData = res.map((item: any) => ({
           ...item,
           booking_expiration: convertSecondsToTime(item.booking_expiration),
+          weekend_booking_expiration: convertSecondsToTime(
+            item.weekend_booking_expiration
+          ),
         }));
         setTypes(formatData);
         setErrorData("");
@@ -107,6 +114,8 @@ const TypeNumberPages = () => {
           <ComponentCard>
             <ReusableTable
               error={errorData}
+              disabledReset={true}
+              disabled={true}
               role={user.role}
               title="Danh sách số điện thoại"
               data={types}

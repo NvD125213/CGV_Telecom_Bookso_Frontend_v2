@@ -398,7 +398,9 @@ const DigitalChannel = () => {
           </div>
           <ReusableTable<TableData>
             error={errorData}
+            disabledReset={true}
             title={getTableTitle()}
+            showId={false}
             data={data?.data.map((item) => ({
               ...item,
               id: item.phone_number,
@@ -412,7 +414,7 @@ const DigitalChannel = () => {
               }[]
             }
             isLoading={loading}
-            showStt={false}
+            disabled={true}
           />
           <Pagination
             limit={Number(perPage) || 10}

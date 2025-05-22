@@ -16,8 +16,9 @@ import { formatDate } from "../../helper/formatDateToISOString";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
 import { copyToClipBoard } from "../../helper/copyToClipboard";
-
+import { formatPhoneNumber } from "../../helper/formatPhoneNumber";
 import SearchHelp from "../../components/instruct/InstructRule";
+import { resetSelectedIds } from "../../store/selectedPhoneSlice";
 import {
   booking,
   bookingPhone,
@@ -31,6 +32,7 @@ import Swal from "sweetalert2";
 import Spinner from "../../components/common/LoadingSpinner";
 import PhoneRandomModal from "./PhoneRandomModal";
 import { getTypeNumber } from "../../services/typeNumber";
+import { useDispatch } from "react-redux";
 
 interface PhoneNumberProps {
   total_pages: number;
@@ -68,7 +70,10 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
   const [openModalDetail, setOpenModalDetail] = useState(false);
   const [openModalRandom, setOpenModalRandom] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-
+  const dispatch = useDispatch();
+  const selectedIdsFromStore = useSelector(
+    (state: RootState) => state.selectedPhone.selectedIds
+  );
   const [search, setSearch] = useState<string>(
     searchParams.get("search") || ""
   );
@@ -148,6 +153,7 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
       const formattedData = response.data.phone_numbers.map(
         (phone: IPhoneNumber) => ({
           ...phone,
+          phone_number: formatPhoneNumber(phone.phone_number),
           booked_until: phone.booked_until
             ? formatDate(phone.booked_until)
             : "0",
@@ -269,23 +275,41 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
   const getIds = (data: any) => {
     setSelectedIds(data);
   };
+
   const handleBookNumber = async () => {
-    if (!Array.isArray(selectedIds) || selectedIds.length === 0) {
+    if (selectedIdsFromStore.length == 0) {
       alert("Vui lòng chọn ít nhất 1 số điện thoại !");
       return;
     }
-    const selectedPhoneNumbers = data?.phone_numbers.filter((phone) =>
-      selectedIds.includes(phone.id)
-    );
+
+    const requests = selectedIdsFromStore.map((id) => getPhoneByID(Number(id)));
+    const selectedPhoneNumbers = await Promise.all(requests);
+
+    const idPhoneNumbers = selectedIdsFromStore.map((id) => Number(id));
+
     const requestBody = {
-      id_phone_numbers: selectedIds,
-      phone_details: selectedPhoneNumbers?.map((p) => p.phone_number) || [],
+      id_phone_numbers: idPhoneNumbers,
+      phone_details:
+        selectedPhoneNumbers?.map((p) => p?.data.phone_number) || [],
     };
-    setBookLoading(true);
+
+    const formattedPhoneList = requestBody.phone_details
+      .map((phone) => formatPhoneNumber(phone))
+      .join(", ");
+
     try {
       const result = await Swal.fire({
         title: "Thực hiện book số?",
-        text: "Hãy kiểm tra lại danh sách số bạn đã chọn!",
+        html: `
+           <div class="text-left">
+            <label class="block text-center mb-2 text-sm font-medium text-gray-900 dark:text-white">
+              Danh sách số sẽ book:
+            </label>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
+              <div class="text-sm text-gray-700 dark:text-gray-300">${formattedPhoneList}</div>
+            </div>
+          </div>
+         `,
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#3085d6",
@@ -293,6 +317,8 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
         confirmButtonText: "Xác nhận",
       });
       if (result.isConfirmed) {
+        setBookLoading(true);
+
         const res = await booking({
           id_phone_numbers: requestBody.id_phone_numbers,
         });
@@ -300,12 +326,15 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
           Swal.fire({
             title: "Book thành công",
             html: `
-              <label for="message" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                Danh sách số số đã book:
-              </label>
-              <textarea id="message" rows="4" class="block max-h-[200px] w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 px-[10px]">${requestBody.phone_details?.join(
+             <div class="text-left">
+            <label class="block text-center mb-2 text-sm font-medium text-gray-900 dark:text-white">
+              Danh sách số đã book:
+            </label>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
+              <div class="text-sm text-gray-700 dark:text-gray-300">${requestBody.phone_details.join(
                 ", "
-              )}</textarea>
+              )}</div>
+            </div>
             `,
             showDenyButton: true,
             icon: "success",
@@ -317,13 +346,16 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
             if (result.isConfirmed) {
               copyToClipBoard(requestBody.phone_details || []);
               fetchData();
+              dispatch(resetSelectedIds());
               Swal.fire("Đã sao chép!", "", "success");
             } else {
+              dispatch(resetSelectedIds());
               fetchData();
             }
           });
           fetchData();
           setSelectedIds([]);
+          dispatch(resetSelectedIds());
         }
       }
     } catch (err: any) {

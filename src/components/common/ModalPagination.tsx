@@ -17,6 +17,13 @@ import Pagination from "../pagination/pagination";
 import Button from "../ui/button/Button";
 import ReusableTable from "./ReusableTable";
 import { setRevokeSuccess, triggerRefresh } from "../../store/reportSlice";
+import {
+  resetSelectedIds,
+  setSelectedIds,
+} from "../../store/selectedPhoneSlice";
+import { getPhoneByID } from "../../services/phoneNumber";
+
+import { IPhoneNumber } from "../../types";
 
 interface Column {
   key: string;
@@ -28,7 +35,7 @@ interface ModalPaginationProps {
   title: string;
   description?: string;
   columns: Column[];
-  option: string; // Add option prop for API call
+  option: string;
   year?: number;
   month?: number;
   day?: number;
@@ -37,11 +44,11 @@ interface ModalPaginationProps {
   username?: string;
   filter?: string;
   onClose: () => void;
-  selectedIds?: number[]; // Change type to number[] only
-  setSelectedIds?: React.Dispatch<React.SetStateAction<number[]>>; // Change type to number[] only
+  selectedIdsProp?: number[];
+  setSelectedIdsProp?: React.Dispatch<React.SetStateAction<number[]>>;
   currentPage: number;
   pageSize: number;
-  onSuccess?: () => Promise<void>; // Add onSuccess prop
+  onSuccess?: () => Promise<void>;
 }
 
 const ModalPagination: React.FC<ModalPaginationProps> = ({
@@ -58,8 +65,8 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
   username,
   filter,
   onClose,
-  selectedIds,
-  setSelectedIds,
+  selectedIdsProp,
+  setSelectedIdsProp,
   currentPage = 0,
   pageSize = 1,
   onSuccess,
@@ -77,7 +84,6 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
   const [data, setData] = useState<any[]>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const selectedRows = data.filter((item) => selectedIds?.includes(item.id));
   const [pagination, setPagination] = useState({
     limit: pageSize,
     offset: currentPage,
@@ -86,6 +92,9 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
 
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
+  const selectedIdsFromStore = useSelector(
+    (state: RootState) => state.selectedPhone.selectedIds
+  );
 
   const fetchData = useCallback(async () => {
     if (!isOpen) return;
@@ -165,8 +174,19 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
         offset: currentPage,
         totalPages: 1,
       });
+      // Reset selectedIds when modal closes
+      dispatch(resetSelectedIds());
+      setSelectedIdsProp?.([]);
     }
-  }, [isOpen, pageSize, currentPage]);
+  }, [isOpen, pageSize, currentPage, dispatch, setSelectedIdsProp]);
+
+  // Add cleanup effect
+  useEffect(() => {
+    return () => {
+      dispatch(resetSelectedIds());
+      setSelectedIdsProp?.([]);
+    };
+  }, [dispatch, setSelectedIdsProp]);
 
   // Fetch data when modal opens or pagination changes
   useEffect(() => {
@@ -209,46 +229,102 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
   });
 
   const handleRevoke = async () => {
-    if (selectedRows.length === 0) {
+    if (selectedIdsFromStore.length === 0) {
       alert("Vui lòng chọn ít nhất một số để thu hồi");
       return;
     }
-    const dataRevoke = {
-      id_phone_numbers: selectedRows.map((row) => row.id),
-    };
 
     try {
-      const result = await Swal.fire({
-        title: "Bạn có chắc chắn?",
-        text: "Hãy kiểm tra lại danh sách số bạn muốn thu hồi!",
+      // Fetch phone details for all selected IDs from store
+      const phoneDetailsPromises = selectedIdsFromStore.map((id) =>
+        getPhoneByID(Number(id))
+      );
+      const phoneDetailsResponses = await Promise.all(phoneDetailsPromises);
+
+      // Extract phone numbers from responses
+      const phoneDetails = phoneDetailsResponses
+        .filter((res) => res?.data)
+        .map((res) => res?.data.phone_number);
+
+      // Show confirmation modal with phone details first
+      const confirmResult = await Swal.fire({
+        title: "Xác nhận danh sách số",
+        html: `
+          <div class="text-left">
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+              Danh sách số sẽ thu hồi:
+            </label>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
+              <div class="text-sm text-gray-700 dark:text-gray-300">${phoneDetails.join(
+                ", "
+              )}</div>
+            </div>
+          </div>
+        `,
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#3085d6",
         cancelButtonColor: "#d33",
-        confirmButtonText: "Thu hồi",
+        confirmButtonText: "Xác nhận thu hồi",
+        cancelButtonText: "Hủy",
+        allowOutsideClick: false,
       });
 
-      if (result.isConfirmed) {
+      if (confirmResult.isConfirmed) {
+        const dataRevoke = {
+          id_phone_numbers: selectedIdsFromStore,
+        };
+
         const res = await revokeNumber(dataRevoke);
         if (res.status === 200) {
-          Swal.fire({
+          // Show success modal with phone list
+          await Swal.fire({
             title: "Thu hồi thành công!",
-            text: "Bạn đã thu hồi thành công danh sách số.",
+            html: `
+              <div class="text-left">
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                  Danh sách số đã thu hồi:
+                </label>
+                <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
+                  <div class="text-sm text-gray-700 dark:text-gray-300">${phoneDetails.join(
+                    ", "
+                  )}</div>
+                </div>
+              </div>
+            `,
+            showDenyButton: true,
             icon: "success",
+            showCancelButton: true,
+            confirmButtonText: "Sao chép",
+            denyButtonText: "Bỏ qua",
+            allowOutsideClick: false,
+          }).then((result) => {
+            if (result.isConfirmed) {
+              // Copy to clipboard
+              navigator.clipboard.writeText(phoneDetails.join(", "));
+              Swal.fire("Đã sao chép!", "", "success");
+            }
+            // Reset states regardless of copy action
+            dispatch(resetSelectedIds());
+            setSelectedIdsProp?.([]);
+            dispatch(setRevokeSuccess(true));
+            dispatch(triggerRefresh());
+            fetchData();
+            onSuccess?.();
           });
-          setSelectedIds?.([]);
-          dispatch(setRevokeSuccess(true));
-          dispatch(triggerRefresh());
-          fetchData();
-          await onSuccess?.();
         }
       }
     } catch (err: any) {
+      const error = err.response?.data?.detail;
       Swal.fire(
         "Oops...",
-        `${err}` || "Có lỗi xảy ra khi thu hồi, vui lòng thử lại!",
+        `${error || "Có lỗi xảy ra khi thu hồi, vui lòng thử lại!"}`,
         "error"
       );
+      // Reset states on error
+      dispatch(resetSelectedIds());
+      setSelectedIdsProp?.([]);
+      await fetchData();
     }
   };
 
@@ -365,16 +441,16 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
           error={error}
           data={data}
           columns={columns}
-          selectedIds={selectedIds}
+          selectedIds={selectedIdsProp}
           role={user.role}
-          setSelectedIds={setSelectedIds}
+          setSelectedIds={setSelectedIdsProp}
           pagination={{
             currentPage: pagination.offset,
             pageSize: pagination.limit,
           }}
           onCheck={(selectedIds) => {
-            if (setSelectedIds) {
-              setSelectedIds(selectedIds.map((id) => Number(id)));
+            if (setSelectedIdsProp) {
+              setSelectedIdsProp(selectedIds.map((id) => Number(id)));
             }
           }}
           isLoading={isLoading}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom"; // Sửa "react-router" thành "react-router-dom"
 
 import { FiEye } from "react-icons/fi";
@@ -30,6 +30,9 @@ import { getTypeNumber } from "../../services/typeNumber";
 import { RootState } from "../../store";
 import { IPhoneNumber, IProvider, ITypeNumber } from "../../types";
 import PhoneModalDetail from "./PhoneModalDetail";
+import { useDispatch } from "react-redux";
+import { resetSelectedIds } from "../../store/selectedPhoneSlice";
+import { formatPhoneNumber } from "../../helper/formatPhoneNumber";
 
 interface PhoneNumberProps {
   total_pages: number;
@@ -93,6 +96,7 @@ const getColumns = (status: string) => {
 };
 
 function PhoneNumbers() {
+  const dispatch = useDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
   const [openModal, setOpenModal] = useState(false);
   const [selectedPhone, setSelectedPhone] = useState<IPhoneNumber | null>(null);
@@ -130,6 +134,42 @@ function PhoneNumbers() {
   const { data: type_numbers } = useSelectData<ITypeNumber>({
     service: getTypeNumber,
   });
+
+  const selectedIdsFromStore = useSelector(
+    (state: RootState) => state.selectedPhone.selectedIds
+  );
+
+  const prevSelectedIdsRef = useRef(selectedIdsFromStore);
+
+  // Add cleanup effect specifically for booked status
+  useEffect(() => {
+    return () => {
+      if (status === "booked") {
+        dispatch(resetSelectedIds());
+      }
+    };
+  }, [dispatch, status]);
+
+  // Track selectedIds changes without causing re-renders
+  useEffect(() => {
+    if (
+      status === "booked" &&
+      prevSelectedIdsRef.current !== selectedIdsFromStore
+    ) {
+      prevSelectedIdsRef.current = selectedIdsFromStore;
+    }
+  }, [selectedIdsFromStore, status]);
+
+  const handleChangeStatus = (value: string) => {
+    setStatus(value);
+    setOffset(0);
+    // Reset selectedIds when status changes
+    dispatch(resetSelectedIds());
+    setSelectedIds([]);
+    setSelectedRows([]);
+    fetchData(quantity, value, 0, search, searchProvider, searchTypeNumber);
+  };
+
   const fetchData = async (
     quantity: number,
     status: string,
@@ -146,7 +186,7 @@ function PhoneNumbers() {
         offset,
         search: search?.trim(),
         provider: provider?.trim(),
-        type_number: type_number?.trim(), // Make sure we trim the type_number
+        type_number: type_number?.trim(),
       });
 
       const formatNumber = (num: any) =>
@@ -154,6 +194,10 @@ function PhoneNumbers() {
       const formattedData = response.data.phone_numbers.map(
         (phone: IPhoneNumber) => ({
           ...phone,
+          phone_number:
+            status == "available"
+              ? formatPhoneNumber(phone.phone_number)
+              : phone.phone_number,
           booked_until: phone.booked_until
             ? formatDate(phone.booked_until)
             : "0",
@@ -165,6 +209,13 @@ function PhoneNumbers() {
           vanity_number_fee: formatNumber(phone?.vanity_number_fee),
         })
       );
+
+      // Update selectedRows based on selectedIds from store
+      const updatedSelectedRows = formattedData.filter((phone: IPhoneNumber) =>
+        selectedIdsFromStore.includes(Number(phone.id))
+      );
+      setSelectedRows(updatedSelectedRows);
+
       if (response.data.phone_numbers.length === 0) {
         setError("Không có dữ liệu");
       } else {
@@ -214,12 +265,6 @@ function PhoneNumbers() {
       searchTypeNumber
     ); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quantity, status, offset]);
-
-  const handleChangeStatus = (value: string) => {
-    setStatus(value);
-    setOffset(0);
-    fetchData(quantity, value, 0, search, searchProvider, searchTypeNumber);
-  };
 
   const handleGetById = async (id: number) => {
     try {
@@ -317,56 +362,116 @@ function PhoneNumbers() {
   };
 
   const handleRevoke = async () => {
-    if (selectedRows.length === 0) {
+    if (selectedIdsFromStore.length === 0) {
       alert("Vui lòng chọn ít nhất một số để thu hồi");
       return;
     }
 
-    setBookLoading(true);
-    const dataRevoke = {
-      id_phone_numbers: selectedRows.map((row) => row.id),
-    };
-
     try {
-      const result = await Swal.fire({
-        title: "Bạn có chắc chắn?",
-        text: "Hãy kiểm tra lại danh sách số bạn muốn thu hồi!",
+      // Fetch phone details for all selected IDs from store
+      const phoneDetailsPromises = selectedIdsFromStore.map((id) =>
+        getPhoneByID(Number(id))
+      );
+      const phoneDetailsResponses = await Promise.all(phoneDetailsPromises);
+
+      // Extract phone numbers from responses
+      const phoneDetails = phoneDetailsResponses
+        .filter((res) => res?.data)
+        .map((res) => res?.data.phone_number);
+
+      // Show confirmation modal with phone details first
+      const confirmResult = await Swal.fire({
+        title: "Xác nhận danh sách số",
+        html: `
+          <div class="text-left">
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+              Danh sách số sẽ thu hồi:
+            </label>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
+              <div class="text-sm text-gray-700 dark:text-gray-300">${phoneDetails.join(
+                ", "
+              )}</div>
+            </div>
+          </div>
+        `,
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#3085d6",
         cancelButtonColor: "#d33",
-        confirmButtonText: "Thu hồi",
+        confirmButtonText: "Xác nhận thu hồi",
+        cancelButtonText: "Hủy",
+        allowOutsideClick: false,
       });
 
-      if (result.isConfirmed) {
+      if (confirmResult.isConfirmed) {
+        const dataRevoke = {
+          id_phone_numbers: selectedIdsFromStore,
+        };
+
         const res = await revokeNumber(dataRevoke);
         if (res.status === 200) {
-          Swal.fire({
+          // Show success modal with phone list
+          await Swal.fire({
             title: "Thu hồi thành công!",
-            text: "Bạn đã thu hồi thành công danh sách số.",
+            html: `
+              <div class="text-left">
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                  Danh sách số đã thu hồi:
+                </label>
+                <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
+                  <div class="text-sm text-gray-700 dark:text-gray-300">${phoneDetails.join(
+                    ", "
+                  )}</div>
+                </div>
+              </div>
+            `,
+            showDenyButton: true,
             icon: "success",
+            showCancelButton: true,
+            confirmButtonText: "Sao chép",
+            denyButtonText: "Bỏ qua",
+            allowOutsideClick: false,
+          }).then((result) => {
+            if (result.isConfirmed) {
+              // Copy to clipboard
+              navigator.clipboard.writeText(phoneDetails.join(", "));
+              Swal.fire("Đã sao chép!", "", "success");
+            }
+            // Reset states regardless of copy action
+            dispatch(resetSelectedIds());
+            setSelectedIds([]);
+            setSelectedRows([]);
+            fetchData(
+              quantity,
+              status,
+              offset,
+              search,
+              searchProvider,
+              searchTypeNumber
+            );
+            setSearchParams({});
           });
-          setSelectedIds([]);
-          setSelectedRows([]);
-          await fetchData(
-            quantity,
-            status,
-            offset,
-            search,
-            searchProvider,
-            searchTypeNumber
-          );
-          setSearchParams({});
         }
       }
     } catch (err: any) {
+      const error = err.response?.data?.detail;
       Swal.fire(
         "Oops...",
-        `${err}` || "Có lỗi xảy ra khi thu hồi, vui lòng thử lại!",
+        `${error || "Có lỗi xảy ra khi thu hồi, vui lòng thử lại!"}`,
         "error"
       );
-    } finally {
-      setBookLoading(false);
+      // Reset states on error
+      dispatch(resetSelectedIds());
+      setSelectedIds([]);
+      setSelectedRows([]);
+      await fetchData(
+        quantity,
+        status,
+        offset,
+        search,
+        searchProvider,
+        searchTypeNumber
+      );
     }
   };
 
@@ -667,6 +772,8 @@ function PhoneNumbers() {
               </div>
 
               <ReusableTable
+                disabled={status === "available" || status === "released"}
+                disabledReset={status === "available" || status === "released"}
                 isLoading={loading}
                 onCheck={(selectedIds, selectedRows) => {
                   setSelectedIds(selectedIds.map((id) => Number(id)));

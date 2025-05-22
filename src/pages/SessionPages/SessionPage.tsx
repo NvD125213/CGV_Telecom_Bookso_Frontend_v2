@@ -281,6 +281,7 @@ const SessionPage = () => {
             role={user.role}
             title="Lịch sử online"
             data={historySession}
+            disabledReset={true}
             columns={columns}
             isLoading={loading}
           />

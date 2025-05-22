@@ -63,14 +63,16 @@ const UploadExcel = () => {
 
             if (
               objErr.message ===
-              "Add data failed. provider does not exist. File: "
+                "Add data failed. provider does not exist. File: " ||
+              objErr.message === "Add data failed. provider does not exist."
             ) {
               setErrors(
                 "Xuất hiện nhà cung cấp không tồn tại! Hãy kiểm tra lại danh sách tên nhà cung cấp của bạn."
               );
             } else if (
               objErr.message ===
-              "Add data failed. Type number does not exist. File: "
+                "Add data failed. Type number does not exist. File: " ||
+              objErr.message === "Add data failed. Type number does not exist."
             ) {
               setErrors(
                 "Xuất hiện loại số không tồn tại! Hãy kiểm tra lại danh sách loại số của bạn."

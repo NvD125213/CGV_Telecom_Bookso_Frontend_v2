@@ -34,22 +34,35 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
   useEffect(() => {
     if (data) {
       const rawNumber = convertTimeToNumber(data.booking_expiration);
+      const rawWeekendNumber = convertTimeToNumber(
+        data.weekend_booking_expiration
+      );
+
       const formattedExpiration = data.booking_expiration
         ? formatBookingExpiration(rawNumber)
         : "000.00.00";
 
-      if (parseBookingExpiration(formattedExpiration) === 0) {
-        alert("Thời gian giữ không được bằng 0");
+      const formattedWeekendExpiration = data.weekend_booking_expiration
+        ? formatBookingExpiration(rawWeekendNumber)
+        : "000.00.00";
+
+      if (parseBookingExpiration(formattedExpiration) == 0) {
+        alert("Thời gian chờ triển khai không được bằng 0 !");
+      }
+      if (parseBookingExpiration(formattedWeekendExpiration) == 0) {
+        alert("Thời gian chờ triển khai cuối tuần không được bằng 0 !");
       }
       setTypeNumber({
         ...data,
         booking_expiration: formattedExpiration,
+        weekend_booking_expiration: formattedWeekendExpiration,
       });
       setInitialData(data);
     } else {
       setTypeNumber({
         ...newTypeNumber,
         booking_expiration: "000.00.00",
+        weekend_booking_expiration: "000.00.00",
       });
       setInitialData(null);
     }
@@ -58,7 +71,13 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
   }, [data, isOpen]);
 
   const setValue = (name: keyof ITypeNumber, value: string | number) => {
-    if (name === "booking_expiration") {
+    if (name == "booking_expiration") {
+      const formattedValue = formatBookingExpiration(value);
+      setTypeNumber((prev) => ({
+        ...prev,
+        [name]: formattedValue,
+      }));
+    } else if (name == "weekend_booking_expiration") {
       const formattedValue = formatBookingExpiration(value);
       setTypeNumber((prev) => ({
         ...prev,
@@ -83,9 +102,19 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
     }
 
     if (!typeNumber.booking_expiration) {
-      newErrors.booking_expiration = "Thời gian giữ không được để trống!";
+      newErrors.booking_expiration =
+        "Thời gian chờ triển khai không được để trống!";
     } else if (parseBookingExpiration(typeNumber.booking_expiration) === 0) {
       newErrors.booking_expiration = "Thời gian giữ không được bằng 0!";
+    }
+    if (!typeNumber.weekend_booking_expiration) {
+      newErrors.booking_expiration =
+        "Thời gian chờ triển khai cuối tuần không được để trống!";
+    } else if (
+      parseBookingExpiration(typeNumber.weekend_booking_expiration) === 0
+    ) {
+      newErrors.booking_expiration =
+        "Thời gian chờ triển khai cuối tuần không được bằng 0!";
     }
 
     setErrors(newErrors);
@@ -101,6 +130,9 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
       ...typeNumber,
       booking_expiration: String(
         parseBookingExpiration(typeNumber.booking_expiration)
+      ),
+      weekend_booking_expiration: String(
+        parseBookingExpiration(typeNumber.weekend_booking_expiration)
       ),
     };
     const normalizeString = (str: string) => str.trim().replace(/\s+/g, " ");
@@ -181,6 +213,16 @@ const ModalTypeNumber: React.FC<TypeNumberModal> = ({
           onChange: (value) => setValue("booking_expiration", value as string),
           placeholder: "000.00.00",
           error: errors.booking_expiration,
+        },
+        {
+          name: "weekend_booking_expiration",
+          label: `Thời gian chờ triển khai cuối tuần (HHH.MM.SS)`,
+          type: "text",
+          value: typeNumber.weekend_booking_expiration || "000.00.00",
+          onChange: (value) =>
+            setValue("weekend_booking_expiration", value as string),
+          placeholder: "000.00.00",
+          error: errors.weekend_booking_expiration,
         },
         {
           name: "description",

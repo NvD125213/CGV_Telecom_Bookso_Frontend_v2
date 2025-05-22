@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router";
 import SignIn from "./pages/AuthPages/SignIn";
 import NotFound from "./pages/OtherPage/NotFound";
 import HistoryBooked from "./pages/HistoryBooked/HistoryBooked";
@@ -20,15 +20,26 @@ import { PublicRoute } from "./routes/publicRoute";
 import DigitalChannel from "./pages/DigitalChannel/DigitalChannel";
 import { AuthProvider, useAuth } from "./context/SocketContext";
 import { useEffect } from "react";
-import { setAxiosInactivityHandler } from "./config/apiToken"; // Import hàm
+import { setAxiosInactivityHandler } from "./config/apiToken";
 import { Toaster } from "react-hot-toast";
 import SessionPage from "./pages/SessionPages/SessionPage";
+
+import { useLocation } from "react-router";
+import { useDispatch } from "react-redux";
+import { resetSelectedIds } from "./store/selectedPhoneSlice";
 
 function AppWithInactivityHandler() {
   const { resetInactivityTimer } = useAuth();
   useEffect(() => {
     setAxiosInactivityHandler(resetInactivityTimer);
   }, [resetInactivityTimer]);
+
+  const location = useLocation();
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(resetSelectedIds());
+  }, [location.pathname]);
 
   return (
     <Routes>
@@ -42,8 +53,14 @@ function AppWithInactivityHandler() {
           <Route index path="/" element={<Home />} />
           <Route path="/history-booked" element={<HistoryBooked />} />
           <Route path="/digital-channel" element={<DigitalChannel />} />
-          <Route path="/phone-numbers" element={<PhoneNumberFilters />} />
-          <Route path="/phone-numbers-for-status" element={<PhoneNumbers />} />
+          <Route
+            path="/phone-numbers"
+            element={<PhoneNumberFilters key="phone-filter" />}
+          />
+          <Route
+            path="/phone-numbers-for-status"
+            element={<PhoneNumbers key="phone-status" />}
+          />
         </Route>
       </Route>
       <Route element={<PrivateRoute requiredRole="1" />}>

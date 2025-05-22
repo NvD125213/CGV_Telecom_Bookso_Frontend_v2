@@ -8,11 +8,18 @@ import {
 } from "../ui/table";
 import { PencilIcon } from "../../icons";
 import { RiDeleteBinLine } from "react-icons/ri";
+import { IoMdRefresh } from "react-icons/io";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { useState } from "react";
 import { HiDotsVertical } from "react-icons/hi";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "../../store";
+import {
+  resetSelectedIds,
+  setSelectedIds,
+} from "../../store/selectedPhoneSlice";
 
 interface Action<T> {
   icon?: React.ReactNode;
@@ -45,6 +52,8 @@ interface Props<T> {
     pageSize: number;
   };
   showId?: boolean; // Renamed from showStt to showId for clarity
+  disabled?: boolean; // Simple disabled prop
+  disabledReset?: boolean;
 }
 
 const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
@@ -54,44 +63,37 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
   onDelete,
   actions = [],
   onCheck,
-  selectedIds,
-  setSelectedIds,
   isLoading = false,
   error = "",
   role,
-  showId = true, // Renamed from showStt to showId
+  showId = true,
+  disabled = false, // Default to false
+  disabledReset = false,
 }: Props<T>) => {
+  const dispatch = useDispatch();
+  const { selectedIds } = useSelector(
+    (state: RootState) => state.selectedPhone
+  );
   const [dropdownOpenId, setDropdownOpenId] = useState<string | number | null>(
     null
   );
   const hasActionColumn = onEdit || onDelete || actions.length > 0;
 
   const handleSelectAll = () => {
-    if (!setSelectedIds) {
-      return;
-    }
-    if (!selectedIds) {
-      return;
-    }
+    if (disabled) return; // Simply return if disabled
+
     if (data.every((item) => selectedIds.includes(item.id))) {
-      setSelectedIds([]);
+      dispatch(resetSelectedIds());
       onCheck?.([], []);
     } else {
-      const allIds = data
-        .map((item) => Number(item.id))
-        .filter((id) => !isNaN(id));
-      setSelectedIds(allIds);
+      const allIds = data.map((item) => item.id);
+      dispatch(setSelectedIds({ ids: allIds, rows: data }));
       onCheck?.(allIds, data);
     }
   };
 
   const handleSelectRow = (id: string | number) => {
-    if (!setSelectedIds) {
-      return;
-    }
-    if (!selectedIds) {
-      return;
-    }
+    if (disabled) return; // Simply return if disabled
 
     let updatedSelection: (string | number)[];
     let updatedRows: T[];
@@ -104,11 +106,16 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
       updatedRows = data.filter((item) => updatedSelection.includes(item.id));
     }
 
-    const numericIds = updatedSelection
-      .map((id) => Number(id))
-      .filter((id) => !isNaN(id));
-    setSelectedIds(numericIds);
+    dispatch(setSelectedIds({ ids: updatedSelection, rows: updatedRows }));
     onCheck?.(updatedSelection, updatedRows);
+  };
+
+  const handleResetSelection = () => {
+    if (selectedIds.length == 0) {
+      alert("Không có số nào được chọn!");
+    }
+    dispatch(resetSelectedIds());
+    onCheck?.([], []);
   };
 
   const toggleDropdown = (id: string | number) => {
@@ -121,6 +128,20 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
     <div className="dark:text-white">{error}</div>
   ) : (
     <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-black">
+      {disabledReset == false ? (
+        <div className="flex justify-end px-4 py-2">
+          <button
+            onClick={handleResetSelection}
+            className="flex items-center gap-1 px-3 py-1.5 border border-gray-800 bg-white text-black rounded-full text-sm hover:bg-red-600 hover:text-white transition-colors shadow-md"
+            title="Reset selection">
+            <IoMdRefresh className="w-4 h-4" />
+            Reset ({selectedIds.length})
+          </button>
+        </div>
+      ) : (
+        <></>
+      )}
+
       <div className="w-full overflow-x-auto">
         <div className="min-w-[1000px]">
           <div className="max-h-[800px] overflow-y-auto dark:bg-black min-w-[900px]">
@@ -131,15 +152,19 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
                   <TableCell
                     isHeader
                     className="px-5 py-3 text-base font-semibold text-gray-500 dark:text-gray-300 text-start">
-                    <input
-                      type="checkbox"
-                      className="w-[18px] h-[18px]"
-                      checked={
-                        selectedIds?.length === data.length && data.length > 0
-                      }
-                      onChange={handleSelectAll}
-                      disabled={!setSelectedIds}
-                    />
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        className={`w-[18px] h-[18px] ${
+                          disabled ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
+                        checked={
+                          selectedIds?.length === data.length && data.length > 0
+                        }
+                        onChange={handleSelectAll}
+                        disabled={disabled}
+                      />
+                    </div>
                   </TableCell>
                   {showId && (
                     <TableCell
@@ -250,10 +275,12 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
                           }`}>
                           <input
                             type="checkbox"
-                            className="w-[18px] h-[18px]"
+                            className={`w-[18px] h-[18px] ${
+                              disabled ? "opacity-50 cursor-not-allowed" : ""
+                            }`}
                             checked={selectedIds?.includes(item.id)}
                             onChange={() => handleSelectRow(item.id)}
-                            disabled={!setSelectedIds}
+                            disabled={disabled}
                           />
                         </TableCell>
                         {showId && (
@@ -303,7 +330,7 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
                               </button>
                             )}
                             {actions.length > 0 && (
-                              <div className="relative">
+                              <div className="">
                                 <button
                                   onClick={() => toggleDropdown(item.id)}
                                   className="bg-gray-200 dark:bg-gray-800 dark:text-white text-gray-700 px-4 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 dropdown-toggle">

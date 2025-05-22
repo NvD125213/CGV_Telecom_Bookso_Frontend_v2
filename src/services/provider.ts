@@ -6,12 +6,13 @@ export const newProvider = {
   id: "",
   name: "",
   description: "",
+  phone_number_limit_alert: 0,
 };
 
 // Get all list provider
 export const getProviders = async () => {
   try {
-    const res = await axiosInstance.get("/api/v1/provider/all");
+    const res = await axiosInstance.get("/api/v2/provider/all");
     return res.data;
   } catch (error: any) {
     throw new Error(error);
@@ -22,7 +23,7 @@ export const getProviders = async () => {
 export const getProviderById = async (id: string) => {
   try {
     const res = await axiosInstance.get(
-      `/api/v1/provider/provider-by-id?provider_id=${id}`
+      `/api/v2/provider/provider-by-id?provider_id=${id}`
     );
     return res.data;
   } catch (error: any) {
@@ -32,14 +33,14 @@ export const getProviderById = async (id: string) => {
 
 // Create new provider
 export const createProvider = async (data: IProvider) => {
-  const res = await axiosInstance.post("/api/v1/provider", data);
+  const res = await axiosInstance.post("/api/v2/provider", data);
   return res;
 };
 
 // Update provider by id
 export const updateProvider = async (id: string, data: IProvider) => {
   const res = await axiosInstance.put(
-    `/api/v1/provider/provider-by-id?provider_id=${id}`,
+    `/api/v2/provider/provider-by-id?provider_id=${id}`,
     data
   );
   return res;
@@ -48,7 +49,7 @@ export const updateProvider = async (id: string, data: IProvider) => {
 // Delete provider by id
 export const deleteProvider = async (id: string) => {
   try {
-    const res = await axiosInstance.delete(`/api/v1/provider/${id}`);
+    const res = await axiosInstance.delete(`/api/v2/provider/${id}`);
     return res.data;
   } catch (error: any) {
     if (error.status == 400) {

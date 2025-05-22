@@ -3,4 +3,5 @@ export interface IProvider {
   name: string;
   active?: string;
   description: string | null;
+  phone_number_limit_alert: number;
 }

@@ -15,6 +15,10 @@ import { sortByPriority } from "../../helper/priorityProviderList";
 const columns: { key: keyof IProvider; label: string }[] = [
   { key: "name", label: "Nhà cung cấp" },
   { key: "description", label: "Mô tả" },
+  {
+    key: "phone_number_limit_alert",
+    label: "Hạn mức cảnh báo",
+  },
 ];
 
 const priorityList = [
@@ -49,6 +53,7 @@ const ProviderPage = () => {
         id: item.id,
         name: item.name,
         description: item.description,
+        phone_number_limit_alert: item.phone_number_limit_alert,
       }));
       setProviders(mappedProviders);
 
@@ -101,6 +106,7 @@ const ProviderPage = () => {
             <ReusableTable
               error={errorData}
               role={user.role}
+              disabledReset={true}
               title="Danh sách số điện thoại"
               data={providers}
               columns={columns}
@@ -108,6 +114,7 @@ const ProviderPage = () => {
                 setProvider(item);
                 setOpenModal(!openModal);
               }}
+              disabled={true}
               isLoading={loading}
               onDelete={(id) => handleDelete(String(id))}
             />

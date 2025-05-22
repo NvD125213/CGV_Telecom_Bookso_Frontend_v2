@@ -272,6 +272,7 @@ const HistoryBooked = () => {
       <div className="space-y-6">
         <ComponentCard>
           <ReusableTable
+            disabledReset={true}
             error={errors}
             title="Bảng lịch sử chi tiết"
             data={data ?? []}

@@ -7,12 +7,13 @@ export const newTypeNumber = {
   name: "",
   description: "",
   booking_expiration: "",
+  weekend_booking_expiration: "",
 };
 
 // Get all list typeNumber
 export const getTypeNumber = async () => {
   try {
-    const res = await axiosInstance.get("/api/v1/type_number/alls");
+    const res = await axiosInstance.get("/api/v2/type_number/alls");
     return res.data;
   } catch (error) {
     console.error("Failed to fetch profile:", error);
@@ -23,7 +24,7 @@ export const getTypeNumber = async () => {
 export const getTypeNumberByID = async (id: string) => {
   try {
     const res = await axiosInstance.get(
-      `/api/v1/type_number/by-id?type_number_id=${id}`
+      `/api/v2/type_number/by-id?type_number_id=${id}`
     );
     return res.data;
   } catch (error) {
@@ -33,14 +34,14 @@ export const getTypeNumberByID = async (id: string) => {
 
 // Create new provider
 export const createTypeNumber = async (data: ITypeNumber) => {
-  const res = await axiosInstance.post("/api/v1/type_number", data);
+  const res = await axiosInstance.post("/api/v2/type_number", data);
   return res;
 };
 
 // Update provider by id
 export const updateTypeNumber = async (id: string, data: ITypeNumber) => {
   const res = await axiosInstance.put(
-    `/api/v1/type_number/type-number-by-id?type_number_id=${id}`,
+    `/api/v2/type_number/type-number-by-id?type_number_id=${id}`,
     data
   );
   return res;
@@ -49,7 +50,7 @@ export const updateTypeNumber = async (id: string, data: ITypeNumber) => {
 // Delete provider by id
 export const deleteTypeNumber = async (id: string) => {
   try {
-    const res = await axiosInstance.delete(`/api/v1/type_number/${id}`);
+    const res = await axiosInstance.delete(`/api/v2/type_number/${id}`);
     return res;
   } catch (error: any) {
     if (error.status === 400) {
