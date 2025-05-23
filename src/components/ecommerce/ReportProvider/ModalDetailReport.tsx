@@ -1,14 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import ReactApexChart from "react-apexcharts";
 import { getBookingStatusBySales } from "../../../services/report";
-import { revokeNumber } from "../../../services/phoneNumber";
 import Select from "../../form/Select";
 import { Modal } from "../../ui/modal";
-import { useSelector } from "react-redux";
-import { RootState } from "../../../store";
-import { IoCaretBackCircleOutline } from "react-icons/io5";
-import Swal from "sweetalert2";
-import ReusableTable from "../../common/ReusableTable";
 
 interface ChartDataItem {
   name: string;
@@ -38,22 +32,15 @@ interface ModalDetailReportProps {
   onSuccess?: () => Promise<void>;
 }
 
-const getColumns = () => [
-  { key: "phone_number", label: "Số điện thoại" },
-  { key: "provider_name", label: "Nhà cung cấp" },
-  { key: "type_name", label: "Định dạng số" },
-  { key: "booked_at", label: "Thời gian đặt" },
-  { key: "booked_until", label: "Hạn đặt" },
-];
-
 const ModalDetailReport = ({
   visible,
   onClose,
   data,
   options,
   date,
-  onSuccess,
 }: ModalDetailReportProps) => {
+  const [option, setOption] = useState<"booked" | "deployed">("booked");
+  const [optionType, setOptionType] = useState<string>("provider");
   const [chartData, setChartData] = useState<{
     series: { name: string; data: number[] }[];
     options: any;
@@ -62,60 +49,14 @@ const ModalDetailReport = ({
     options: {},
   });
 
-  const [optionType, setOptionType] = useState<string>("provider");
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const user = useSelector((state: RootState) => state.auth.user);
-  const [tableData, setTableData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  // Check if dark mode is enabled (adjust based on your actual theme logic)
   const darkMode = document.documentElement.classList.contains("dark");
 
-  const handleRevoke = async () => {
-    if (selectedIds.length === 0) {
-      Swal.fire({
-        title: "Vui lòng chọn số cần thu hồi",
-        icon: "warning",
-      });
-      return;
-    }
-
-    try {
-      const result = await Swal.fire({
-        title: "Bạn có chắc chắn?",
-        text: "Hãy kiểm tra lại danh sách số bạn muốn thu hồi!",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#d33",
-        confirmButtonText: "Thu hồi",
-      });
-
-      if (result.isConfirmed) {
-        const res = await revokeNumber({ id_phone_numbers: selectedIds });
-        if (res.status === 200) {
-          Swal.fire({
-            title: "Thu hồi thành công!",
-            text: "Bạn đã thu hồi thành công danh sách số.",
-            icon: "success",
-          });
-          setSelectedIds([]);
-          await onSuccess?.();
-        }
-      }
-    } catch (err: any) {
-      Swal.fire(
-        "Oops...",
-        `${err}` || "Có lỗi xảy ra khi thu hồi, vui lòng thử lại!",
-        "error"
-      );
-    }
-  };
-
+  // Fetch chart data
   const fetchData = useCallback(async () => {
-    if (!data) return;
+    if (!data?.name || !date) return;
+
     const seriesName =
-      data.seriesName === "booked"
+      option === "booked"
         ? optionType === "provider"
           ? "Số booked/nhà mạng"
           : "Số booked/định dạng số"
@@ -123,14 +64,12 @@ const ModalDetailReport = ({
         ? "Số triển khai/nhà mạng"
         : "Số triển khai/định dạng số";
 
-    if (!data?.name || !date) return;
-
     const [year, month, day] = date.split("/");
     const params: any = {
       year: parseInt(year),
       month: parseInt(month),
       username: data.name,
-      option: data.seriesName,
+      option: option, // Use option instead of data.seriesName
       option_type: optionType,
     };
 
@@ -171,9 +110,9 @@ const ModalDetailReport = ({
           },
           xaxis: {
             ...options.xaxis,
-            categories: categories, // Setting categories as extracted from result.data
+            categories: categories,
           },
-          colors: data.seriesName === "booked" ? ["#3B82F6"] : ["#FF9800"],
+          colors: option === "booked" ? ["#3B82F6"] : ["#FF9800"],
           dataLabels: {
             enabled: true,
             style: { fontSize: "12px", colors: ["#fff"] },
@@ -191,18 +130,18 @@ const ModalDetailReport = ({
     } catch (error) {
       console.error("Error fetching booking status:", error);
     }
-  }, [data?.name, date, optionType, visible, data, options, darkMode]);
+  }, [data?.name, date, optionType, option, options, darkMode]);
 
+  // Fetch table data
   const fetchTableData = useCallback(async () => {
     if (!data?.name || !date) return;
-    setLoading(true);
     try {
       const [year, month, day] = date.split("/");
       const params: any = {
         year: parseInt(year),
         month: parseInt(month),
         username: data.name,
-        option: data.seriesName,
+        option: option, // Use option instead of data.seriesName
         option_type: optionType,
       };
 
@@ -211,7 +150,7 @@ const ModalDetailReport = ({
       }
 
       const result = await getBookingStatusBySales(params);
-      const formattedData = Object.entries(result.data).map(([key, value]) => {
+      Object.entries(result.data).map(([key, value]) => {
         const typedValue = value as BookingStatusValue;
         return {
           phone_number: key,
@@ -222,17 +161,16 @@ const ModalDetailReport = ({
           id: typedValue.id,
         };
       });
-      setTableData(formattedData);
     } catch (error) {
       console.error("Error fetching table data:", error);
-    } finally {
-      setLoading(false);
     }
-  }, [data?.name, date, data?.seriesName, optionType]);
+  }, [data?.name, date, option, optionType]);
 
+  // Reset state when modal closes
   useEffect(() => {
     if (!visible) {
       setOptionType("provider");
+      setOption("booked");
       setChartData({
         series: [],
         options: {},
@@ -240,12 +178,21 @@ const ModalDetailReport = ({
     }
   }, [visible]);
 
+  // Fetch data when modal is opened or dependencies change
   useEffect(() => {
     if (visible && data?.name) {
       fetchData();
       fetchTableData();
     }
-  }, [visible, data?.name, fetchData, fetchTableData]);
+  }, [
+    visible,
+    data?.name,
+    option,
+    optionType,
+    date,
+    fetchData,
+    fetchTableData,
+  ]);
 
   return (
     <div className="flex justify-center">
@@ -257,11 +204,13 @@ const ModalDetailReport = ({
           {/* Modal Header */}
           <div className="grid grid-cols-8 gap-4 items-center">
             <h2 className="col-span-6 text-xl font-semibold text-gray-800 dark:text-white capitalize">
-              {data?.seriesName === "booked"
-                ? `Chi tiết thông tin booked của ${data.name}`
-                : `Chi tiết thông tin triển khai ${data?.name}`}
+              {option === "booked"
+                ? `Chi tiết thông tin book của ${data?.name}`
+                : `Chi tiết thông tin triển khai của ${data?.name}`}
             </h2>
-
+          </div>
+          {/* Chart */}
+          <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
             <div className="col-span-2 flex gap-2">
               <Select
                 options={[
@@ -272,10 +221,16 @@ const ModalDetailReport = ({
                 onChange={(value) => setOptionType(value)}
                 className="px-3 py-2 border rounded dark:bg-gray-700 dark:text-white"
               />
+              <Select
+                options={[
+                  { label: "Đã book", value: "booked" },
+                  { label: "Đã triển khai", value: "deployed" },
+                ]}
+                value={option}
+                onChange={(value) => setOption(value as "booked" | "deployed")}
+                className="px-3 py-2 border rounded dark:bg-gray-700 dark:text-white"
+              />
             </div>
-          </div>
-          {/* Chart */}
-          <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
             <ReactApexChart
               options={chartData.options}
               series={chartData.series}

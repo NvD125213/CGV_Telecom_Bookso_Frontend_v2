@@ -5,6 +5,38 @@ import { IReportDetail } from "../../../types";
 import ComponentCard from "../../common/ComponentCard";
 import ModalPagination from "../../common/ModalPagination";
 
+// CustomLegend component
+const CustomLegend = (props: {
+  payload?: any[];
+  onLegendClick: (entry: any) => void;
+}) => {
+  const { payload, onLegendClick } = props;
+
+  if (!payload) return null;
+
+  return (
+    <ul className="flex gap-4 justify-center mt-4">
+      {payload.map((entry, index) => (
+        <li
+          key={`legend-item-${index}`}
+          onClick={() => onLegendClick(entry)} // Gọi onLegendClick với entry từ payload
+          style={{ cursor: "pointer", color: entry.color }}
+          className="flex items-center gap-1">
+          <div
+            style={{
+              width: 16,
+              height: 16,
+              backgroundColor: entry.color,
+              borderRadius: 4,
+            }}
+          />
+          <span>{entry.value}</span>
+        </li>
+      ))}
+    </ul>
+  );
+};
+
 const COLORS = ["#0088FE", "#FFBB28", "#00C49F"];
 
 const getColumns = (status: string) => {
@@ -31,6 +63,7 @@ const getColumns = (status: string) => {
 
   return baseColumns;
 };
+
 const NumberStatusPieChart = () => {
   const [data, setData] = useState([
     { name: "Đã Book", value: 0, detail: "booked" },
@@ -77,9 +110,16 @@ const NumberStatusPieChart = () => {
   }, [year, month, day]);
 
   const handleClick = (entry: any) => {
-    setSelectedEntry(entry);
-    setIsModalOpen(true);
-    prevSelectedEntry.current = entry;
+    // For Pie chart clicks, entry is the full data object
+    // For Legend clicks, entry is { value, color, ... }, so we need to find the matching data object
+    const selectedData = data.find(
+      (item) => item.name === entry.name || item.name === entry.value
+    );
+    if (selectedData) {
+      setSelectedEntry(selectedData);
+      setIsModalOpen(true);
+      prevSelectedEntry.current = selectedData;
+    }
   };
 
   const totalValue = data.reduce((sum, item) => sum + item.value, 0);
@@ -92,7 +132,7 @@ const NumberStatusPieChart = () => {
         </h3>
         <div className="flex gap-4 mb-4">
           <select
-            className="p-2 border rounded dark:bg-black dark:text-white "
+            className="p-2 border rounded dark:bg-black dark:text-white"
             value={year}
             onChange={(e) => setYear(parseInt(e.target.value))}>
             {Array.from({ length: 10 }, (_, index) => (
@@ -103,7 +143,7 @@ const NumberStatusPieChart = () => {
           </select>
 
           <select
-            className="p-2 border rounded dark:bg-black dark:text-white "
+            className="p-2 border rounded dark:bg-black dark:text-white"
             value={month}
             onChange={(e) => setMonth(parseInt(e.target.value))}>
             {Array.from({ length: 12 }, (_, index) => (
@@ -115,7 +155,7 @@ const NumberStatusPieChart = () => {
 
           <input
             type="number"
-            className="p-2 border rounded w-20 dark:bg-black dark:text-white dark:placeholder-white "
+            className="p-2 border rounded w-20 dark:bg-black dark:text-white dark:placeholder-white"
             placeholder="Ngày"
             value={day}
             onChange={(e) => setDay(e.target.value)}
@@ -148,7 +188,11 @@ const NumberStatusPieChart = () => {
               ))}
             </Pie>
             <Tooltip />
-            <Legend />
+            <Legend
+              content={(props) => (
+                <CustomLegend {...props} onLegendClick={handleClick} /> // Pass handleClick directly
+              )}
+            />
           </PieChart>
         )}
       </div>
