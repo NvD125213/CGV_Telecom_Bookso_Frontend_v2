@@ -136,7 +136,6 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
     const controller = new AbortController();
     controllerRef.current = controller;
 
-    let isMounted = true;
     setLoading(true);
     try {
       const response = await bookingPhone({
@@ -153,7 +152,10 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
       const formattedData = response.data.phone_numbers.map(
         (phone: IPhoneNumber) => ({
           ...phone,
-          phone_number: formatPhoneNumber(phone.phone_number),
+          phone_number:
+            user.role !== 1
+              ? formatPhoneNumber(phone.phone_number)
+              : phone.phone_number,
           booked_until: phone.booked_until
             ? formatDate(phone.booked_until)
             : "0",
@@ -162,72 +164,61 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
           vanity_number_fee: formatNumber(phone?.vanity_number_fee),
         })
       );
-      if (isMounted) {
-        if (response.data.phone_numbers.length === 0) {
-          setError("Không có dữ liệu");
-        } else if (formattedData.length === 0) {
-          setError(
-            "Dữ liệu số bạn chọn đã hết! Vui lòng chọn định dạng hoặc nhà cung cấp khác"
-          );
-        } else {
-          setError("");
-        }
-
-        // Update data first
-        setData({
-          ...response.data,
-          phone_numbers: formattedData,
-        });
-
-        // Then update selectedIds based on new data
-        const newDataIds = formattedData.map((item: IPhoneNumber) =>
-          Number(item.id)
+      if (response.data.phone_numbers.length === 0) {
+        setError("Không có dữ liệu");
+      } else if (formattedData.length === 0) {
+        setError(
+          "Dữ liệu số bạn chọn đã hết! Vui lòng chọn định dạng hoặc nhà cung cấp khác"
         );
-        const updatedSelectedIds = selectedIds.filter((id) =>
-          newDataIds.includes(id)
-        );
-
-        // Only update selectedIds if there are changes
-        if (
-          JSON.stringify(updatedSelectedIds) !== JSON.stringify(selectedIds)
-        ) {
-          setSelectedIds(updatedSelectedIds);
-          // Notify parent component about the updated selection
-          onCheck?.(
-            updatedSelectedIds,
-            formattedData.filter((item: IPhoneNumber) =>
-              updatedSelectedIds.includes(Number(item.id))
-            )
-          );
-        }
-
-        setSearchParams((prev) => {
-          const newParams = new URLSearchParams(prev);
-          newParams.set("quantity", quantity.toString());
-          newParams.set("offset", offset.toString());
-          if (provider) newParams.set("provider", provider);
-          else newParams.delete("provider");
-          if (search) newParams.set("search", search);
-          else newParams.delete("search");
-          if (typeNumber) newParams.set("typeNumber", typeNumber);
-          else newParams.delete("typeNumber");
-          return newParams;
-        });
+      } else {
+        setError("");
       }
+
+      // Update data first
+      setData({
+        ...response.data,
+        phone_numbers: formattedData,
+      });
+
+      // Then update selectedIds based on new data
+      const newDataIds = formattedData.map((item: IPhoneNumber) =>
+        Number(item.id)
+      );
+      const updatedSelectedIds = selectedIds.filter((id) =>
+        newDataIds.includes(id)
+      );
+
+      // Only update selectedIds if there are changes
+      if (JSON.stringify(updatedSelectedIds) !== JSON.stringify(selectedIds)) {
+        setSelectedIds(updatedSelectedIds);
+        // Notify parent component about the updated selection
+        onCheck?.(
+          updatedSelectedIds,
+          formattedData.filter((item: IPhoneNumber) =>
+            updatedSelectedIds.includes(Number(item.id))
+          )
+        );
+      }
+
+      setSearchParams((prev) => {
+        const newParams = new URLSearchParams(prev);
+        newParams.set("quantity", quantity.toString());
+        newParams.set("offset", offset.toString());
+        if (provider) newParams.set("provider", provider);
+        else newParams.delete("provider");
+        if (search) newParams.set("search", search);
+        else newParams.delete("search");
+        if (typeNumber) newParams.set("typeNumber", typeNumber);
+        else newParams.delete("typeNumber");
+        return newParams;
+      });
     } catch (error: any) {
       if (error.name !== "AbortError") {
         console.error("Error when get data:", error);
       }
     } finally {
-      setTimeout(() => setLoading(false), 1000);
+      setLoading(false);
     }
-
-    return () => {
-      isMounted = false;
-      if (controllerRef.current) {
-        controllerRef.current.abort();
-      }
-    };
   }, [
     search,
     provider,
@@ -306,7 +297,11 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
               Danh sách số sẽ book:
             </label>
             <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
-              <div class="text-sm text-gray-700 dark:text-gray-300">${formattedPhoneList}</div>
+              <div class="text-sm text-gray-700 dark:text-gray-300">${
+                user.role !== 1
+                  ? formattedPhoneList
+                  : requestBody.phone_details.join(", ")
+              }</div>
             </div>
           </div>
          `,

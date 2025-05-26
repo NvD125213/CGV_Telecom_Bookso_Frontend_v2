@@ -195,7 +195,7 @@ function PhoneNumbers() {
         (phone: IPhoneNumber) => ({
           ...phone,
           phone_number:
-            status == "available"
+            status == "available" && user.role !== 1
               ? formatPhoneNumber(phone.phone_number)
               : phone.phone_number,
           booked_until: phone.booked_until
