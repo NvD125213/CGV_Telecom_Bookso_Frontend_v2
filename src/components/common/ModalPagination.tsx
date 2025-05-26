@@ -333,7 +333,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       className="max-w-[90%] min-h-[600px] m-4">
-      <div className="relative w-full p-4 overflow-y-auto bg-white rounded-3xl dark:bg-gray-900 lg:p-11">
+      <div className="relative w-full max-h-[70vh] overflow-y-auto bg-white rounded-tl-3xl rounded-br-3xl dark:bg-gray-900 lg:p-11">
         <div className="px-2 pr-14">
           <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
             {title}
