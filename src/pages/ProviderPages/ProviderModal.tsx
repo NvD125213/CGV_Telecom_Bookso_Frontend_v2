@@ -50,8 +50,12 @@ const ModalProvider: React.FC<ProviderModalProps> = ({
     if (!provider.name) {
       newErrors.name = "Tên nhà cung cấp không được để trống !";
     }
-    if (!provider.phone_number_limit_alert) {
-      newErrors.phone_number_limit_alert = "Hạn mức cảnh báo cần lớn hơn 0 !";
+    if (
+      provider.phone_number_limit_alert === undefined ||
+      provider.phone_number_limit_alert === null
+    ) {
+      newErrors.phone_number_limit_alert =
+        "Hạn mức cảnh báo không được để trống !";
     }
 
     setErrors(newErrors);
@@ -131,7 +135,7 @@ const ModalProvider: React.FC<ProviderModalProps> = ({
           name: "phone_number_limit_alert",
           label: "Hạn mức cảnh báo",
           type: "number",
-          value: provider.phone_number_limit_alert || "",
+          value: provider.phone_number_limit_alert,
           onChange: (value) =>
             setValue("phone_number_limit_alert", value as number),
           placeholder: "Nhập hạn mức cảnh báo",
