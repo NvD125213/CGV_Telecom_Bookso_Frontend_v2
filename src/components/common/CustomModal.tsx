@@ -115,11 +115,16 @@ const CustomModal: React.FC<CustomModalProps> = ({
                   ) : (
                     <Input
                       type={field.type}
-                      value={field.value || ""}
+                      value={
+                        field.value !== undefined && field.value !== null
+                          ? field.value
+                          : ""
+                      }
                       min="0"
                       onChange={(e) => {
                         if (field.type === "number") {
-                          field.onChange(Number(e.target.value));
+                          const val = e.target.value;
+                          field.onChange(val === "" ? "" : Number(val));
                         } else {
                           field.onChange(e.target.value);
                         }
