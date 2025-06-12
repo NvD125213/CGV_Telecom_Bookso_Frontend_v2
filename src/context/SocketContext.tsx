@@ -99,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
-    const newSocket = io("http://54.255.240.254:8000", {
+    const newSocket = io("https://bookso.cgvtelecom.vn:8000/", {
       path: "/socket.io",
       auth: { token },
       transports: ["websocket", "polling"],
