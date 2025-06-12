@@ -363,7 +363,11 @@ function PhoneNumbers() {
 
   const handleRevoke = async () => {
     if (selectedIdsFromStore.length === 0) {
-      alert("Vui lòng chọn ít nhất một số để thu hồi");
+      Swal.fire(
+        "Thông báo",
+        "Vui lòng chọn ít nhất một số để thu hồi",
+        "warning"
+      );
       return;
     }
 

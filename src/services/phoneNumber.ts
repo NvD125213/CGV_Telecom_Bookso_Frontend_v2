@@ -213,3 +213,11 @@ export const revokeNumber = async (data: any) => {
     throw new Error(err.response?.data.detail);
   }
 };
+
+export const revokeNumberForSale = async (data: any) => {
+  const res = await axiosInstance.put(
+    "/api/v2/phone-number/revoke-for-sale",
+    data
+  );
+  return res;
+};

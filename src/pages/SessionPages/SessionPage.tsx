@@ -10,7 +10,9 @@ import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
 import Pagination from "../../components/pagination/pagination";
 import { useSearchParams } from "react-router-dom";
-import InputDate from "../../components/common/InputDateFormat";
+import SwitchablePicker from "../../components/common/SwitchablePicker";
+
+type PickerType = "time" | "date" | "datetime" | "month" | "year";
 
 const columns: { key: keyof SessionData; label: string }[] = [
   { key: "username", label: "Tên tài khoản" },
@@ -25,7 +27,7 @@ const SessionPage = () => {
   const currentDate = new Date();
   const defaultDate = `${currentDate.getFullYear()}-${String(
     currentDate.getMonth() + 1
-  ).padStart(2, "0")}`;
+  ).padStart(2, "0")}-${String(currentDate.getDate()).padStart(2, "0")}`;
   const [historySession, setHistorySession] = useState<SessionRow[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>(
     searchParams.get("search") || ""
@@ -50,6 +52,7 @@ const SessionPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorData, setErrorData] = useState("");
+  const [pickerType, setPickerType] = useState<PickerType>("date");
 
   useEffect(() => {
     const newParams = new URLSearchParams(searchParams);
@@ -164,43 +167,53 @@ const SessionPage = () => {
     }
   };
 
-  const handleDateKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    value: string
-  ) => {
-    if (e.key === "Enter") {
-      setPage(1);
-      let isoDate = "";
-      const parts = value.split("/").filter((part) => part && part !== "00");
-      if (parts.length === 1) {
-        // yyyy
-        isoDate = parts[0].padStart(4, "0");
-      } else if (parts.length === 2) {
-        // mm/yyyy
-        isoDate = `${parts[1].padStart(4, "0")}-${parts[0].padStart(2, "0")}`;
-      } else if (parts.length === 3) {
-        // dd/mm/yyyy
-        isoDate = `${parts[2].padStart(4, "0")}-${parts[1].padStart(
-          2,
-          "0"
-        )}-${parts[0].padStart(2, "0")}`;
-      }
-      setSearchDate(isoDate);
-
-      const newParams = new URLSearchParams();
-      newParams.set("page", "1");
-      newParams.set("page_size", String(pageSize));
-
-      if (searchQuery) {
-        newParams.set("search", searchQuery);
-      }
-
-      if (isoDate) {
-        newParams.set("date", isoDate);
-      }
-
-      setSearchParams(newParams);
+  const handleDateChange = (date: Date | null) => {
+    if (!date) {
+      setSearchDate("");
+      return;
     }
+
+    let isoDate = "";
+    if (pickerType === "year") {
+      isoDate = date.getFullYear().toString();
+    } else if (pickerType === "month") {
+      isoDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}`;
+    } else {
+      isoDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}-${String(date.getDate()).padStart(2, "0")}`;
+    }
+
+    setSearchDate(isoDate);
+    setPage(1);
+
+    const newParams = new URLSearchParams();
+    newParams.set("page", "1");
+    newParams.set("page_size", String(pageSize));
+
+    if (searchQuery) {
+      newParams.set("search", searchQuery);
+    }
+
+    if (isoDate) {
+      newParams.set("date", isoDate);
+    }
+
+    setSearchParams(newParams);
+  };
+
+  const handlePickerTypeChange = (type: PickerType) => {
+    if (type === "time" || type === "datetime") return; // Chỉ cho phép date, month, year
+    setPickerType(type);
+    // Reset date when changing picker type
+    setSearchDate("");
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete("date");
+    setSearchParams(newParams);
   };
 
   const handlePageChange = (newPage: number) => {
@@ -237,19 +250,13 @@ const SessionPage = () => {
     handlePageChange(newPage);
   };
 
-  const validator = {
-    validate(value: string): string {
-      return value.replace(/[^\d/]/g, "").slice(0, 10);
-    },
-  };
-
   return (
     <>
       <PageBreadcrumb pageTitle="Lịch sử online" />
       <div className="space-y-6">
         {error && <div className="text-red-500">{error}</div>}
         <ComponentCard>
-          <div className="flex justify-start gap-4 mb-4 py-4">
+          <div className="flex justify-between items-center gap-4 mb-4 py-4 ">
             <div>
               <Label>Tìm kiếm</Label>
               <Input
@@ -261,18 +268,10 @@ const SessionPage = () => {
             </div>
             <div>
               <Label>Ngày hoạt động</Label>
-              <InputDate
-                value={
-                  searchDate
-                    ? searchDate
-                        .split("-")
-                        .reverse()
-                        .map((part) => part.padStart(2, "0"))
-                        .join("/")
-                    : ""
-                }
-                validator={validator}
-                onKeyDown={handleDateKeyDown}
+              <SwitchablePicker
+                value={searchDate ? new Date(searchDate) : null}
+                onChange={handleDateChange}
+                onTypeChange={handlePickerTypeChange}
               />
             </div>
           </div>

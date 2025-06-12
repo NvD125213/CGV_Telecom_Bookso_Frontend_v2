@@ -13,7 +13,14 @@ import { useSearchParams } from "react-router-dom";
 import { debounce } from "lodash";
 import DatePicker from "../../components/form/date-picker";
 import Select from "../../components/form/Select";
+import { IoCaretBackCircleOutline } from "react-icons/io5";
 import Input from "../../components/form/input/InputField";
+import Swal from "sweetalert2";
+import { getPhoneByID, revokeNumber } from "../../services/phoneNumber";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "../../store";
+import { resetSelectedIds } from "../../store/selectedPhoneSlice";
+
 const getColumns = (status: string) => {
   const columns: {
     key: keyof IHistoryBooked;
@@ -66,6 +73,10 @@ const getColumns = (status: string) => {
 type StatusType = "booked" | "released";
 
 const HistoryBooked = () => {
+  const dispatch = useDispatch();
+  const selectedIdsFromStore = useSelector(
+    (state: RootState) => state.selectedPhone.selectedIds
+  );
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<IHistoryBooked[]>([]);
   const [loading, setLoading] = useState(false);
@@ -74,9 +85,10 @@ const HistoryBooked = () => {
   const [limit, setLimit] = useState(Number(searchParams.get("limit")) || 20);
   const [offset, setOffset] = useState(Number(searchParams.get("offset")) || 0);
   const [status, setStatus] = useState<StatusType>("booked");
-
   const [totalPages, setTotalPages] = useState(0);
   const [errors, setErrors] = useState("");
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [selectedRows, setSelectedRows] = useState<IHistoryBooked[]>([]);
 
   useEffect(() => {
     if (!searchParams.get("limit") || !searchParams.get("offset")) {
@@ -197,6 +209,110 @@ const HistoryBooked = () => {
     }
   }, [month, year, filterType, debouncedFetchData]);
 
+  const handleRevoke = async () => {
+    if (selectedIdsFromStore.length === 0) {
+      Swal.fire(
+        "Thông báo",
+        "Vui lòng chọn ít nhất một số để thu hồi",
+        "warning"
+      );
+      return;
+    }
+
+    try {
+      // Fetch phone details for all selected IDs from store
+      const phoneDetailsPromises = selectedIdsFromStore.map((id) =>
+        getPhoneByID(Number(id))
+      );
+      const phoneDetailsResponses = await Promise.all(phoneDetailsPromises);
+
+      // Extract phone numbers from responses
+      const phoneDetails = phoneDetailsResponses
+        .filter((res) => res?.data)
+        .map((res) => res?.data.phone_number);
+
+      // Show confirmation modal with phone details first
+      const confirmResult = await Swal.fire({
+        title: "Xác nhận danh sách số",
+        html: `
+          <div class="text-left">
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+              Danh sách số sẽ thu hồi:
+            </label>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
+              <div class="text-sm text-gray-700 dark:text-gray-300">${phoneDetails.join(
+                ", "
+              )}</div>
+            </div>
+          </div>
+        `,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Xác nhận thu hồi",
+        cancelButtonText: "Hủy",
+        allowOutsideClick: false,
+      });
+
+      if (confirmResult.isConfirmed) {
+        const dataRevoke = {
+          id_phone_numbers: selectedIdsFromStore,
+        };
+
+        const res = await revokeNumber(dataRevoke);
+        if (res.status === 200) {
+          // Show success modal with phone list
+          await Swal.fire({
+            title: "Thu hồi thành công!",
+            html: `
+              <div class="text-left">
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                  Danh sách số đã thu hồi:
+                </label>
+                <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
+                  <div class="text-sm text-gray-700 dark:text-gray-300">${phoneDetails.join(
+                    ", "
+                  )}</div>
+                </div>
+              </div>
+            `,
+            showDenyButton: true,
+            icon: "success",
+            showCancelButton: true,
+            confirmButtonText: "Sao chép",
+            denyButtonText: "Bỏ qua",
+            allowOutsideClick: false,
+          }).then((result) => {
+            if (result.isConfirmed) {
+              // Copy to clipboard
+              navigator.clipboard.writeText(phoneDetails.join(", "));
+              Swal.fire("Đã sao chép!", "", "success");
+            }
+            // Reset states regardless of copy action
+            dispatch(resetSelectedIds());
+            setSelectedIds([]);
+            setSelectedRows([]);
+            fetchData();
+            setSearchParams({});
+          });
+        }
+      }
+    } catch (err: any) {
+      const error = err.response?.data?.detail;
+      Swal.fire(
+        "Oops...",
+        `${error || "Có lỗi xảy ra khi thu hồi, vui lòng thử lại!"}`,
+        "error"
+      );
+      // Reset states on error
+      dispatch(resetSelectedIds());
+      setSelectedIds([]);
+      setSelectedRows([]);
+      await fetchData();
+    }
+  };
+
   return (
     <>
       <PageBreadcrumb pageTitle="Lịch sử book số của bạn" />
@@ -267,12 +383,24 @@ const HistoryBooked = () => {
             placeholder="Chọn trạng thái"
           />
         </div>
+
+        <div>
+          {status === "booked" && (
+            <div className="flex items-end gap-2">
+              <button
+                onClick={handleRevoke}
+                className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+                <IoCaretBackCircleOutline size={22} />
+                Thu hồi
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="space-y-6">
         <ComponentCard>
           <ReusableTable
-            disabledReset={true}
             error={errors}
             title="Bảng lịch sử chi tiết"
             data={data ?? []}
@@ -281,6 +409,14 @@ const HistoryBooked = () => {
             pagination={{
               currentPage: offset,
               pageSize: limit,
+            }}
+            disabled={status !== "booked"}
+            onCheck={(
+              selectedIds: (string | number)[],
+              selectedRows: IHistoryBooked[]
+            ) => {
+              setSelectedIds(selectedIds.map((id) => Number(id)));
+              setSelectedRows(selectedRows);
             }}
           />
           <Pagination

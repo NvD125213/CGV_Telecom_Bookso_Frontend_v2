@@ -87,3 +87,10 @@ export const getBookingStatusBySales = async (params: IReportDate) => {
   );
   return response;
 };
+
+export const getTimeOnlineByUser = async () => {
+  const response = await axiosInstance.get(
+    "/api/v2/report/time-online-by-user"
+  );
+  return response;
+};

@@ -8,10 +8,10 @@ import {
 } from "../../services/phoneNumber";
 import ReusableTable from "../../components/common/ReusableTable";
 import { formatDate } from "../../helper/formatDateToISOString";
-import useDateFilter from "../../hooks/useDateFilter";
 import debounce from "lodash/debounce";
 import Swal from "sweetalert2";
 import Spinner from "../../components/common/LoadingSpinner";
+import SwitchablePicker from "../../components/common/SwitchablePicker";
 
 const columns: { key: keyof ILimitBooking; label: string }[] = [
   { key: "id", label: "ID" },
@@ -26,8 +26,10 @@ const LimitBookingPage = () => {
   const [loading, setLoading] = useState(false);
   const [loadingLimit, setLoadingLimit] = useState(false);
   const [errorData, setErrorData] = useState("");
-  const { day, setDay, month, setMonth, year, setYear, getFilter } =
-    useDateFilter();
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const [pickerType, setPickerType] = useState<"date" | "month" | "year">(
+    "date"
+  );
 
   const getAllData = useCallback(async (filter = {}) => {
     setLoading(true);
@@ -50,8 +52,36 @@ const LimitBookingPage = () => {
   }, []);
 
   const handleSearch = useCallback(() => {
-    getAllData(getFilter());
-  }, [getFilter, getAllData]);
+    if (!selectedDate) {
+      getAllData({});
+      return;
+    }
+
+    let filter: any = {};
+
+    switch (pickerType) {
+      case "date":
+        filter = {
+          day: selectedDate.getDate(),
+          month: selectedDate.getMonth() + 1,
+          year: selectedDate.getFullYear(),
+        };
+        break;
+      case "month":
+        filter = {
+          month: selectedDate.getMonth() + 1,
+          year: selectedDate.getFullYear(),
+        };
+        break;
+      case "year":
+        filter = {
+          year: selectedDate.getFullYear(),
+        };
+        break;
+    }
+
+    getAllData(filter);
+  }, [selectedDate, pickerType, getAllData]);
 
   useEffect(() => {
     const handler = debounce(() => {
@@ -115,37 +145,15 @@ const LimitBookingPage = () => {
           <PageBreadcrumb pageTitle="Giới hạn đặt số" />
 
           <div className="flex flex-wrap w-full p-6 items-center justify-end gap-3 mb-4">
-            <input
-              type="number"
-              placeholder="Ngày"
-              value={day ?? ""}
-              onChange={(e) => setDay(Number(e.target.value))}
-              className="border border-gray-300 rounded px-3 py-2 w-24 dark:placeholder-white/50 dark:text-white"
-              min={1}
-              max={31}
+            <SwitchablePicker
+              value={selectedDate}
+              onChange={(date) => {
+                setSelectedDate(date);
+              }}
+              onTypeChange={(type) => {
+                setPickerType(type as "date" | "month" | "year");
+              }}
             />
-            <input
-              type="number"
-              placeholder="Tháng"
-              value={month ?? ""}
-              onChange={(e) => setMonth(Number(e.target.value))}
-              className="border border-gray-300 rounded px-3 py-2 w-24 dark:placeholder-white/50 dark:text-white"
-              min={1}
-              max={12}
-            />
-            <input
-              type="number"
-              placeholder="Năm"
-              value={year ?? ""}
-              onChange={(e) => setYear(Number(e.target.value))}
-              className="border border-gray-300 rounded px-3 py-2 w-24 dark:placeholder-white/50 dark:text-white"
-              min={2000}
-            />
-            <button
-              onClick={handleSearch}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-              Tìm kiếm
-            </button>
           </div>
 
           <div className="space-y-6">

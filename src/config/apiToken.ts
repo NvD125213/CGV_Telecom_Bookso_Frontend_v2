@@ -9,7 +9,7 @@ export const setAxiosInactivityHandler = (resetFn: () => void) => {
 };
 
 const axiosInstance = axios.create({
-  baseURL: "https://bookso.cgvtelecom.vn:8000/",
+  baseURL: "http://54.255.240.254:8000/",
 });
 
 let isAlertShown = false;
@@ -48,7 +48,7 @@ axiosInstance.interceptors.response.use(
 
       try {
         const res = await axios.get(
-          "https://bookso.cgvtelecom.vn:8000/api/v1/auth/access_token_by_refresh_token",
+          "http://13.228.23.40:8000//api/v1/auth/access_token_by_refresh_token",
           {
             headers: {
               Authorization: `Bearer ${refreshToken}`,
