@@ -144,20 +144,19 @@ const LimitBookingPage = () => {
         <>
           <PageBreadcrumb pageTitle="Giới hạn đặt số" />
 
-          <div className="flex flex-wrap w-full p-6 items-center justify-end gap-3 mb-4">
-            <SwitchablePicker
-              value={selectedDate}
-              onChange={(date) => {
-                setSelectedDate(date);
-              }}
-              onTypeChange={(type) => {
-                setPickerType(type as "date" | "month" | "year");
-              }}
-            />
-          </div>
-
           <div className="space-y-6">
             <ComponentCard>
+              <div className="flex flex-wrap w-full items-center justify-end gap-3 mb-4">
+                <SwitchablePicker
+                  value={selectedDate}
+                  onChange={(date) => {
+                    setSelectedDate(date);
+                  }}
+                  onTypeChange={(type) => {
+                    setPickerType(type as "date" | "month" | "year");
+                  }}
+                />
+              </div>
               <ReusableTable
                 error={errorData}
                 title="Danh sách giới hạn của từng sale"

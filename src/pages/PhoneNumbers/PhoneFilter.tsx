@@ -495,7 +495,12 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
             <ComponentCard>
               <div className=" grid grid-cols-1 gap-4 lg:grid-cols-3">
                 <div>
-                  <Label htmlFor="inputTwo">Tìm kiếm theo đầu số</Label>
+                  <Label htmlFor="inputTwo">
+                    {" "}
+                    {user.role == 1
+                      ? "Tìm kiếm theo đầu số"
+                      : "Tìm kiếm theo đuôi số"}{" "}
+                  </Label>
                   <Input
                     type="text"
                     id="inputTwo"

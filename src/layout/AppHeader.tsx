@@ -10,9 +10,22 @@ import { getTimeOnlineByUser } from "../services/report";
 import { useSelector } from "react-redux";
 import { RootState } from "../store";
 
+const timeStringToSeconds = (timeStr: string): number => {
+  const [h, m, s] = timeStr.split(":").map(Number);
+  return h * 3600 + m * 60 + s;
+};
+
+const secondsToHHMMSS = (totalSeconds: number): string => {
+  const h = String(Math.floor(totalSeconds / 3600)).padStart(2, "0");
+  const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, "0");
+  const s = String(totalSeconds % 60).padStart(2, "0");
+  return `${h}:${m}:${s}`;
+};
+
 const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
   const [timeOnline, setTimeOnline] = useState(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const { user } = useSelector((state: RootState) => state.auth.user);
 
@@ -51,7 +64,8 @@ const AppHeader: React.FC = () => {
     try {
       const res = await getTimeOnlineByUser();
       if (res.status === 200) {
-        setTimeOnline(res.data.total_seconds);
+        const seconds = timeStringToSeconds(res.data.total_seconds); // convert
+        setTimeOnline(seconds);
       }
     } catch (err) {
       console.log(err);
@@ -61,6 +75,16 @@ const AppHeader: React.FC = () => {
   useEffect(() => {
     handleGetTimeOnlineByUser();
   }, [user]);
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      setTimeOnline((prev) => prev + 1);
+    }, 1000);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
 
   return (
     <header className="sticky top-0 flex w-full bg-white border-gray-200 dark:border-gray-800 dark:bg-gray-900 lg:border-b">
@@ -175,10 +199,15 @@ const AppHeader: React.FC = () => {
           } items-center justify-between w-full gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}>
           <div className="flex items-center gap-2 2xsm:gap-3">
             {/* <!-- Dark Mode Toggler --> */}
-            <div className="dark:text-white text-gray-800">Time online</div>
-            <Button className=" border-2 border-blue-600 text-blue-600 bg-blue-600">
-              {timeOnline}
-            </Button>
+            <button
+              type="button"
+              className="relative text-blue-600 border border-blue-600 focus:outline-none font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 bg-white dark:bg-transparent">
+              Online <span className="ml-1">{secondsToHHMMSS(timeOnline)}</span>
+              <span className="absolute -top-2 -right-2 text-[10px] dark:bg-gray-800 bg-white text-blue-600 px-1 rounded-full border border-blue-600 whitespace-nowrap">
+                trong tháng
+              </span>
+            </button>
+
             <ThemeToggleButton />
             {/* <!-- Dark Mode Toggler --> */}
             {/* <NotificationDropdown /> */}

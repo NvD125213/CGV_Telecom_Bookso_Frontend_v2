@@ -7,6 +7,7 @@ import { getDashBoard } from "../../../services/report";
 import ComponentCard from "../../common/ComponentCard";
 import ModalDetailReport from "./ModalDetailReport";
 import { RootState } from "../../../store";
+import SwitchablePicker from "../../common/SwitchablePicker";
 
 interface TotalAvailable {
   provider: string;
@@ -242,15 +243,28 @@ const ProviderReport = () => {
         return totalB - totalA;
       });
 
+      const minBarLength = 30;
+      const trueQuantityData = sortedData.map((item) => item.quantity || 0);
+      const trueBookedData = sortedData.map(
+        (item) => item.quantity_booked || 0
+      );
+
+      const renderQuantityData = trueQuantityData.map((val) =>
+        val === 0 ? 0 : val + minBarLength
+      );
+
+      const renderBookedData = trueBookedData.map((val) =>
+        val === 0 ? 0 : val + minBarLength
+      );
       const categories = sortedData.map((item) => item.name);
       const series = [
         {
           name: "Số lượng có sẵn",
-          data: sortedData.map((item) => item.quantity || 0),
+          data: renderQuantityData,
         },
         {
           name: "Số lượng đã book",
-          data: sortedData.map((item) => item.quantity_booked || 0),
+          data: renderBookedData,
         },
       ];
 
@@ -261,8 +275,7 @@ const ProviderReport = () => {
       );
       const numDigits = maxTotal.toString().length;
       const base = Math.pow(10, numDigits - 1);
-      const yAxisMax = Math.ceil(maxTotal / base) * base;
-      const threshold = maxTotal / 100;
+      const yAxisMax = Math.ceil(maxTotal / base) * base + minBarLength * 2;
 
       return {
         series,
@@ -270,6 +283,7 @@ const ProviderReport = () => {
           chart: {
             type: "bar" as const,
             height: 800,
+
             stacked: true,
             toolbar: {
               show: false,
@@ -288,11 +302,11 @@ const ProviderReport = () => {
           plotOptions: {
             bar: {
               horizontal: true,
-              barHeight: "80%",
+              barHeight: 30,
               dataLabels: {
                 position: "center",
               },
-              columnWidth: "90%",
+              columnWidth: "100%",
               rangeBarOverlap: false,
               rangeBarGroupRows: false,
               borderRadius: 0,
@@ -300,10 +314,7 @@ const ProviderReport = () => {
               endingShape: "flat",
             },
           },
-          stroke: {
-            width: 1,
-            colors: ["#fff"],
-          },
+
           title: {
             text: "Thống kê số lượng theo nhà cung cấp",
             align: "left" as const,
@@ -346,7 +357,7 @@ const ProviderReport = () => {
                 fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
               },
               offsetX: 0,
-              maxWidth: 200,
+              maxWidth: 300,
               trim: false,
               formatter: function (val: number, opts?: any) {
                 const value =
@@ -404,61 +415,23 @@ const ProviderReport = () => {
           dataLabels: {
             enabled: true,
             formatter: function (
-              val: number,
-              {
-                seriesIndex: _seriesIndex,
-                dataPointIndex,
-                w,
-              }: {
-                seriesIndex: any;
-                dataPointIndex: number;
-                w: any;
-              }
+              val: any,
+              { seriesIndex, dataPointIndex }: any
             ) {
-              const total = w.globals.seriesTotals[dataPointIndex];
-              if (total < threshold) {
-                return "";
-              }
-              return val === 1 ? "" : val > 0 ? val.toFixed(0) : "";
+              const displayVal =
+                seriesIndex === 0
+                  ? trueQuantityData[dataPointIndex]
+                  : trueBookedData[dataPointIndex];
+
+              return displayVal > 0 ? displayVal.toFixed(0) : "";
             },
             style: {
               colors: ["#fff"],
               fontSize: "14px",
               fontWeight: "bold",
             },
-            textAnchor: "middle" as const,
-            offsetX: 0,
-            offsetY: 0,
-            background: {
-              enabled: false,
-            },
-            dropShadow: {
-              enabled: false,
-            },
-            custom: function ({
-              seriesIndex,
-              dataPointIndex,
-              w,
-            }: {
-              seriesIndex: any;
-              dataPointIndex: any;
-              w: any;
-            }) {
-              const value = w.globals.series[seriesIndex][dataPointIndex];
-              const total = w.globals.seriesTotals[dataPointIndex];
-              if (total < threshold) {
-                return "";
-              }
-              const percentage = (value / total) * 100;
-              let fontSize = "14px";
-              if (percentage < 10) {
-                fontSize = "10px";
-              } else if (percentage < 20) {
-                fontSize = "12px";
-              }
-              return `<div style="font-size: ${fontSize}">${value}</div>`;
-            },
           },
+
           grid: {
             xaxis: {
               lines: {
@@ -474,7 +447,7 @@ const ProviderReport = () => {
               top: 0,
               right: 0,
               bottom: 0,
-              left: 100,
+              left: 150,
             },
             borderColor: "#f1f1f1",
             strokeDashArray: 0,
@@ -492,8 +465,14 @@ const ProviderReport = () => {
       const numDigits = maxValue.toString().length;
       const base = Math.pow(10, numDigits - 1);
       const xAxisMax = Math.ceil(maxValue / base) * base;
-      const threshold = maxValue / 100;
-
+      const itemCount = chartData.length;
+      const minHeightPerBar = 50;
+      const minHeight = 300;
+      const maxHeight = 1200;
+      const computedHeight = Math.max(
+        minHeight,
+        Math.min(itemCount * minHeightPerBar, maxHeight)
+      );
       return {
         series: [
           {
@@ -508,7 +487,7 @@ const ProviderReport = () => {
         options: {
           chart: {
             type: "bar" as const,
-            height: 800,
+            height: computedHeight,
             stacked: true,
             toolbar: {
               show: false,
@@ -530,7 +509,7 @@ const ProviderReport = () => {
           plotOptions: {
             bar: {
               horizontal: true,
-              barHeight: "30%",
+              barHeight: 30,
               distributed: false,
               dataLabels: {
                 position: "center",
@@ -680,6 +659,7 @@ const ProviderReport = () => {
             offsetX: 40,
           },
         },
+        height: computedHeight,
       };
     }
   }, [chartData, selectedData, theme]);
@@ -712,44 +692,48 @@ const ProviderReport = () => {
                   className="px-3 py-2 border rounded w-32 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                   maxLength={10}
                 />
-                {loading && <span className="text-gray-500">Loading...</span>}
+                {loading && (
+                  <span className="text-gray-500 dark:text-white">
+                    Loading...
+                  </span>
+                )}
               </div>
             </div>
           )}
           <div className="flex gap-2">
             <button
-              className={`px-4 py-2 rounded ${
-                selectedData === "total_available"
-                  ? "bg-blue-500 text-white"
-                  : "bg-white text-black"
-              }`}
+              className={
+                "px-4 py-2 rounded-lg font-medium transition-all duration-200 border " +
+                (selectedData === "total_available"
+                  ? "bg-blue-500 hover:bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-500/25 dark:shadow-blue-500/20"
+                  : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300 " +
+                    "dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-500")
+              }
               onClick={() => setSelectedData("total_available")}>
               Tổng số có sẵn
             </button>
             <button
-              className={`px-4 py-2 rounded ${
-                selectedData === "booked_by_sales"
-                  ? "bg-green-500 text-white"
-                  : "bg-white text-black"
-              }`}
+              className={
+                "px-4 py-2 rounded-lg font-medium transition-all duration-200 border " +
+                (selectedData === "booked_by_sales"
+                  ? "bg-green-500 hover:bg-green-600 text-white border-green-500 shadow-lg shadow-green-500/25 dark:shadow-green-500/20"
+                  : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300 " +
+                    "dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-500")
+              }
               onClick={() => setSelectedData("booked_by_sales")}>
               Sale đã book
             </button>
           </div>
         </div>
 
-        <div className="h-[500px] w-full">
-          {chartRenderKey > 0 && (
-            <ApexCharts
-              key={chartKey}
-              options={chartOptions.options}
-              series={chartOptions.series}
-              type="bar"
-              height="100%"
-              width="100%"
-            />
-          )}
-        </div>
+        <ApexCharts
+          key={chartKey}
+          options={chartOptions.options}
+          series={chartOptions.series}
+          type="bar"
+          height={chartOptions.height} // ✅ Dùng số
+          width="100%"
+        />
 
         {showBookingStatus && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -764,8 +748,11 @@ const ProviderReport = () => {
                   ✕
                 </button>
               </div>
+
               {loadingStatus ? (
-                <div className="text-center py-4">Loading...</div>
+                <div className="flex justify-center py-10">
+                  <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
               ) : (
                 <div className="space-y-4">
                   {bookingStatusData.map((item, index) => (

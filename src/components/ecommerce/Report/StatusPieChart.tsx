@@ -169,7 +169,8 @@ const NumberStatusPieChart = () => {
             Chưa có dữ liệu
           </div>
         ) : (
-          <PieChart className="mt-3.5" width={500} height={360}>
+          <PieChart width={500} height={300} className="mt-3.5">
+            {" "}
             <Pie
               data={data}
               cx="50%"
