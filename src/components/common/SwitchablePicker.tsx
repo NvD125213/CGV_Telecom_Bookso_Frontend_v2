@@ -183,6 +183,7 @@ const SwitchablePicker: React.FC<PickerDateTimeProps> = ({
       <LocalizationProvider dateAdapter={AdapterDateFns}>
         <Box
           display="flex"
+          zIndex={0}
           gap={2}
           alignItems="center"
           sx={{ bgcolor: "background.default" }}>

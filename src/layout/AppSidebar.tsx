@@ -332,7 +332,7 @@ const AppSidebar: React.FC = () => {
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}>
       <div
-        className={`flex ${
+        className={`hidden  lg:flex ${
           !isExpanded && !isHovered
             ? "lg:justify-center"
             : "justify-start pt-4 pb-4"
@@ -370,7 +370,7 @@ const AppSidebar: React.FC = () => {
           <div className="flex flex-col gap-4">
             <div>
               <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
+                className={`mb-4 text-xs mt-6 uppercase flex leading-[20px] text-gray-400 ${
                   !isExpanded && !isHovered
                     ? "lg:justify-center"
                     : "justify-start"

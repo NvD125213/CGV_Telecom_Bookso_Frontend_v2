@@ -1,9 +1,18 @@
 import { useEffect, useRef, useState } from "react";
-import { Cell, Legend, Pie, PieChart, Tooltip } from "recharts";
+import {
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
 import { getDashBoard } from "../../../services/report";
 import { IReportDetail } from "../../../types";
 import ComponentCard from "../../common/ComponentCard";
 import ModalPagination from "../../common/ModalPagination";
+import Select from "../../form/Select";
+import Input from "../../form/input/InputField";
 
 // CustomLegend component
 const CustomLegend = (props: {
@@ -124,44 +133,78 @@ const NumberStatusPieChart = () => {
 
   const totalValue = data.reduce((sum, item) => sum + item.value, 0);
 
+  const [windowWidth, setWindowWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 1024
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Tính toán radius dựa trên kích thước màn hình
+  const getRadius = () => {
+    if (windowWidth < 760) {
+      return {
+        innerRadius: 40, // Giảm từ 60 xuống 40
+        outerRadius: 80, // Giảm từ 120 xuống 80
+      };
+    }
+    return {
+      innerRadius: 60,
+      outerRadius: 120,
+    };
+  };
+
+  const { innerRadius, outerRadius } = getRadius();
+
   return (
     <ComponentCard>
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center py-3">
         <h3 className="text-xl font-semibold mb-4 dark:text-white">
           Thống kê số theo trạng thái
         </h3>
-        <div className="flex gap-4 mb-4">
-          <select
-            className="p-2 border rounded dark:bg-black dark:text-white"
-            value={year}
-            onChange={(e) => setYear(parseInt(e.target.value))}>
-            {Array.from({ length: 10 }, (_, index) => (
-              <option key={index} value={new Date().getFullYear() - index}>
-                {new Date().getFullYear() - index}
-              </option>
-            ))}
-          </select>
+        <div className="grid grid-cols-2 gap-4 mb-4 w-full">
+          {/* Row 1 - 2 Select */}
+          <div className="col-span-2 md:col-span-1">
+            <Select
+              options={Array.from({ length: 10 }, (_, index) => ({
+                value: (new Date().getFullYear() - index).toString(),
+                label: (new Date().getFullYear() - index).toString(),
+              }))}
+              value={year.toString()}
+              onChange={(value) => setYear(parseInt(value))}
+              className="w-full"
+            />
+          </div>
+          <div className="col-span-2 md:col-span-1">
+            <Select
+              options={Array.from({ length: 12 }, (_, index) => ({
+                value: (index + 1).toString(),
+                label: `Tháng ${index + 1}`,
+              }))}
+              value={month.toString()}
+              onChange={(value) => setMonth(parseInt(value))}
+              className="w-full"
+            />
+          </div>
 
-          <select
-            className="p-2 border rounded dark:bg-black dark:text-white"
-            value={month}
-            onChange={(e) => setMonth(parseInt(e.target.value))}>
-            {Array.from({ length: 12 }, (_, index) => (
-              <option key={index} value={index + 1}>
-                Tháng {index + 1}
-              </option>
-            ))}
-          </select>
-
-          <input
-            type="number"
-            className="p-2 border rounded w-20 dark:bg-black dark:text-white dark:placeholder-white"
-            placeholder="Ngày"
-            value={day}
-            onChange={(e) => setDay(e.target.value)}
-            min="1"
-            max="31"
-          />
+          {/* Row 2 - Input full width */}
+          <div className="col-span-2">
+            <Input
+              type="number"
+              className="w-full"
+              placeholder="Ngày"
+              value={day}
+              onChange={(e) => setDay(e.target.value)}
+              min="1"
+              max="31"
+            />
+          </div>
         </div>
 
         {totalValue === 0 ? (
@@ -169,32 +212,42 @@ const NumberStatusPieChart = () => {
             Chưa có dữ liệu
           </div>
         ) : (
-          <PieChart width={500} height={300} className="mt-3.5">
-            {" "}
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={60}
-              outerRadius={120}
-              dataKey="value"
-              label>
-              {data.map((entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={COLORS[index % COLORS.length]}
-                  className="cursor-pointer transition-transform hover:scale-105"
-                  onClick={() => handleClick(entry)}
+          <div className="w-full z-0 max-w-[500px] min-h-[320px] h-[320px] md:h-[350px] lg:h-[400px]">
+            <ResponsiveContainer width={"100%"} height={"100%"}>
+              <PieChart margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="45%"
+                  innerRadius={innerRadius}
+                  outerRadius={outerRadius}
+                  dataKey="value"
+                  label>
+                  {data.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                      className="cursor-pointer transition-transform hover:scale-105"
+                      onClick={() => handleClick(entry)}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip
+                  wrapperStyle={{
+                    pointerEvents: "auto",
+                    maxWidth: "90vw",
+                    whiteSpace: "normal",
+                    wordBreak: "break-word",
+                  }}
                 />
-              ))}
-            </Pie>
-            <Tooltip />
-            <Legend
-              content={(props) => (
-                <CustomLegend {...props} onLegendClick={handleClick} /> // Pass handleClick directly
-              )}
-            />
-          </PieChart>
+                <Legend
+                  content={(props) => (
+                    <CustomLegend {...props} onLegendClick={handleClick} />
+                  )}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         )}
       </div>
 

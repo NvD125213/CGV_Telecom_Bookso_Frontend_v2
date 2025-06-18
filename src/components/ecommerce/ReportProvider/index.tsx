@@ -283,14 +283,13 @@ const ProviderReport = () => {
           chart: {
             type: "bar" as const,
             height: 800,
-
             stacked: true,
             toolbar: {
               show: false,
             },
             fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
             animations: {
-              enabled: false,
+              enabled: true,
             },
             padding: {
               left: 100,
@@ -314,7 +313,6 @@ const ProviderReport = () => {
               endingShape: "flat",
             },
           },
-
           title: {
             text: "Thống kê số lượng theo nhà cung cấp",
             align: "left" as const,
@@ -346,7 +344,7 @@ const ProviderReport = () => {
               show: false,
             },
             tooltip: {
-              enabled: false,
+              enabled: true,
             },
             min: 0,
           },
@@ -396,11 +394,11 @@ const ProviderReport = () => {
               const data = sortedData[dataPointIndex];
               const total = (data.quantity || 0) + (data.quantity_booked || 0);
               return `<div class="p-2">
-                  <div class="dark:text-white"><b>${data.name}</b></div>
-                  <div class="dark:text-white">Số lượng có sẵn: ${data.quantity}</div>
-                  <div class="dark:text-white">Số lượng đã book: ${data.quantity_booked}</div>
-                  <div class="dark:text-white"><b>Tổng: ${total}</b></div>
-                </div>`;
+          <div class="dark:text-white"><b>${data.name}</b></div>
+          <div class="dark:text-white">Số lượng có sẵn: ${data.quantity}</div>
+          <div class="dark:text-white">Số lượng đã book: ${data.quantity_booked}</div>
+          <div class="dark:text-white"><b>Tổng: ${total}</b></div>
+        </div>`;
             },
           },
           fill: {
@@ -410,6 +408,7 @@ const ProviderReport = () => {
             position: "top" as const,
             horizontalAlign: "left" as const,
             offsetX: 40,
+            fontSize: "12px",
           },
           colors: chartColors.totalAvailable,
           dataLabels: {
@@ -431,7 +430,6 @@ const ProviderReport = () => {
               fontWeight: "bold",
             },
           },
-
           grid: {
             xaxis: {
               lines: {
@@ -447,11 +445,264 @@ const ProviderReport = () => {
               top: 0,
               right: 0,
               bottom: 0,
-              left: 150,
+              left: 50,
             },
             borderColor: "#f1f1f1",
             strokeDashArray: 0,
           },
+
+          responsive: [
+            {
+              // Desktop large (>= 1440px)
+              breakpoint: 9999,
+              options: {
+                chart: {
+                  height: 800,
+                },
+                plotOptions: {
+                  bar: {
+                    barHeight: 35,
+                  },
+                },
+                yaxis: {
+                  labels: {
+                    maxWidth: 300,
+                    style: {
+                      fontSize: "12px",
+                    },
+                    formatter: function (val: number, opts?: any) {
+                      const value =
+                        opts?.w?.globals?.labels[opts?.dataPointIndex] || "";
+                      return value.length > 25
+                        ? value.substring(0, 25) + "..."
+                        : value;
+                    },
+                  },
+                },
+                grid: {
+                  padding: {
+                    left: 180,
+                  },
+                },
+                title: {
+                  style: {
+                    fontSize: "18px",
+                  },
+                },
+                dataLabels: {
+                  style: {
+                    fontSize: "14px",
+                  },
+                },
+              },
+            },
+            {
+              // Desktop medium (1024px - 1439px)
+              breakpoint: 1440,
+              options: {
+                chart: {
+                  height: 700,
+                },
+                plotOptions: {
+                  bar: {
+                    barHeight: 30,
+                  },
+                },
+                yaxis: {
+                  labels: {
+                    maxWidth: 250,
+                    style: {
+                      fontSize: "11px",
+                    },
+                    formatter: function (val: number, opts?: any) {
+                      const value =
+                        opts?.w?.globals?.labels[opts?.dataPointIndex] || "";
+                      return value.length > 22
+                        ? value.substring(0, 22) + "..."
+                        : value;
+                    },
+                  },
+                },
+                grid: {
+                  padding: {
+                    left: 150,
+                  },
+                },
+                title: {
+                  style: {
+                    fontSize: "16px",
+                  },
+                },
+                dataLabels: {
+                  style: {
+                    fontSize: "13px",
+                  },
+                },
+              },
+            },
+            {
+              // Tablet (768px - 1023px)
+              breakpoint: 1024,
+              options: {
+                chart: {
+                  height: 600,
+                },
+                plotOptions: {
+                  bar: {
+                    barHeight: 25,
+                  },
+                },
+                yaxis: {
+                  labels: {
+                    maxWidth: 180,
+                    style: {
+                      fontSize: "10px",
+                    },
+                    formatter: function (val: number, opts?: any) {
+                      const value =
+                        opts?.w?.globals?.labels[opts?.dataPointIndex] || "";
+                      return value.length > 18
+                        ? value.substring(0, 18) + "..."
+                        : value;
+                    },
+                  },
+                },
+                legend: {
+                  offsetX: 0,
+                  fontSize: "11px",
+                },
+                grid: {
+                  padding: {
+                    left: 120,
+                  },
+                },
+                title: {
+                  style: {
+                    fontSize: "15px",
+                  },
+                },
+                dataLabels: {
+                  style: {
+                    fontSize: "11px",
+                  },
+                },
+                xaxis: {
+                  tickAmount: 4,
+                },
+              },
+            },
+            {
+              // Mobile large (576px - 767px)
+              breakpoint: 768,
+              options: {
+                chart: {
+                  height: 500,
+                },
+                plotOptions: {
+                  bar: {
+                    barHeight: 20,
+                  },
+                },
+                yaxis: {
+                  labels: {
+                    maxWidth: 120,
+                    style: {
+                      fontSize: "9px",
+                    },
+                    formatter: function (val: number, opts?: any) {
+                      const value =
+                        opts?.w?.globals?.labels[opts?.dataPointIndex] || "";
+                      return value.length > 15
+                        ? value.substring(0, 15) + "..."
+                        : value;
+                    },
+                  },
+                },
+                title: {
+                  style: {
+                    fontSize: "14px",
+                  },
+                },
+                dataLabels: {
+                  enabled: true,
+                  style: {
+                    fontSize: "10px",
+                  },
+                },
+                legend: {
+                  position: "bottom",
+                  fontSize: "10px",
+                  offsetX: 0,
+                  horizontalAlign: "center" as const,
+                },
+                grid: {
+                  padding: {
+                    left: 90,
+                  },
+                },
+                xaxis: {
+                  tickAmount: 3,
+                },
+              },
+            },
+            {
+              // Mobile small (< 576px)
+              breakpoint: 576,
+              options: {
+                chart: {
+                  height: 450,
+                },
+                plotOptions: {
+                  bar: {
+                    barHeight: 18,
+                  },
+                },
+                yaxis: {
+                  labels: {
+                    maxWidth: 100,
+                    style: {
+                      fontSize: "8px",
+                    },
+                    formatter: function (val: number, opts?: any) {
+                      const value =
+                        opts?.w?.globals?.labels[opts?.dataPointIndex] || "";
+                      return value.length > 12
+                        ? value.substring(0, 12) + "..."
+                        : value;
+                    },
+                  },
+                },
+                title: {
+                  style: {
+                    fontSize: "13px",
+                  },
+                  margin: 15,
+                },
+                dataLabels: {
+                  enabled: true, // Tắt data labels trên mobile nhỏ
+                },
+                legend: {
+                  position: "bottom",
+                  fontSize: "9px",
+                  offsetX: 0,
+                  horizontalAlign: "center" as const,
+                },
+                grid: {
+                  padding: {
+                    left: 70,
+                  },
+                },
+                xaxis: {
+                  tickAmount: 2,
+                  labels: {
+                    style: {
+                      fontSize: "8px",
+                    },
+                  },
+                },
+              },
+            },
+          ],
         },
       };
     } else {
@@ -494,7 +745,7 @@ const ProviderReport = () => {
             },
             fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
             animations: {
-              enabled: false,
+              enabled: true,
             },
             padding: {
               left: 100,
@@ -510,11 +761,10 @@ const ProviderReport = () => {
             bar: {
               horizontal: true,
               barHeight: 30,
-              distributed: false,
               dataLabels: {
                 position: "center",
               },
-              columnWidth: "95%",
+              columnWidth: "100%",
               rangeBarOverlap: false,
               rangeBarGroupRows: false,
               borderRadius: 0,
@@ -523,18 +773,23 @@ const ProviderReport = () => {
             },
           },
           colors: ["#3B82F6", "#FF9800"],
+          dataLabels: {
+            enabled: true,
+            style: {
+              colors: ["#fff"],
+              fontSize: "14px",
+              fontWeight: "bold",
+            },
+          },
           xaxis: {
             categories: sortedData.map((item) => item.name),
             labels: {
               formatter: function (val: any) {
                 return val.toFixed(0);
               },
-              style: {
-                fontSize: "13px",
-                fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
-              },
             },
             max: xAxisMax,
+            tickAmount: 5,
             axisBorder: {
               show: true,
             },
@@ -546,7 +801,7 @@ const ProviderReport = () => {
               show: false,
             },
             tooltip: {
-              enabled: false,
+              enabled: true,
             },
             min: 0,
           },
@@ -557,7 +812,7 @@ const ProviderReport = () => {
                 fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
               },
               offsetX: 0,
-              maxWidth: 200,
+              maxWidth: 300,
               trim: false,
               formatter: function (val: number, opts?: any) {
                 const value =
@@ -589,7 +844,7 @@ const ProviderReport = () => {
               top: 0,
               right: 0,
               bottom: 0,
-              left: 100,
+              left: 40, // Giảm xuống 40 hoặc nhỏ hơn nếu cần
             },
             borderColor: "#f1f1f1",
             strokeDashArray: 0,
@@ -635,10 +890,7 @@ const ProviderReport = () => {
               fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
               color: theme == "light" ? "#333" : "#fff",
             },
-          },
-          padding: {
-            left: 20,
-            right: 20,
+            margin: 20,
           },
           states: {
             normal: {
@@ -658,6 +910,270 @@ const ProviderReport = () => {
             horizontalAlign: "left" as const,
             offsetX: 40,
           },
+          responsive: [
+            {
+              // Desktop large (>= 1440px)
+              breakpoint: 9999,
+              options: {
+                chart: {
+                  height: computedHeight,
+                },
+                plotOptions: {
+                  bar: {
+                    barHeight: 35,
+                  },
+                },
+                yaxis: {
+                  labels: {
+                    maxWidth: 300,
+                    style: {
+                      fontSize: "12px",
+                    },
+                    formatter: function (val: number, opts?: any) {
+                      const value =
+                        opts?.w?.globals?.labels[opts?.dataPointIndex] || "";
+                      return value.length > 25
+                        ? value.substring(0, 25) + "..."
+                        : value;
+                    },
+                  },
+                },
+                grid: {
+                  padding: {
+                    left: 180,
+                  },
+                },
+                title: {
+                  style: {
+                    fontSize: "18px",
+                  },
+                },
+                dataLabels: {
+                  style: {
+                    fontSize: "14px",
+                  },
+                },
+              },
+            },
+            {
+              // Desktop medium (1024px - 1439px)
+              breakpoint: 1440,
+              options: {
+                chart: {
+                  height: Math.max(
+                    minHeight,
+                    Math.min(itemCount * 45, maxHeight)
+                  ),
+                },
+                plotOptions: {
+                  bar: {
+                    barHeight: 30,
+                  },
+                },
+                yaxis: {
+                  labels: {
+                    maxWidth: 250,
+                    style: {
+                      fontSize: "11px",
+                    },
+                    formatter: function (val: number, opts?: any) {
+                      const value =
+                        opts?.w?.globals?.labels[opts?.dataPointIndex] || "";
+                      return value.length > 22
+                        ? value.substring(0, 22) + "..."
+                        : value;
+                    },
+                  },
+                },
+                grid: {
+                  padding: {
+                    left: 150,
+                  },
+                },
+                title: {
+                  style: {
+                    fontSize: "16px",
+                  },
+                },
+                dataLabels: {
+                  style: {
+                    fontSize: "13px",
+                  },
+                },
+              },
+            },
+            {
+              // Tablet (768px - 1023px)
+              breakpoint: 1024,
+              options: {
+                chart: {
+                  height: Math.max(
+                    minHeight,
+                    Math.min(itemCount * 40, maxHeight)
+                  ),
+                },
+                plotOptions: {
+                  bar: {
+                    barHeight: 25,
+                  },
+                },
+                yaxis: {
+                  labels: {
+                    maxWidth: 180,
+                    style: {
+                      fontSize: "10px",
+                    },
+                    formatter: function (val: number, opts?: any) {
+                      const value =
+                        opts?.w?.globals?.labels[opts?.dataPointIndex] || "";
+                      return value.length > 18
+                        ? value.substring(0, 18) + "..."
+                        : value;
+                    },
+                  },
+                },
+                legend: {
+                  offsetX: 0,
+                  fontSize: "11px",
+                },
+                grid: {
+                  padding: {
+                    left: 120,
+                  },
+                },
+                title: {
+                  style: {
+                    fontSize: "15px",
+                  },
+                },
+                dataLabels: {
+                  style: {
+                    fontSize: "11px",
+                  },
+                },
+                xaxis: {
+                  tickAmount: 4,
+                },
+              },
+            },
+            {
+              // Mobile large (576px - 767px)
+              breakpoint: 768,
+              options: {
+                chart: {
+                  height: Math.max(
+                    minHeight,
+                    Math.min(itemCount * 35, maxHeight)
+                  ),
+                },
+                plotOptions: {
+                  bar: {
+                    barHeight: 20,
+                  },
+                },
+                yaxis: {
+                  labels: {
+                    maxWidth: 120,
+                    style: {
+                      fontSize: "9px",
+                    },
+                    formatter: function (val: number, opts?: any) {
+                      const value =
+                        opts?.w?.globals?.labels[opts?.dataPointIndex] || "";
+                      return value.length > 15
+                        ? value.substring(0, 15) + "..."
+                        : value;
+                    },
+                  },
+                },
+                title: {
+                  style: {
+                    fontSize: "14px",
+                  },
+                },
+                dataLabels: {
+                  enabled: true,
+                  style: {
+                    fontSize: "10px",
+                  },
+                },
+                legend: {
+                  position: "bottom",
+                  fontSize: "10px",
+                  offsetX: 0,
+                  horizontalAlign: "center" as const,
+                },
+                grid: {
+                  padding: {
+                    left: 90,
+                  },
+                },
+                xaxis: {
+                  tickAmount: 3,
+                },
+              },
+            },
+            {
+              // Mobile small (< 576px)
+              breakpoint: 576,
+              options: {
+                chart: {
+                  height: Math.max(
+                    minHeight,
+                    Math.min(itemCount * 30, maxHeight)
+                  ),
+                },
+                plotOptions: {
+                  bar: {
+                    barHeight: 18,
+                  },
+                },
+                yaxis: {
+                  labels: {
+                    maxWidth: 100,
+                    style: {
+                      fontSize: "8px",
+                    },
+                    formatter: function (val: number, opts?: any) {
+                      const value =
+                        opts?.w?.globals?.labels[opts?.dataPointIndex] || "";
+                      return value.length > 12
+                        ? value.substring(0, 12) + "..."
+                        : value;
+                    },
+                  },
+                },
+                title: {
+                  style: {
+                    fontSize: "13px",
+                  },
+                  margin: 15,
+                },
+                dataLabels: {
+                  enabled: true,
+                },
+                legend: {
+                  position: "bottom",
+                  fontSize: "9px",
+                  offsetX: 0,
+                  horizontalAlign: "center" as const,
+                },
+                grid: {
+                  padding: {
+                    left: 70,
+                  },
+                },
+                xaxis: {
+                  tickAmount: 2,
+                  labels: {
+                    style: {
+                      fontSize: "8px",
+                    },
+                  },
+                },
+              },
+            },
+          ],
         },
         height: computedHeight,
       };
@@ -676,34 +1192,16 @@ const ProviderReport = () => {
     <ComponentCard>
       <div className="p-3">
         <div
-          className={`flex ${
+          className={`flex flex-col gap-3 mb-4 sm:flex-row ${
             selectedData == "booked_by_sales"
-              ? "justify-between items-center"
-              : "justify-end"
-          } mb-4`}>
-          {selectedData == "booked_by_sales" && (
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={date}
-                  onChange={handleDateChange}
-                  placeholder="YYYY/MM/DD"
-                  className="px-3 py-2 border rounded w-32 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-                  maxLength={10}
-                />
-                {loading && (
-                  <span className="text-gray-500 dark:text-white">
-                    Loading...
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-          <div className="flex gap-2">
+              ? "sm:justify-between sm:items-center"
+              : "sm:justify-end"
+          }`}>
+          {/* Button Group */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:gap-2 md:gap-3">
             <button
               className={
-                "px-4 py-2 rounded-lg font-medium transition-all duration-200 border " +
+                "px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium text-sm sm:text-base transition-all duration-200 border whitespace-nowrap " +
                 (selectedData === "total_available"
                   ? "bg-blue-500 hover:bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-500/25 dark:shadow-blue-500/20"
                   : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300 " +
@@ -712,9 +1210,10 @@ const ProviderReport = () => {
               onClick={() => setSelectedData("total_available")}>
               Tổng số có sẵn
             </button>
+
             <button
               className={
-                "px-4 py-2 rounded-lg font-medium transition-all duration-200 border " +
+                "px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium text-sm sm:text-base transition-all duration-200 border whitespace-nowrap " +
                 (selectedData === "booked_by_sales"
                   ? "bg-green-500 hover:bg-green-600 text-white border-green-500 shadow-lg shadow-green-500/25 dark:shadow-green-500/20"
                   : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300 " +
@@ -724,6 +1223,27 @@ const ProviderReport = () => {
               Sale đã book
             </button>
           </div>
+
+          {/* Date Input Section - Only show when booked_by_sales is selected */}
+          {selectedData == "booked_by_sales" && (
+            <div className="flex items-center gap-3 sm:gap-4 sm:ml-4 sm:mt-0 mt-2 order-first sm:order-none w-full sm:w-auto">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <input
+                  type="text"
+                  value={date}
+                  onChange={handleDateChange}
+                  placeholder="YYYY/MM/DD"
+                  className="px-3 py-2 border rounded-lg w-full sm:w-32 text-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors duration-200"
+                  maxLength={10}
+                />
+                {loading && (
+                  <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    Loading...
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <ApexCharts
