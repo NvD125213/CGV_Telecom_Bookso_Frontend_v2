@@ -23,7 +23,7 @@ import { useEffect } from "react";
 import { setAxiosInactivityHandler } from "./config/apiToken";
 import { Toaster } from "react-hot-toast";
 import SessionPage from "./pages/SessionPages/SessionPage";
-
+import CardMobile from "./components/common/CardMobile";
 import { useLocation } from "react-router";
 import { useDispatch } from "react-redux";
 import { resetSelectedIds } from "./store/selectedPhoneSlice";
@@ -70,6 +70,22 @@ function AppWithInactivityHandler() {
           <Route path="/type-numbers" element={<TypeNumber />} />
           <Route path="/limit-booking" element={<LimitBooking />} />
           <Route path="/time-online" element={<SessionPage />} />
+          <Route
+            path="/card-mobile"
+            element={
+              <CardMobile
+                data={{
+                  Tên: "Ngô Văn Đức",
+                  Tuổi: 22,
+                  Email: "duc@example.com",
+                  SĐT: "0123456789",
+                  Năm: 22,
+                  Hai: "duc@example.com",
+                  Ba: "0123456789",
+                }}
+              />
+            }
+          />
         </Route>
       </Route>
       <Route path="*" element={<NotFound />} />
