@@ -9,7 +9,8 @@ export const setAxiosInactivityHandler = (resetFn: () => void) => {
 };
 
 const axiosInstance = axios.create({
-  baseURL: "http://52.77.226.21:8000/",
+  // baseURL: "http://52.77.226.21:8000/",
+  baseURL: "https://bookso.cgvtelecom.vn:8000/",
 });
 
 let isAlertShown = false;

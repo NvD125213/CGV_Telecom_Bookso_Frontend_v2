@@ -210,7 +210,7 @@ const ProviderReport = () => {
         title: {
           text:
             seriesIndex === 0 ? "Số lượng đã book" : "Số lượng đã triển khai",
-          style: { fontSize: "14px", fontWeight: 600 },
+          style: { fontSize: "16px", fontWeight: 600 },
         },
       },
       dataLabels: {
@@ -317,7 +317,7 @@ const ProviderReport = () => {
             text: "Thống kê số lượng theo nhà cung cấp",
             align: "left" as const,
             style: {
-              fontSize: "16px",
+              fontSize: "18px",
               fontWeight: "bold",
               fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
               color: theme == "light" ? "#333" : "#fff",
@@ -355,13 +355,13 @@ const ProviderReport = () => {
                 fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
               },
               offsetX: 0,
-              maxWidth: 300,
+              maxWidth: 450,
               trim: false,
               formatter: function (val: number, opts?: any) {
                 const value =
                   opts?.w?.globals?.labels[opts?.dataPointIndex] || "";
-                return value.length > 20
-                  ? value.substring(0, 20) + "..."
+                return value.length > 35
+                  ? value.substring(0, 35) + "..."
                   : value;
               },
             },
@@ -395,7 +395,7 @@ const ProviderReport = () => {
               const total = (data.quantity || 0) + (data.quantity_booked || 0);
               return `<div class="p-2">
           <div class="dark:text-white"><b>${data.name}</b></div>
-          <div class="dark:text-white">Số lượng có sẵn: ${data.quantity}</div>
+          <div class="dark:text-white">Số lượng có sẵn: <b>${data.quantity}</b></div>
           <div class="dark:text-white">Số lượng đã book: ${data.quantity_booked}</div>
           <div class="dark:text-white"><b>Tổng: ${total}</b></div>
         </div>`;
@@ -408,7 +408,7 @@ const ProviderReport = () => {
             position: "top" as const,
             horizontalAlign: "left" as const,
             offsetX: 40,
-            fontSize: "12px",
+            fontSize: "16px",
           },
           colors: chartColors.totalAvailable,
           dataLabels: {
@@ -445,7 +445,7 @@ const ProviderReport = () => {
               top: 0,
               right: 0,
               bottom: 0,
-              left: 50,
+              left: 120,
             },
             borderColor: "#f1f1f1",
             strokeDashArray: 0,
@@ -466,22 +466,22 @@ const ProviderReport = () => {
                 },
                 yaxis: {
                   labels: {
-                    maxWidth: 300,
+                    maxWidth: 500,
                     style: {
                       fontSize: "12px",
                     },
                     formatter: function (val: number, opts?: any) {
                       const value =
                         opts?.w?.globals?.labels[opts?.dataPointIndex] || "";
-                      return value.length > 25
-                        ? value.substring(0, 25) + "..."
+                      return value.length > 40
+                        ? value.substring(0, 40) + "..."
                         : value;
                     },
                   },
                 },
                 grid: {
                   padding: {
-                    left: 180,
+                    left: 200,
                   },
                 },
                 title: {
@@ -510,22 +510,22 @@ const ProviderReport = () => {
                 },
                 yaxis: {
                   labels: {
-                    maxWidth: 250,
+                    maxWidth: 400,
                     style: {
                       fontSize: "11px",
                     },
                     formatter: function (val: number, opts?: any) {
                       const value =
                         opts?.w?.globals?.labels[opts?.dataPointIndex] || "";
-                      return value.length > 22
-                        ? value.substring(0, 22) + "..."
+                      return value.length > 30
+                        ? value.substring(0, 30) + "..."
                         : value;
                     },
                   },
                 },
                 grid: {
                   padding: {
-                    left: 150,
+                    left: 160,
                   },
                 },
                 title: {
@@ -607,7 +607,7 @@ const ProviderReport = () => {
                   labels: {
                     maxWidth: 120,
                     style: {
-                      fontSize: "9px",
+                      fontSize: "12px",
                     },
                     formatter: function (val: number, opts?: any) {
                       const value =
@@ -620,18 +620,18 @@ const ProviderReport = () => {
                 },
                 title: {
                   style: {
-                    fontSize: "14px",
+                    fontSize: "16px",
                   },
                 },
                 dataLabels: {
                   enabled: true,
                   style: {
-                    fontSize: "10px",
+                    fontSize: "12px",
                   },
                 },
                 legend: {
                   position: "bottom",
-                  fontSize: "10px",
+                  fontSize: "12px",
                   offsetX: 0,
                   horizontalAlign: "center" as const,
                 },
@@ -661,7 +661,8 @@ const ProviderReport = () => {
                   labels: {
                     maxWidth: 100,
                     style: {
-                      fontSize: "8px",
+                      fontSize: "10px",
+                      fontWeight: "bold",
                     },
                     formatter: function (val: number, opts?: any) {
                       const value =
@@ -674,16 +675,16 @@ const ProviderReport = () => {
                 },
                 title: {
                   style: {
-                    fontSize: "13px",
+                    fontSize: "18px",
                   },
                   margin: 15,
                 },
                 dataLabels: {
-                  enabled: true, // Tắt data labels trên mobile nhỏ
+                  enabled: true,
                 },
                 legend: {
                   position: "bottom",
-                  fontSize: "9px",
+                  fontSize: "12px",
                   offsetX: 0,
                   horizontalAlign: "center" as const,
                 },
@@ -696,7 +697,8 @@ const ProviderReport = () => {
                   tickAmount: 2,
                   labels: {
                     style: {
-                      fontSize: "8px",
+                      fontSize: "10px",
+                      
                     },
                   },
                 },
@@ -710,12 +712,23 @@ const ProviderReport = () => {
         (a, b) => (b.total || 0) - (a.total || 0)
       );
 
+      const minBarLength = 30;
+      const trueBookedData = sortedData.map((item) => item.booked || 0);
+      const trueDeployedData = sortedData.map((item) => item.deployed || 0);
+
+      const renderBookedData = trueBookedData.map((val) =>
+        val === 0 ? 0 : val + minBarLength
+      );
+      const renderDeployedData = trueDeployedData.map((val) =>
+        val === 0 ? 0 : val + minBarLength
+      );
+
       const maxValue = Math.max(
         ...sortedData.map((item) => (item.booked || 0) + (item.deployed || 0))
       );
       const numDigits = maxValue.toString().length;
       const base = Math.pow(10, numDigits - 1);
-      const xAxisMax = Math.ceil(maxValue / base) * base;
+      const xAxisMax = Math.ceil(maxValue / base) * base + minBarLength * 2;
       const itemCount = chartData.length;
       const minHeightPerBar = 50;
       const minHeight = 300;
@@ -728,11 +741,11 @@ const ProviderReport = () => {
         series: [
           {
             name: "Đã book",
-            data: sortedData.map((item) => item.booked || 0),
+            data: renderBookedData,
           },
           {
             name: "Đã triển khai",
-            data: sortedData.map((item) => item.deployed || 0),
+            data: renderDeployedData,
           },
         ],
         options: {
@@ -743,6 +756,7 @@ const ProviderReport = () => {
             toolbar: {
               show: false,
             },
+            fontSize: "20px",
             fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
             animations: {
               enabled: true,
@@ -775,6 +789,17 @@ const ProviderReport = () => {
           colors: ["#3B82F6", "#FF9800"],
           dataLabels: {
             enabled: true,
+            formatter: function (
+              val: any,
+              { seriesIndex, dataPointIndex }: any
+            ) {
+              const displayVal =
+                seriesIndex === 0
+                  ? trueBookedData[dataPointIndex]
+                  : trueDeployedData[dataPointIndex];
+
+              return displayVal > 0 ? displayVal.toFixed(0) : "";
+            },
             style: {
               colors: ["#fff"],
               fontSize: "14px",
@@ -812,13 +837,13 @@ const ProviderReport = () => {
                 fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
               },
               offsetX: 0,
-              maxWidth: 300,
+              maxWidth: 450,
               trim: false,
               formatter: function (val: number, opts?: any) {
                 const value =
                   opts?.w?.globals?.labels[opts?.dataPointIndex] || "";
-                return value.length > 20
-                  ? value.substring(0, 20) + "..."
+                return value.length > 35
+                  ? value.substring(0, 35) + "..."
                   : value;
               },
             },
@@ -844,7 +869,7 @@ const ProviderReport = () => {
               top: 0,
               right: 0,
               bottom: 0,
-              left: 40, // Giảm xuống 40 hoặc nhỏ hơn nếu cần
+              left: 80,
             },
             borderColor: "#f1f1f1",
             strokeDashArray: 0,
@@ -885,7 +910,7 @@ const ProviderReport = () => {
             text: "Thống kê số lượng theo sale",
             align: "left" as const,
             style: {
-              fontSize: "16px",
+              fontSize: "18px",
               fontWeight: "bold",
               fontFamily: '"Inter", "Roboto", "Helvetica Neue", sans-serif',
               color: theme == "light" ? "#333" : "#fff",
@@ -909,6 +934,7 @@ const ProviderReport = () => {
             position: "top" as const,
             horizontalAlign: "left" as const,
             offsetX: 40,
+            fontSize: "16px",
           },
           responsive: [
             {
@@ -925,22 +951,22 @@ const ProviderReport = () => {
                 },
                 yaxis: {
                   labels: {
-                    maxWidth: 300,
+                    maxWidth: 500,
                     style: {
                       fontSize: "12px",
                     },
                     formatter: function (val: number, opts?: any) {
                       const value =
                         opts?.w?.globals?.labels[opts?.dataPointIndex] || "";
-                      return value.length > 25
-                        ? value.substring(0, 25) + "..."
+                      return value.length > 40
+                        ? value.substring(0, 40) + "..."
                         : value;
                     },
                   },
                 },
                 grid: {
                   padding: {
-                    left: 180,
+                    left: 160,
                   },
                 },
                 title: {
@@ -972,22 +998,22 @@ const ProviderReport = () => {
                 },
                 yaxis: {
                   labels: {
-                    maxWidth: 250,
+                    maxWidth: 400,
                     style: {
                       fontSize: "11px",
                     },
                     formatter: function (val: number, opts?: any) {
                       const value =
                         opts?.w?.globals?.labels[opts?.dataPointIndex] || "";
-                      return value.length > 22
-                        ? value.substring(0, 22) + "..."
+                      return value.length > 30
+                        ? value.substring(0, 30) + "..."
                         : value;
                     },
                   },
                 },
                 grid: {
                   padding: {
-                    left: 150,
+                    left: 120,
                   },
                 },
                 title: {
@@ -997,7 +1023,7 @@ const ProviderReport = () => {
                 },
                 dataLabels: {
                   style: {
-                    fontSize: "13px",
+                    fontSize: "18px",
                   },
                 },
               },
@@ -1034,7 +1060,7 @@ const ProviderReport = () => {
                 },
                 legend: {
                   offsetX: 0,
-                  fontSize: "11px",
+                  fontSize: "14px",
                 },
                 grid: {
                   padding: {
@@ -1075,7 +1101,7 @@ const ProviderReport = () => {
                   labels: {
                     maxWidth: 120,
                     style: {
-                      fontSize: "9px",
+                      fontSize: "12px",
                     },
                     formatter: function (val: number, opts?: any) {
                       const value =
@@ -1088,18 +1114,18 @@ const ProviderReport = () => {
                 },
                 title: {
                   style: {
-                    fontSize: "14px",
+                    fontSize: "16px",
                   },
                 },
                 dataLabels: {
                   enabled: true,
                   style: {
-                    fontSize: "10px",
+                    fontSize: "12px",
                   },
                 },
                 legend: {
                   position: "bottom",
-                  fontSize: "10px",
+                  fontSize: "12px",
                   offsetX: 0,
                   horizontalAlign: "center" as const,
                 },
@@ -1132,7 +1158,8 @@ const ProviderReport = () => {
                   labels: {
                     maxWidth: 100,
                     style: {
-                      fontSize: "8px",
+                      fontSize: "10px",
+                      fontWeight: "bold",
                     },
                     formatter: function (val: number, opts?: any) {
                       const value =
@@ -1145,16 +1172,19 @@ const ProviderReport = () => {
                 },
                 title: {
                   style: {
-                    fontSize: "13px",
+                    fontSize: "18px",
                   },
                   margin: 15,
                 },
                 dataLabels: {
                   enabled: true,
+                  style: {
+                    fontSize: "11px",
+                  },
                 },
                 legend: {
                   position: "bottom",
-                  fontSize: "9px",
+                  fontSize: "12px",
                   offsetX: 0,
                   horizontalAlign: "center" as const,
                 },
@@ -1167,7 +1197,8 @@ const ProviderReport = () => {
                   tickAmount: 2,
                   labels: {
                     style: {
-                      fontSize: "8px",
+                      fontSize: "10px",
+                      
                     },
                   },
                 },
@@ -1253,6 +1284,7 @@ const ProviderReport = () => {
           type="bar"
           height={chartOptions.height} // ✅ Dùng số
           width="100%"
+          
         />
 
         {showBookingStatus && (

@@ -9,7 +9,7 @@ export default function SignIn() {
         title="Đăng nhập | Hệ thống đặt số của CGV Telecom"
         description="Đăng nhập với username và password để sử dụng hệ thống Book số của CGV Telecom"
       />
-      <AuthLayout>
+      <AuthLayout>  
         <SignInForm />
       </AuthLayout>
     </>
