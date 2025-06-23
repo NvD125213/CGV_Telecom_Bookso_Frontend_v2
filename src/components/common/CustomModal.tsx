@@ -58,19 +58,6 @@ const CustomModal: React.FC<CustomModalProps> = ({
   disabledAll = false,
   errorDetail,
 }) => {
-  // Responsive grid columns dựa trên số lượng fields và kích thước màn hình
-  const getGridCols = () => {
-    if (fields.length <= 2) {
-      return "grid-cols-1";
-    } else if (fields.length <= 4) {
-      return "grid-cols-1 sm:grid-cols-2";
-    } else if (fields.length <= 6) {
-      return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
-    } else {
-      return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
-    }
-  };
-
   // Kiểm tra xem có cần scroll không
   const needsScroll = fields.length > 6;
 
@@ -78,7 +65,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      className="w-[95%] max-w-[800px] mx-auto my-2 sm:my-4 lg:my-8 overflow-hidden z-999">
+      className="w-[95%] max-w-[800px] mx-auto my-2 sm:my-4 lg:my-8 overflow-hidden z-100">
       <div className="relative w-full bg-white rounded-xl sm:rounded-2xl dark:bg-gray-900 max-h-[95vh] flex flex-col">
         {/* Header Section - Fixed */}
         <div className="flex-shrink-0 p-3 sm:p-4 lg:p-6 xl:p-8 border-b border-gray-200 dark:border-gray-700">
@@ -106,12 +93,15 @@ const CustomModal: React.FC<CustomModalProps> = ({
               needsScroll ? "overflow-y-auto" : ""
             }`}>
             <div
-              className={`grid ${getGridCols()} gap-2 sm:gap-3 lg:gap-4 gap-y-2 sm:gap-y-3 lg:gap-y-4`}>
+              className={`grid ${
+                fields.length > 4 ? "grid-cols-2" : "grid-cols-1"
+              } gap-2 sm:gap-3 lg:gap-4`}>
               {fields.map((field) => (
                 <div key={field.name} className="w-full">
                   <Label className="text-xs sm:text-sm lg:text-base mb-1 sm:mb-2 block font-medium">
                     {field.label}
                   </Label>
+
                   {field.type === "textarea" ? (
                     <TextArea
                       value={field.value as string}
@@ -144,11 +134,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
                   ) : (
                     <Input
                       type={field.type}
-                      value={
-                        field.value !== undefined && field.value !== null
-                          ? field.value
-                          : ""
-                      }
+                      value={field.value ?? ""}
                       min="0"
                       onChange={(e) => {
                         if (field.type === "number") {
@@ -167,7 +153,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
                       } ${field.error ? "border-red-500" : ""}`}
                     />
                   )}
-                  {/* ✅ Hiển thị lỗi nếu có */}
+
                   {field.error && (
                     <p className="mt-1 text-xs text-red-500">{field.error}</p>
                   )}
@@ -176,9 +162,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
             </div>
           </div>
 
-          {/* Footer Section - Fixed */}
           <div className="flex-shrink-0 flex flex-col sm:flex-row items-center gap-2 sm:gap-3 p-3 sm:p-4 lg:p-6 xl:p-8 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-            {/* Nút Đóng luôn hiển thị */}
             <Button
               size="sm"
               variant="outline"
@@ -186,7 +170,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
               className="w-full sm:w-auto order-2 sm:order-1 text-xs sm:text-sm">
               Đóng
             </Button>
-            {/* ✅ Vô hiệu hóa nút "Lưu" nếu `disabledAll = true` */}
+
             {showSubmitButton && (
               <Button
                 size="sm"

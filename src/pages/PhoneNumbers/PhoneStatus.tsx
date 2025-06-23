@@ -7,7 +7,6 @@ import {
 } from "react-icons/io5";
 import { useSelector } from "react-redux";
 import Swal from "sweetalert2";
-import ComponentCard from "../../components/common/ComponentCard";
 import Spinner from "../../components/common/LoadingSpinner";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ReusableTable from "../../components/common/ReusableTable";
@@ -38,6 +37,7 @@ import TableMobile, {
 } from "../../mobiles/TableMobile";
 import ResponsiveFilterWrapper from "../../components/common/FlipperWrapper";
 import { useScreenSize } from "../../hooks/useScreenSize";
+import FloatingActionPanel from "../../components/common/FloatingActionPanel";
 
 interface PhoneNumberProps {
   total_pages: number;
@@ -640,8 +640,8 @@ function PhoneNumbers() {
   const convertToMobileData = (data: IPhoneNumber[]): LabelValueItem[][] => {
     return data.map((item) => [
       { label: "ID", value: item.id ?? "N/A", hidden: true },
-      { label: "Trạng thái", value: item.status ?? "N/A" },
       { label: "Số điện thoại", value: item.phone_number ?? "N/A" },
+      { label: "Trạng thái", value: item.status ?? "N/A" },
       { label: "Nhà cung cấp", value: item.provider_name ?? "N/A" },
       { label: "Loại số", value: item.type_name ?? "N/A" },
     ]);
@@ -655,14 +655,19 @@ function PhoneNumbers() {
       label: "Xem chi tiết",
       onClick: (id) => handleGetById(Number(id)),
       color: "primary",
-    },
-    {
-      icon: <FiDelete />,
-      label: "Xóa",
-      onClick: (id) => handleDelete(Number(id)),
-      color: "error",
-    },
+    } as ActionButton,
+    ...(user.role === 1
+      ? [
+          {
+            icon: <FiDelete />,
+            label: "Xóa",
+            onClick: (id) => handleDelete(Number(id)),
+            color: "error",
+          } as ActionButton,
+        ]
+      : []),
   ];
+
   const { isMobile } = useScreenSize();
 
   // Function to get status class based on current status
@@ -811,18 +816,21 @@ function PhoneNumbers() {
                     <IoCloudDownloadOutline size={20} />
                   </button>
                 </div>
-                {status === "booked" && user.role === 1 && (
-                  <div className="flex items-end gap-2">
-                    <button
-                      onClick={handleRevoke}
-                      className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
-                      <IoCaretBackCircleOutline size={22} />
-                      Thu hồi
-                    </button>
-                  </div>
-                )}
               </div>
             </ResponsiveFilterWrapper>
+            <FloatingActionPanel>
+              {status === "booked" && user.role === 1 && (
+                <div className="flex items-end gap-2">
+                  <button
+                    onClick={handleRevoke}
+                    className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+                    <IoCaretBackCircleOutline size={22} />
+                    Thu hồi
+                  </button>
+                </div>
+              )}
+            </FloatingActionPanel>
+
             {isMobile ? (
               <TableMobile
                 pageTitle="Trạng thái số"
@@ -849,7 +857,7 @@ function PhoneNumbers() {
                 }}
                 valueClassNames={{
                   "Số điện thoại":
-                    " text-sm tracking-wider bg-blue-100 dark:bg-blue-500/40 align-middle rounded-full border border-blue-200 px-5 py-1 dark:border-blue-400 shadow-sm dark:shadow-blue-400/30 backdrop-blur-sm font-semibold",
+                    "text-sm border-blue-500 tracking-wider bg-blue-100 dark:bg-blue-500/40 align-middle rounded-full border border-blue-200 px-5 py-1 dark:border-blue-400 shadow-sm dark:shadow-blue-400/30 backdrop-blur-sm font-semibold",
                   "Nhà cung cấp":
                     "text-[14px] backdrop-blur-sm dark:text-gray-200",
                   "Loại số": "text-[14px] backdrop-blur-sm dark:text-gray-200",

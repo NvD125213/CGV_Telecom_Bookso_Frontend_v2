@@ -42,9 +42,17 @@ const ResponsiveFilterWrapper: React.FC<ResponsiveFilterWrapperProps> = ({
     setOpenDrawer(true);
   };
 
+  // Xử lý click bên ngoài drawer
+  const handleBackdropClick = (event: React.MouseEvent) => {
+    // Chỉ đóng drawer khi click vào backdrop, không phải vào nội dung drawer
+    if (event.target === event.currentTarget) {
+      handleCloseDrawer();
+    }
+  };
+
   return (
     <div className={`z-50 ${isMobile ? "fixed bottom-12 right-4" : ""}`}>
-      {!isMobile && <div className="mb-4 py-4">{children}</div>}
+      {!isMobile && <div>{children}</div>}
 
       {isMobile && (
         <>
@@ -63,7 +71,7 @@ const ResponsiveFilterWrapper: React.FC<ResponsiveFilterWrapperProps> = ({
             anchor="bottom"
             open={openDrawer}
             onClose={handleCloseDrawer}
-            // Thêm props để xử lý focus management
+            // Cải thiện focus management
             disableAutoFocus={false}
             disableEnforceFocus={false}
             disableRestoreFocus={false}
@@ -75,6 +83,8 @@ const ResponsiveFilterWrapper: React.FC<ResponsiveFilterWrapperProps> = ({
               disableRestoreFocus: false,
               // Thêm aria-labelledby cho accessibility
               "aria-labelledby": "drawer-title",
+              // Thêm onClick handler cho backdrop
+              onClick: handleBackdropClick,
             }}
             PaperProps={{
               ref: drawerRef,
@@ -84,8 +94,6 @@ const ResponsiveFilterWrapper: React.FC<ResponsiveFilterWrapperProps> = ({
                 maxHeight: "90vh",
                 background: theme == "dark" ? "#1f2937" : "",
               },
-              // Đảm bảo drawer có thể nhận focus
-              tabIndex: -1,
             }}>
             <div className="p-4">
               <div className="flex justify-between items-center mb-4">
@@ -101,7 +109,7 @@ const ResponsiveFilterWrapper: React.FC<ResponsiveFilterWrapperProps> = ({
                   Đóng
                 </button>
               </div>
-              <div tabIndex={-1}>{children}</div>
+              <div>{children}</div>
             </div>
           </Drawer>
         </>

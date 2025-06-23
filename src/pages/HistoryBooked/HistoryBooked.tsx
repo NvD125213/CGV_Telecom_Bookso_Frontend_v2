@@ -25,6 +25,7 @@ import SwitchablePicker, {
   PickerType,
 } from "../../components/common/SwitchablePicker";
 import clsx from "clsx";
+import FloatingActionPanel from "../../components/common/FloatingActionPanel";
 
 const getColumns = (status: string) => {
   const columns: {
@@ -226,11 +227,11 @@ const HistoryBooked = () => {
         title: "Xác nhận danh sách số",
         html: `
           <div class="text-left">
-            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            <label class="block mb-2 text-sm font-medium text-gray-900">
               Danh sách số sẽ thu hồi:
             </label>
-            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
-              <div class="text-sm text-gray-700 dark:text-gray-300">${phoneDetails.join(
+            <div class="p-3 bg-gray-50 rounded-lg border border-gray-300">
+              <div class="text-sm text-gray-700">${phoneDetails.join(
                 ", "
               )}</div>
             </div>
@@ -252,16 +253,15 @@ const HistoryBooked = () => {
 
         const res = await revokeNumber(dataRevoke);
         if (res.status === 200) {
-          // Show success modal with phone list
           await Swal.fire({
             title: "Thu hồi thành công!",
             html: `
               <div class="text-left">
-                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                <label class="block mb-2 text-sm font-medium text-gray-900">
                   Danh sách số đã thu hồi:
                 </label>
-                <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
-                  <div class="text-sm text-gray-700 dark:text-gray-300">${phoneDetails.join(
+                <div class="p-3 bg-gray-50 rounded-lg border border-gray-300">
+                  <div class="text-sm text-gray-700">${phoneDetails.join(
                     ", "
                   )}</div>
                 </div>
@@ -308,22 +308,25 @@ const HistoryBooked = () => {
     return data.map((item) => {
       return [
         { label: "ID", value: item.id, hidden: true },
-        { label: "Trạng thái", value: item.status },
         { label: "Số điện thoại", value: item.phone_number },
+        { label: "Trạng thái", value: item.status },
         { label: "Nhà cung cấp", value: item.provider_name },
         { label: "Loại số", value: item.type_name },
       ];
     });
   };
 
-  const actions = [
-    {
-      icon: <IoCaretBackCircleOutline size={22} />,
-      label: "Thu hồi",
-      onClick: handleRevoke,
-      color: "error",
-    },
-  ];
+  const actions =
+    status === "booked"
+      ? [
+          {
+            icon: <IoCaretBackCircleOutline size={22} />,
+            label: "Thu hồi",
+            onClick: handleRevoke,
+            color: "error" as const,
+          },
+        ]
+      : [];
 
   const dataMobile = convertToMobileData(data);
 
@@ -369,22 +372,20 @@ const HistoryBooked = () => {
               placeholder="Chọn trạng thái"
             />
           </div>
-
-          <div>
-            {status === "booked" && (
-              <div
-                className={clsx(isMobile ? "block" : "flex items-end gap-2")}>
-                <button
-                  onClick={handleRevoke}
-                  className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
-                  <IoCaretBackCircleOutline size={22} />
-                  Thu hồi
-                </button>
-              </div>
-            )}
-          </div>
         </div>
       </ResponsiveFilterWrapper>
+      <FloatingActionPanel>
+        {status === "booked" && (
+          <div className={clsx(isMobile ? "block" : "flex items-end gap-2")}>
+            <button
+              onClick={handleRevoke}
+              className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+              <IoCaretBackCircleOutline size={22} />
+              Thu hồi
+            </button>
+          </div>
+        )}
+      </FloatingActionPanel>
       <div className="space-y-6">
         {isMobile ? (
           <TableMobile

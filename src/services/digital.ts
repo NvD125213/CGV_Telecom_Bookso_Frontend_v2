@@ -87,7 +87,7 @@ export const getPublicNumber1900 = async (params: RequestParamsType) => {
 
 export const getPublicNumberVoiceGTel = async (params: RequestParamsType) => {
   const defaultedParams: RequestParamsType = {
-    page: 1,
+    page: params.page || 1,
     per_page: 10,
     search: params.search,
     option: params.option || "ListPublicDVGTGT.aspx",

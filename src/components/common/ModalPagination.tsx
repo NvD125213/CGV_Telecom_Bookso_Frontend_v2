@@ -27,6 +27,7 @@ import { useScreenSize } from "../../hooks/useScreenSize";
 import ResponsiveFilterWrapper from "./FlipperWrapper";
 import CustomModal from "./CustomModal";
 import ViewIcon from "@mui/icons-material/Visibility";
+import FloatingActionPanel from "./FloatingActionPanel";
 
 interface Column {
   key: string;
@@ -537,16 +538,18 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
                 className="px-4 py-3 max-h-[44px] text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
                 Tìm kiếm
               </Button>
-              {user.role === 1 && option == "booked" && (
-                <div className="flex items-end gap-2">
-                  <button
-                    onClick={handleRevoke}
-                    className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
-                    <IoCaretBackCircleOutline size={22} />
-                    Thu hồi
-                  </button>
-                </div>
-              )}
+              <FloatingActionPanel>
+                {user.role === 1 && option == "booked" && (
+                  <div className="flex items-end gap-2">
+                    <button
+                      onClick={handleRevoke}
+                      className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+                      <IoCaretBackCircleOutline size={22} />
+                      Thu hồi
+                    </button>
+                  </div>
+                )}
+              </FloatingActionPanel>
             </div>
           </div>
         </ResponsiveFilterWrapper>

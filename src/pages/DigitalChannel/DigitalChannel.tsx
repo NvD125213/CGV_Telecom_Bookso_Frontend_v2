@@ -149,6 +149,13 @@ const DigitalChannel = () => {
           case "gvoice":
             params.option = prefix.value;
             res = await getPublicNumberVoiceGTel(params);
+            console.log(
+              "Fetched page:",
+              params.page,
+              "Response page:",
+              res?.data?.pagination?.current_page
+            );
+
             break;
           case "vpbx":
             // For VPBX, we'll fetch all data and handle pagination on client side

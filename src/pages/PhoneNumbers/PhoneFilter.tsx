@@ -40,7 +40,7 @@ import Spinner from "../../components/common/LoadingSpinner";
 import PhoneRandomModal from "./PhoneRandomModal";
 import { getTypeNumber } from "../../services/typeNumber";
 import { useDispatch } from "react-redux";
-import { ScrollToTopButton } from "../../components/common/ScrollToTopButton";
+import FloatingActionPanel from "../../components/common/FloatingActionPanel";
 
 interface PhoneNumberProps {
   total_pages: number;
@@ -310,11 +310,11 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
         title: "Thực hiện book số?",
         html: `
            <div class="text-left">
-            <label class="block text-center mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            <label class="block text-center mb-2 text-sm font-medium text-gray-900">
               Danh sách số sẽ book:
             </label>
-            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
-              <div class="text-sm text-gray-700 dark:text-gray-300">${
+            <div class="p-3 bg-gray-50 rounded-lg border border-gray-300">
+              <div class="text-sm text-gray-700">${
                 user.role !== 1
                   ? formattedPhoneList
                   : requestBody.phone_details.join(", ")
@@ -338,12 +338,12 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
           Swal.fire({
             title: "Book thành công",
             html: `
-             <div class="text-left">
-            <label class="block text-center mb-2 text-sm font-medium text-gray-900 dark:text-white">
+             <div class="text-left dark:text-white">
+            <label class="block text-center mb-2 text-sm font-medium text-gray-900">
               Danh sách số đã book:
             </label>
-            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
-              <div class="text-sm text-gray-700 dark:text-gray-300">${requestBody.phone_details.join(
+            <div class="p-3 bg-gray-50 rounded-lg border border-gray-300">
+              <div class="text-sm text-gray-700">${requestBody.phone_details.join(
                 ", "
               )}</div>
             </div>
@@ -449,12 +449,16 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
       onClick: (id) => handleGetById(id),
       color: "primary",
     },
-    {
-      icon: <FiDelete />,
-      label: "Xóa",
-      onClick: (id) => handleDelete(Number(id)),
-      color: "error",
-    },
+    ...(user.role === 1
+      ? [
+          {
+            icon: <FiDelete />,
+            label: "Xóa",
+            onClick: (id) => handleDelete(Number(id)),
+            color: "error",
+          } as ActionButton,
+        ]
+      : []),
   ];
   return (
     <>
@@ -464,7 +468,7 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
         <>
           <PageBreadcrumb pageTitle="Đặt số điện thoại" />
           {user?.role === 1 ? (
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-end">
               <button
                 onClick={() => setOpenModal(true)}
                 className="flex items-center dark:bg-black dark:text-white  gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
@@ -540,22 +544,25 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
                       placeholder="Lựa chọn định dạng số"
                     />
                   </div>
-                  <div className="flex items-end gap-2">
-                    <button
-                      onClick={() => handleBookNumber()}
-                      className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
-                      <IoIosAdd size={20} />
-                      Book số
-                    </button>
-                    <button
-                      onClick={() => setOpenModalRandom(!openModalRandom)}
-                      className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
-                      <FaRandom size={20} />
-                      Random
-                    </button>
-                  </div>
                 </div>
               </ResponsiveFilterWrapper>
+              <FloatingActionPanel>
+                <div className="flex items-end gap-1">
+                  <button
+                    onClick={() => handleBookNumber()}
+                    className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+                    <IoIosAdd size={20} />
+                    <span>Book số</span>
+                  </button>
+
+                  <button
+                    onClick={() => setOpenModalRandom(!openModalRandom)}
+                    className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+                    <FaRandom size={20} />
+                    <span>Random</span>
+                  </button>
+                </div>
+              </FloatingActionPanel>
 
               {/* Data table */}
               {isMobile ? (
@@ -584,7 +591,7 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
                   }}
                   valueClassNames={{
                     "Số điện thoại":
-                      " text-sm tracking-wider bg-blue-100 dark:bg-blue-500/40 align-middle rounded-full border border-blue-200 px-5 py-1 dark:border-blue-400 shadow-sm dark:shadow-blue-400/30 backdrop-blur-sm font-semibold",
+                      "text-sm border border-blue-500 tracking-wider bg-blue-100 dark:bg-blue-500/40 align-middle rounded-full px-5 py-1 dark:border-blue-400 shadow-sm dark:shadow-blue-400/30 backdrop-blur-sm font-semibold text-blue-100",
                     "Nhà cung cấp":
                       "text-[14px] backdrop-blur-sm dark:text-gray-200",
                     "Loại số":

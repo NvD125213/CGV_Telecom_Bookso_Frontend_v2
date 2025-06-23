@@ -301,7 +301,7 @@ const ProviderReport = () => {
           plotOptions: {
             bar: {
               horizontal: true,
-              barHeight: 30,
+              barHeight: "60%",
               dataLabels: {
                 position: "center",
               },
@@ -698,7 +698,6 @@ const ProviderReport = () => {
                   labels: {
                     style: {
                       fontSize: "10px",
-                      
                     },
                   },
                 },
@@ -1198,7 +1197,6 @@ const ProviderReport = () => {
                   labels: {
                     style: {
                       fontSize: "10px",
-                      
                     },
                   },
                 },
@@ -1284,7 +1282,6 @@ const ProviderReport = () => {
           type="bar"
           height={chartOptions.height} // ✅ Dùng số
           width="100%"
-          
         />
 
         {showBookingStatus && (

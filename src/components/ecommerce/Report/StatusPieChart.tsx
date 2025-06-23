@@ -137,17 +137,17 @@ const NumberStatusPieChart = () => {
   // Logic để tạo minimum segment size cho pie chart
   const getDisplayData = () => {
     if (totalValue === 0) return data;
-    
+
     const minSegmentPercentage = 5; // Tối thiểu 5% để dễ nhìn và click
     const minValue = (totalValue * minSegmentPercentage) / 100;
-    
+
     // Tạo data hiển thị với minimum size
-    const displayData = data.map(item => ({
+    const displayData = data.map((item) => ({
       ...item,
       displayValue: item.value === 0 ? 0 : Math.max(item.value, minValue),
-      originalValue: item.value // Lưu giá trị gốc để hiển thị trong tooltip
+      originalValue: item.value, // Lưu giá trị gốc để hiển thị trong tooltip
     }));
-    
+
     return displayData;
   };
 
@@ -187,31 +187,46 @@ const NumberStatusPieChart = () => {
         <h3 className="text-lg sm:text-xl font-semibold mb-4 dark:text-white">
           Thống kê số theo trạng thái
         </h3>
-        
+
         {/* Mobile Filter Toggle Button */}
         <button
           onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-          className="md:hidden w-full mb-4 px-4 py-3 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg font-semibold text-base transition-all duration-200 flex items-center justify-between shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
-        >
+          className="
+            md:hidden w-full mb-4 px-4 py-3 
+            bg-white dark:bg-gray-800 
+            text-gray-800 dark:text-white 
+            font-semibold text-base 
+            transition-all duration-200 
+            flex items-center justify-between 
+            shadow-md dark:shadow-lg 
+            hover:shadow-lg dark:hover:shadow-xl 
+            transform hover:scale-[1.02] active:scale-[0.98] 
+          ">
+          {" "}
           <span>Bộ lọc thời gian</span>
           <svg
             className={`w-6 h-6 transition-all duration-300 ease-in-out transform ${
-              isFiltersOpen ? 'rotate-180 scale-110' : 'rotate-0 scale-100'
+              isFiltersOpen ? "rotate-180 scale-110" : "rotate-0 scale-100"
             }`}
             fill="none"
             stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
           </svg>
         </button>
 
         {/* Filter Controls */}
-        <div className={`w-full mb-4 ${
-          // Mobile: show/hide based on isFiltersOpen
-          // Desktop: always show
-          isFiltersOpen ? 'block' : 'hidden'
-        } md:block`}>
+        <div
+          className={`w-full mb-4 ${
+            // Mobile: show/hide based on isFiltersOpen
+            // Desktop: always show
+            isFiltersOpen ? "block" : "hidden"
+          } md:block`}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="col-span-1">
               <Select
@@ -267,7 +282,7 @@ const NumberStatusPieChart = () => {
                   dataKey="displayValue"
                   label={({ name, originalValue, value }) => {
                     const actualValue = originalValue || value;
-                    return actualValue > 0 ? actualValue : '';
+                    return actualValue > 0 ? actualValue : "";
                   }}>
                   {displayData.map((entry, index) => (
                     <Cell
@@ -288,7 +303,8 @@ const NumberStatusPieChart = () => {
                             {data.name}
                           </p>
                           <p className="text-blue-600 dark:text-blue-400">
-                            Số lượng: <strong>{data.originalValue || data.value}</strong>
+                            Số lượng:{" "}
+                            <strong>{data.originalValue || data.value}</strong>
                           </p>
                         </div>
                       );
@@ -329,4 +345,4 @@ const NumberStatusPieChart = () => {
   );
 };
 
-export default NumberStatusPieChart; 
+export default NumberStatusPieChart;
