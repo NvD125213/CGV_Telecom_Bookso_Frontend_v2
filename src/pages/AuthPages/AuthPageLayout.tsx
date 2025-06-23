@@ -11,8 +11,8 @@ export default function AuthLayout({
 }) {
   const { theme } = useTheme();
   return (
-    <div className="relative p-6 bg-white z-1 dark:bg-gray-900 sm:p-0">
-      <div className="relative flex flex-col justify-center w-full h-screen lg:flex-row dark:bg-gray-900 sm:p-0">
+    <div className="relative bg-white z-1 dark:bg-gray-900 h-screen box-border">
+      <div className="relative flex flex-col justify-center w-full h-full lg:flex-row dark:bg-gray-900 p-6 sm:p-0 box-border">
         {children}
         <div className="items-center hidden w-full h-full lg:w-1/2 bg-brand-950 dark:bg-white/5 lg:grid">
           <div className="relative flex items-center justify-center z-1">

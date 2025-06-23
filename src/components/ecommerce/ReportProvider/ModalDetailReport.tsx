@@ -203,7 +203,7 @@ const ModalDetailReport = ({
         <div className="flex flex-col gap-4 py-4">
           {/* Modal Header */}
           <div className="grid grid-cols-8 gap-4 items-center">
-            <h2 className="col-span-6 text-xl font-semibold text-gray-800 dark:text-white capitalize">
+            <h2 className="col-span-6 text-base sm:text-lg md:text-xl font-semibold text-gray-800 dark:text-white capitalize">
               {option === "booked"
                 ? `Chi tiết thông tin book của ${data?.name}`
                 : `Chi tiết thông tin triển khai của ${data?.name}`}

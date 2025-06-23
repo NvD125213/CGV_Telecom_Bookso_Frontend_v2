@@ -88,6 +88,7 @@ const NumberStatusPieChart = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const prevSelectedEntry = useRef<typeof selectedEntry>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -133,6 +134,25 @@ const NumberStatusPieChart = () => {
 
   const totalValue = data.reduce((sum, item) => sum + item.value, 0);
 
+  // Logic để tạo minimum segment size cho pie chart
+  const getDisplayData = () => {
+    if (totalValue === 0) return data;
+    
+    const minSegmentPercentage = 5; // Tối thiểu 5% để dễ nhìn và click
+    const minValue = (totalValue * minSegmentPercentage) / 100;
+    
+    // Tạo data hiển thị với minimum size
+    const displayData = data.map(item => ({
+      ...item,
+      displayValue: item.value === 0 ? 0 : Math.max(item.value, minValue),
+      originalValue: item.value // Lưu giá trị gốc để hiển thị trong tooltip
+    }));
+    
+    return displayData;
+  };
+
+  const displayData = getDisplayData();
+
   const [windowWidth, setWindowWidth] = useState(
     typeof window !== "undefined" ? window.innerWidth : 1024
   );
@@ -146,12 +166,11 @@ const NumberStatusPieChart = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Tính toán radius dựa trên kích thước màn hình
   const getRadius = () => {
     if (windowWidth < 760) {
       return {
-        innerRadius: 40, // Giảm từ 60 xuống 40
-        outerRadius: 80, // Giảm từ 120 xuống 80
+        innerRadius: 40,
+        outerRadius: 80,
       };
     }
     return {
@@ -165,50 +184,74 @@ const NumberStatusPieChart = () => {
   return (
     <ComponentCard>
       <div className="flex flex-col items-center py-3">
-        <h3 className="text-xl font-semibold mb-4 dark:text-white">
+        <h3 className="text-lg sm:text-xl font-semibold mb-4 dark:text-white">
           Thống kê số theo trạng thái
         </h3>
-        <div className="grid grid-cols-2 gap-4 mb-4 w-full">
-          {/* Row 1 - 2 Select */}
-          <div className="col-span-2 md:col-span-1">
-            <Select
-              options={Array.from({ length: 10 }, (_, index) => ({
-                value: (new Date().getFullYear() - index).toString(),
-                label: (new Date().getFullYear() - index).toString(),
-              }))}
-              value={year.toString()}
-              onChange={(value) => setYear(parseInt(value))}
-              className="w-full"
-            />
-          </div>
-          <div className="col-span-2 md:col-span-1">
-            <Select
-              options={Array.from({ length: 12 }, (_, index) => ({
-                value: (index + 1).toString(),
-                label: `Tháng ${index + 1}`,
-              }))}
-              value={month.toString()}
-              onChange={(value) => setMonth(parseInt(value))}
-              className="w-full"
-            />
-          </div>
+        
+        {/* Mobile Filter Toggle Button */}
+        <button
+          onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+          className="md:hidden w-full mb-4 px-4 py-3 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white rounded-lg font-semibold text-base transition-all duration-200 flex items-center justify-between shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <span>Bộ lọc thời gian</span>
+          <svg
+            className={`w-6 h-6 transition-all duration-300 ease-in-out transform ${
+              isFiltersOpen ? 'rotate-180 scale-110' : 'rotate-0 scale-100'
+            }`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
 
-          {/* Row 2 - Input full width */}
-          <div className="col-span-2">
-            <Input
-              type="number"
-              className="w-full"
-              placeholder="Ngày"
-              value={day}
-              onChange={(e) => setDay(e.target.value)}
-              min="1"
-              max="31"
-            />
+        {/* Filter Controls */}
+        <div className={`w-full mb-4 ${
+          // Mobile: show/hide based on isFiltersOpen
+          // Desktop: always show
+          isFiltersOpen ? 'block' : 'hidden'
+        } md:block`}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="col-span-1">
+              <Select
+                options={Array.from({ length: 10 }, (_, index) => ({
+                  value: (new Date().getFullYear() - index).toString(),
+                  label: (new Date().getFullYear() - index).toString(),
+                }))}
+                value={year.toString()}
+                onChange={(value) => setYear(parseInt(value))}
+                className="w-full"
+              />
+            </div>
+            <div className="col-span-1">
+              <Select
+                options={Array.from({ length: 12 }, (_, index) => ({
+                  value: (index + 1).toString(),
+                  label: `Tháng ${index + 1}`,
+                }))}
+                value={month.toString()}
+                onChange={(value) => setMonth(parseInt(value))}
+                className="w-full"
+              />
+            </div>
+            {/* Input ngày */}
+            <div className="col-span-1">
+              <Input
+                type="number"
+                className="w-full"
+                placeholder="Ngày"
+                value={day}
+                onChange={(e) => setDay(e.target.value)}
+                min="1"
+                max="31"
+              />
+            </div>
           </div>
         </div>
 
         {totalValue === 0 ? (
-          <div className="text-center text-gray-500 text-lg dark:text-white">
+          <div className="text-center text-gray-500 text-base sm:text-lg dark:text-white">
             Chưa có dữ liệu
           </div>
         ) : (
@@ -216,14 +259,17 @@ const NumberStatusPieChart = () => {
             <ResponsiveContainer width={"100%"} height={"100%"}>
               <PieChart margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                 <Pie
-                  data={data}
+                  data={displayData}
                   cx="50%"
                   cy="45%"
                   innerRadius={innerRadius}
                   outerRadius={outerRadius}
-                  dataKey="value"
-                  label>
-                  {data.map((entry, index) => (
+                  dataKey="displayValue"
+                  label={({ name, originalValue, value }) => {
+                    const actualValue = originalValue || value;
+                    return actualValue > 0 ? actualValue : '';
+                  }}>
+                  {displayData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={COLORS[index % COLORS.length]}
@@ -233,11 +279,21 @@ const NumberStatusPieChart = () => {
                   ))}
                 </Pie>
                 <Tooltip
-                  wrapperStyle={{
-                    pointerEvents: "auto",
-                    maxWidth: "90vw",
-                    whiteSpace: "normal",
-                    wordBreak: "break-word",
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      return (
+                        <div className="bg-white p-2 border rounded shadow-lg dark:bg-gray-800 dark:border-gray-600">
+                          <p className="text-gray-800 dark:text-white font-medium">
+                            {data.name}
+                          </p>
+                          <p className="text-blue-600 dark:text-blue-400">
+                            Số lượng: <strong>{data.originalValue || data.value}</strong>
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
                   }}
                 />
                 <Legend
@@ -273,4 +329,4 @@ const NumberStatusPieChart = () => {
   );
 };
 
-export default NumberStatusPieChart;
+export default NumberStatusPieChart; 
