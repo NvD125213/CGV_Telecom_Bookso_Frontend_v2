@@ -82,7 +82,7 @@ const DropzoneComponent: React.FC<DropzoneComponentProps> = ({
     <div className="">
       {loading && <Spinner />}
       <ComponentCard>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between p-2">
           {" "}
           <h2 className="font-extrabold  text-[18px] dark:text-blue-500">
             Tải xuống file Excel

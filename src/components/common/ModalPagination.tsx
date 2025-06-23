@@ -424,13 +424,13 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
   const getStatusClass = () => {
     switch (option) {
       case "available":
-        return "text-[12px] border border-green-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-green-400/40 bg-green-100 dark:bg-green-500/40 backdrop-blur-sm dark:border-green-400";
+        return "text-[10px] border border-green-500 rounded-full py-1 text-center shadow-sm dark:shadow-green-400/40 bg-green-100 dark:bg-green-500/40 backdrop-blur-sm dark:border-green-400";
       case "booked":
-        return "text-[12px] border border-yellow-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-yellow-400/40 bg-yellow-100 dark:bg-yellow-500/40 backdrop-blur-sm dark:border-yellow-400";
+        return "text-[10px] border border-yellow-500 rounded-full py-1 text-center shadow-sm dark:shadow-yellow-400/40 bg-yellow-100 dark:bg-yellow-500/40 backdrop-blur-sm dark:border-yellow-400";
       case "released":
-        return "text-[12px] border border-red-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-red-400/40 bg-red-100 dark:bg-red-500/40 backdrop-blur-sm dark:border-red-400";
+        return "text-[10px] border border-red-500 rounded-full py-1 text-center shadow-sm dark:shadow-red-400/40 bg-red-100 dark:bg-red-500/40 backdrop-blur-sm dark:border-red-400";
       default:
-        return "text-[13px] border border-gray-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-gray-400/40 bg-gray-100 dark:bg-gray-500/40 backdrop-blur-sm dark:border-gray-400";
+        return "text-[10px] border border-gray-500 py-1 rounded-full text-center shadow-sm dark:shadow-gray-400/40 bg-gray-100 dark:bg-gray-500/40 backdrop-blur-sm dark:border-gray-400";
     }
   };
 
@@ -438,8 +438,8 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      className={`max-w-[90%] min-h-[600px] m-4 ${
-        isMobile ? "max-w-[100%] w-full h-full m-0" : ""
+      className={`max-w-[90%] min-h-[600px] ${
+        isMobile ? "max-w-[100%] w-full h-full" : ""
       }`}>
       <div
         className={`relative w-full max-h-[70vh] overflow-y-auto bg-white rounded-tl-3xl rounded-br-3xl dark:bg-gray-900 lg:p-11 ${
@@ -577,7 +577,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
             }}
             valueClassNames={{
               "Số điện thoại":
-                "text-[12px] tracking-wider bg-blue-100 dark:bg-blue-500/40 align-middle rounded-full border border-blue-200 px-5 py-1 dark:border-blue-400 shadow-sm dark:shadow-blue-400/30 backdrop-blur-sm font-semibold",
+                "text-[12px] tracking-wider bg-blue-100 dark:bg-blue-500/40 align-middle rounded-full border border-blue-200 py-1 dark:border-blue-400 shadow-sm dark:shadow-blue-400/30 backdrop-blur-sm font-semibold",
               "Nhà cung cấp": "text-[13px] backdrop-blur-sm dark:text-gray-200",
               "Loại số": "text-[13px] backdrop-blur-sm dark:text-gray-200",
               "Nhà mạng": "text-[13px] backdrop-blur-sm dark:text-gray-200",

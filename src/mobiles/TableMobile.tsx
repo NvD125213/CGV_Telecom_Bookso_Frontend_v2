@@ -1,4 +1,13 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useMemo,
+  useRef,
+  useEffect,
+  useCallback,
+  lazy,
+  Suspense,
+  memo,
+} from "react";
 import {
   Box,
   Typography,
@@ -6,24 +15,28 @@ import {
   Paper,
   Select,
   MenuItem,
+  Skeleton,
 } from "@mui/material";
 import { motion, AnimatePresence } from "framer-motion";
-import CardMobile from "../components/common/CardMobile";
 import { useTheme } from "../context/ThemeContext";
-import PageBreadcrumb from "../components/common/PageBreadCrumb";
-import { InfoObject } from "../components/common/CardMobile";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "../store";
 import {
   setSelectedIds as setSelectedIdsAction,
   resetSelectedIds,
 } from "../store/selectedPhoneSlice";
-import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "../store";
+
+// Lazy load components
+const CardMobile = lazy(() => import("../components/common/CardMobile"));
+const PageBreadcrumb = lazy(
+  () => import("../components/common/PageBreadCrumb")
+);
 
 // Interface cho format label-value
 export interface LabelValueItem {
   label: string;
   value: string | number;
-  hidden?: boolean; // Thêm thuộc tính để ẩn field
+  hidden?: boolean;
   hideLabel?: boolean;
   hideValue?: boolean;
 }
@@ -38,7 +51,7 @@ export interface ActionButton {
 
 interface MobileListProps {
   pageTitle?: string;
-  data: LabelValueItem[][]; // Format cố định với id ở vị trí đầu tiên
+  data: LabelValueItem[][];
   actions?: ActionButton[];
   itemsPerPageOptions?: number[];
   defaultItemsPerPage?: number;
@@ -46,7 +59,6 @@ interface MobileListProps {
   fieldClassNames?: { [key: string]: string };
   labelClassNames?: { [key: string]: string };
   valueClassNames?: { [key: string]: string };
-  // Thêm prop mới cho sx styling
   valueSxProps?: { [key: string]: React.CSSProperties | object };
   hideCheckbox?: boolean;
   hidePagination?: boolean;
@@ -54,30 +66,97 @@ interface MobileListProps {
   onSelectionChange?: (selectedIds: string[]) => void;
   onSelectAll?: () => void;
   onClearSelection?: () => void;
-  // Props cho phân trang từ API
   totalPages?: number;
   currentPage?: number;
   onPageChange?: (page: number) => void;
   onItemsPerPageChange?: (itemsPerPage: number) => void;
-  // Props cho scroll behavior
-  scrollToTop?: boolean; // Có scroll to top hay không
-  scrollBehavior?: "smooth" | "auto"; // Kiểu scroll
-  scrollOffset?: number; // Offset từ top (px)
-  // Props cho selection management
+  scrollToTop?: boolean;
+  scrollBehavior?: "smooth" | "auto";
+  scrollOffset?: number;
   onCheck?: (
     selectedIds: (string | number)[],
     selectedRows: LabelValueItem[][]
   ) => void;
   selectedIds?: (string | number)[];
   setSelectedIds?: React.Dispatch<React.SetStateAction<number[]>>;
-  disabled?: boolean; // Thêm prop disabled
-  disabledReset?: boolean; // Thêm prop disabledReset
-  // Styling props
+  disabled?: boolean;
+  disabledReset?: boolean;
   cardClassName?: string;
   contentClassName?: string;
   actionsClassName?: string;
   actionButtonClassName?: string;
 }
+
+// Loading skeleton component
+const CardSkeleton = memo(() => (
+  <Box sx={{ mb: 2 }}>
+    <Skeleton variant="rectangular" height={120} sx={{ borderRadius: 1 }} />
+  </Box>
+));
+
+// Memoized card item component for better performance
+const MemoizedCardItem = memo<{
+  item: LabelValueItem[];
+  index: number;
+  isSelected: boolean;
+  onSelectionChange: (selected: boolean, index: number) => void;
+  actions: any[];
+  hideCheckbox: boolean;
+  useTailwindStyling: boolean;
+  fieldClassNames: { [key: string]: string };
+  labelClassNames: { [key: string]: string };
+  valueClassNames: { [key: string]: string };
+  valueSxProps: { [key: string]: React.CSSProperties | object };
+  cardClassName?: string;
+  contentClassName?: string;
+  actionsClassName?: string;
+  actionButtonClassName?: string;
+}>(
+  ({
+    item,
+    index,
+    isSelected,
+    onSelectionChange,
+    actions,
+    hideCheckbox,
+    useTailwindStyling,
+    fieldClassNames,
+    labelClassNames,
+    valueClassNames,
+    valueSxProps,
+    cardClassName,
+    contentClassName,
+    actionsClassName,
+    actionButtonClassName,
+  }) => (
+    <motion.div
+      key={index}
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.05 }} // Reduced delay for better performance
+    >
+      <Suspense fallback={<CardSkeleton />}>
+        <CardMobile
+          selectable={!hideCheckbox}
+          selected={isSelected}
+          showDefaultActions={true}
+          actions={actions}
+          data={item}
+          onSelectionChange={(selected) => onSelectionChange(selected, index)}
+          useTailwindStyling={useTailwindStyling}
+          fieldClassNames={fieldClassNames}
+          labelClassNames={labelClassNames}
+          valueClassNames={valueClassNames}
+          valueSxProps={valueSxProps}
+          cardClassName={cardClassName}
+          contentClassName={contentClassName}
+          actionsClassName={actionsClassName}
+          actionButtonClassName={actionButtonClassName}
+        />
+      </Suspense>
+    </motion.div>
+  )
+);
 
 const TableMobile: React.FC<MobileListProps> = ({
   data,
@@ -88,7 +167,7 @@ const TableMobile: React.FC<MobileListProps> = ({
   fieldClassNames = {},
   labelClassNames = {},
   valueClassNames = {},
-  valueSxProps = {}, // Prop mới
+  valueSxProps = {},
   hideCheckbox = false,
   hidePagination = false,
   showAllData = false,
@@ -122,40 +201,39 @@ const TableMobile: React.FC<MobileListProps> = ({
   // Sử dụng selectedIds từ props hoặc Redux
   const currentSelectedIds = selectedIds || reduxSelectedIds;
 
-  // Helper function để scroll to top
-  const scrollToTopHandler = () => {
+  // Memoized helper function để lấy ID từ item
+  const getItemId = useCallback((item: LabelValueItem[]): string => {
+    return String(item[0].value);
+  }, []);
+
+  // Memoized scroll handler
+  const scrollToTopHandler = useCallback(() => {
     if (!scrollToTop) return;
 
     if (containerRef.current) {
-      // Scroll to container
       containerRef.current.scrollIntoView({
         behavior: scrollBehavior,
         block: "start",
       });
     } else {
-      // Fallback: scroll to top of page
       window.scrollTo({
         top: scrollOffset,
         behavior: scrollBehavior,
       });
     }
-  };
+  }, [scrollToTop, scrollBehavior, scrollOffset]);
 
   // Scroll to top khi thay đổi trang
   useEffect(() => {
     scrollToTopHandler();
-  }, [currentPage]);
+  }, [currentPage, scrollToTopHandler]);
 
   // Scroll to top khi thay đổi items per page
   useEffect(() => {
     scrollToTopHandler();
-  }, [itemsPerPage]);
+  }, [itemsPerPage, scrollToTopHandler]);
 
-  // Lấy ID từ item (luôn ở vị trí đầu tiên)
-  const getItemId = (item: LabelValueItem[]): string => {
-    return String(item[0].value); // ID luôn ở vị trí đầu tiên
-  };
-
+  // Memoized paginated data
   const paginatedData = useMemo(() => {
     if (showAllData || (apiTotalPages && apiTotalPages > 0)) {
       return data;
@@ -165,39 +243,46 @@ const TableMobile: React.FC<MobileListProps> = ({
     return data.slice(startIndex, startIndex + itemsPerPage);
   }, [data, currentPage, itemsPerPage, showAllData, apiTotalPages]);
 
-  const totalPages = showAllData
-    ? 1
-    : apiTotalPages || Math.ceil(data.length / itemsPerPage);
+  // Memoized total pages calculation
+  const totalPages = useMemo(() => {
+    return showAllData
+      ? 1
+      : apiTotalPages || Math.ceil(data.length / itemsPerPage);
+  }, [showAllData, apiTotalPages, data.length, itemsPerPage]);
 
-  // Xử lý selection tương tự như ReusableTable
-  const handleSelectionChange = (selected: boolean, idx: number) => {
-    if (disabled) return;
+  // Memoized selection handler
+  const handleSelectionChange = useCallback(
+    (selected: boolean, idx: number) => {
+      if (disabled) return;
 
-    const itemId = getItemId(paginatedData[idx] as LabelValueItem[]);
-    let updatedSelection: (string | number)[];
-    let updatedRows: LabelValueItem[][];
+      const itemId = getItemId(paginatedData[idx] as LabelValueItem[]);
+      let updatedSelection: (string | number)[];
+      let updatedRows: LabelValueItem[][];
 
-    if (currentSelectedIds.includes(itemId)) {
-      updatedSelection = currentSelectedIds.filter(
-        (selectedId) => selectedId !== itemId
+      if (currentSelectedIds.includes(itemId)) {
+        updatedSelection = currentSelectedIds.filter(
+          (selectedId) => selectedId !== itemId
+        );
+        updatedRows = paginatedData.filter((item) =>
+          updatedSelection.includes(getItemId(item as LabelValueItem[]))
+        );
+      } else {
+        updatedSelection = [...currentSelectedIds, itemId];
+        updatedRows = paginatedData.filter((item) =>
+          updatedSelection.includes(getItemId(item as LabelValueItem[]))
+        );
+      }
+
+      dispatch(
+        setSelectedIdsAction({ ids: updatedSelection, rows: updatedRows })
       );
-      updatedRows = paginatedData.filter((item) =>
-        updatedSelection.includes(getItemId(item as LabelValueItem[]))
-      );
-    } else {
-      updatedSelection = [...currentSelectedIds, itemId];
-      updatedRows = paginatedData.filter((item) =>
-        updatedSelection.includes(getItemId(item as LabelValueItem[]))
-      );
-    }
+      onCheck?.(updatedSelection, updatedRows);
+    },
+    [disabled, paginatedData, currentSelectedIds, getItemId, dispatch, onCheck]
+  );
 
-    dispatch(
-      setSelectedIdsAction({ ids: updatedSelection, rows: updatedRows })
-    );
-    onCheck?.(updatedSelection, updatedRows);
-  };
-
-  const selectAll = () => {
+  // Memoized select all handler
+  const selectAll = useCallback(() => {
     if (disabled) return;
 
     if (
@@ -216,12 +301,19 @@ const TableMobile: React.FC<MobileListProps> = ({
       onCheck?.(allIds, paginatedData);
     }
 
-    if (onSelectAll) {
-      onSelectAll();
-    }
-  };
+    onSelectAll?.();
+  }, [
+    disabled,
+    paginatedData,
+    currentSelectedIds,
+    getItemId,
+    dispatch,
+    onCheck,
+    onSelectAll,
+  ]);
 
-  const handleResetSelection = () => {
+  // Memoized reset handler
+  const handleResetSelection = useCallback(() => {
     if (currentSelectedIds.length === 0) {
       console.log("No items selected, showing alert");
       alert("Không có số nào được chọn!");
@@ -229,48 +321,38 @@ const TableMobile: React.FC<MobileListProps> = ({
     }
     dispatch(resetSelectedIds());
     onCheck?.([], []);
-  };
+  }, [currentSelectedIds.length, dispatch, onCheck]);
 
-  const wrappedActions = actions.map((action) => ({
-    ...action,
-    onClick: (data: InfoObject | LabelValueItem[]) => {
-      const itemId = getItemId(data as LabelValueItem[]);
-      action.onClick(itemId);
+  // Memoized wrapped actions
+  const wrappedActions = useMemo(
+    () =>
+      actions.map((action) => ({
+        ...action,
+        onClick: (data: any) => {
+          const itemId = getItemId(data as LabelValueItem[]);
+          action.onClick(itemId);
+        },
+      })),
+    [actions, getItemId]
+  );
+
+  // Memoized page change handler
+  const handlePageChange = useCallback(
+    (page: number) => {
+      onPageChange?.(page);
     },
-  }));
+    [onPageChange]
+  );
 
-  const renderItem = (item: LabelValueItem[], index: number) => {
-    const itemId = getItemId(item);
-    const isSelected = currentSelectedIds.includes(itemId);
-
-    return (
-      <motion.div
-        key={index}
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: index * 0.1 }}>
-        <CardMobile
-          selectable={!hideCheckbox}
-          selected={isSelected}
-          showDefaultActions={true}
-          actions={wrappedActions}
-          data={item}
-          onSelectionChange={(selected) =>
-            handleSelectionChange(selected, index)
-          }
-          useTailwindStyling={useTailwindStyling}
-          fieldClassNames={fieldClassNames}
-          labelClassNames={labelClassNames}
-          valueClassNames={valueClassNames}
-          valueSxProps={valueSxProps} // Truyền prop mới xuống CardMobile
-          cardClassName={cardClassName}
-          contentClassName={contentClassName}
-          actionsClassName={actionsClassName}
-          actionButtonClassName={actionButtonClassName}
-        />
-      </motion.div>
-    );
-  };
+  // Memoized items per page change handler
+  const handleItemsPerPageChange = useCallback(
+    (newItemsPerPage: number) => {
+      setItemsPerPage(newItemsPerPage);
+      onItemsPerPageChange?.(newItemsPerPage);
+      onPageChange?.(1);
+    },
+    [onItemsPerPageChange, onPageChange]
+  );
 
   return (
     <Container
@@ -280,7 +362,9 @@ const TableMobile: React.FC<MobileListProps> = ({
         py: 4,
         pb: !hidePagination && !showAllData && totalPages > 1 ? 8 : 4,
       }}>
-      <PageBreadcrumb pageTitle={pageTitle} />
+      <Suspense fallback={<Skeleton variant="text" width={200} height={40} />}>
+        <PageBreadcrumb pageTitle={pageTitle} />
+      </Suspense>
 
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -362,7 +446,31 @@ const TableMobile: React.FC<MobileListProps> = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}>
-              {paginatedData.map((item, index) => renderItem(item, index))}
+              {paginatedData.map((item, index) => {
+                const itemId = getItemId(item);
+                const isSelected = currentSelectedIds.includes(itemId);
+
+                return (
+                  <MemoizedCardItem
+                    key={`${itemId}-${index}`}
+                    item={item}
+                    index={index}
+                    isSelected={isSelected}
+                    onSelectionChange={handleSelectionChange}
+                    actions={wrappedActions}
+                    hideCheckbox={hideCheckbox}
+                    useTailwindStyling={useTailwindStyling}
+                    fieldClassNames={fieldClassNames}
+                    labelClassNames={labelClassNames}
+                    valueClassNames={valueClassNames}
+                    valueSxProps={valueSxProps}
+                    cardClassName={cardClassName}
+                    contentClassName={contentClassName}
+                    actionsClassName={actionsClassName}
+                    actionButtonClassName={actionButtonClassName}
+                  />
+                );
+              })}
             </motion.div>
           ) : (
             <Paper
@@ -424,7 +532,7 @@ const TableMobile: React.FC<MobileListProps> = ({
                   },
                 },
               }}
-              onChange={(e) => onPageChange?.(Number(e.target.value))}
+              onChange={(e) => handlePageChange(Number(e.target.value))}
               sx={{
                 minWidth: 80,
                 height: 40,
@@ -461,17 +569,11 @@ const TableMobile: React.FC<MobileListProps> = ({
 
             <Select
               value={itemsPerPage}
-              onChange={(e) => {
-                const newItemsPerPage = Number(e.target.value);
-                setItemsPerPage(newItemsPerPage);
-                onItemsPerPageChange?.(newItemsPerPage);
-                onPageChange?.(1);
-              }}
+              onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
               sx={{
                 minWidth: 80,
                 height: 40,
                 color: theme === "dark" ? "#fff" : "inherit",
-
                 "& .MuiInputBase-root": {
                   color: theme === "dark" ? "#fff" : "inherit",
                 },
@@ -495,4 +597,4 @@ const TableMobile: React.FC<MobileListProps> = ({
   );
 };
 
-export default TableMobile;
+export default memo(TableMobile);

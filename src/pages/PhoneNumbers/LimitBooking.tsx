@@ -185,8 +185,7 @@ const LimitBookingPage = () => {
         <Spinner />
       ) : (
         <>
-          <PageBreadcrumb pageTitle="Giới hạn đặt số" />
-
+          {isMobile ? null : <PageBreadcrumb pageTitle="Giới hạn đặt số" />}{" "}
           <div className="space-y-6">
             <ComponentCard>
               <ResponsiveFilterWrapper drawerTitle="Tìm kiếm theo khoảng thời gian">

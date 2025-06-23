@@ -274,7 +274,6 @@ const CardMobile: React.FC<CardMobileProps> = ({
                         valueClassName || ""
                       } ${valueClassNames[key] || ""}`}
                       style={{
-                        wordBreak: "break-word",
                         ...getValueSxStyles(key), // Apply sx styles cho Tailwind
                       }}>
                       {value}
@@ -412,7 +411,6 @@ const CardMobile: React.FC<CardMobileProps> = ({
                     sx={{
                       textAlign: hideLabel ? "center" : "right",
                       width: hideLabel ? "100%" : "50%",
-                      wordBreak: "break-word",
                       ...getValueSxStyles(key),
                     }}>
                     {value}

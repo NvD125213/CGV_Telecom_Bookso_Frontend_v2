@@ -26,6 +26,7 @@ import SwitchablePicker, {
 } from "../../components/common/SwitchablePicker";
 import clsx from "clsx";
 import FloatingActionPanel from "../../components/common/FloatingActionPanel";
+import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 
 const getColumns = (status: string) => {
   const columns: {
@@ -346,6 +347,7 @@ const HistoryBooked = () => {
 
   return (
     <>
+      {isMobile ? null : <PageBreadcrumb pageTitle="Lịch sử đặt số" />}{" "}
       <ResponsiveFilterWrapper drawerTitle="Bộ lọc" pageTitle="Lịch sử đặt số">
         <div
           className={`w-full gap-3 mb-4 ${

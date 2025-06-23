@@ -52,7 +52,7 @@ const ProviderModal = forwardRef<HTMLDivElement, ProviderModalProps>(
                 ? "Tạo nhà cung cấp mới"
                 : "Cập nhật thông tin nhà cung cấp"} */}
             </h4>
-            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
+            <p className="hidden sm:block mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
               Cập nhật thông tin chi tiết để thông tin của bạn luôn được cập
               nhật.
             </p>

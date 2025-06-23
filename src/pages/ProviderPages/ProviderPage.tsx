@@ -132,6 +132,7 @@ const ProviderPage = () => {
   return (
     <>
       <>
+        {isMobile ? null : <PageBreadcrumb pageTitle="Nhà cung cấp" />}
         <div className="flex justify-end mb-4">
           <button
             onClick={() => {

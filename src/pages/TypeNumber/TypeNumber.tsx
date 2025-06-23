@@ -155,7 +155,7 @@ const TypeNumberPages = () => {
   return (
     <>
       <>
-        <PageBreadcrumb pageTitle="Định dạng số" />
+        {isMobile ? null : <PageBreadcrumb pageTitle="Định dạng số" />}
         <div className="flex justify-end mb-4">
           <button
             onClick={() => {

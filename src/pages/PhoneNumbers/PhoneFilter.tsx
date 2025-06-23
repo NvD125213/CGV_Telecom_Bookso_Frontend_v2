@@ -466,7 +466,9 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
         <Spinner />
       ) : (
         <>
-          <PageBreadcrumb pageTitle="Đặt số điện thoại" />
+          {isMobile ? null : (
+            <PageBreadcrumb pageTitle="Danh sách số điện thoại" />
+          )}{" "}
           {user?.role === 1 ? (
             <div className="flex justify-end">
               <button
@@ -479,7 +481,6 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
           ) : (
             <></>
           )}
-
           {/* Form */}
           <div className="space-y-6">
             <SearchHelp />
@@ -644,7 +645,6 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
               )}
             </ComponentCard>
           </div>
-
           {/* Modal */}
           <PhoneNumberModal
             isOpen={openModal}

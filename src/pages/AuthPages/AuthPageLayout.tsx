@@ -11,10 +11,10 @@ export default function AuthLayout({
 }) {
   const { theme } = useTheme();
   return (
-    <div className="relative bg-white z-1 dark:bg-gray-900 h-screen box-border">
+    <div className="relative bg-white z-1 h-screen box-border">
       <div className="relative flex flex-col justify-center w-full h-full lg:flex-row dark:bg-gray-900 p-6 sm:p-0 box-border">
         {children}
-        <div className="items-center hidden w-full h-full lg:w-1/2 bg-brand-950 dark:bg-white/5 lg:grid">
+        <div className="items-center hidden w-full h-full lg:w-1/2 dark:bg-white/5 bg-[#f2800f] lg:grid">
           <div className="relative flex items-center justify-center z-1">
             {/* <!-- ===== Common Grid Shape Start ===== --> */}
             <GridShape />
@@ -24,19 +24,19 @@ export default function AuthLayout({
                   <img
                     width={300}
                     height={50}
-                    src="/Logo/logo_darkmode.png"
+                    src="/Logo/Logo_company.png"
                     alt="Logo"
                   />
                 ) : (
                   <img
                     width={300}
                     height={50}
-                    src="/Logo/logo_darkmode.png"
+                    src="/Logo/Logo_company_darkmode.png"
                     alt="Logo"
                   />
                 )}
               </Link>
-              <p className="text-center pt-6 text-gray-400 dark:text-white/60">
+              <p className="text-center pt-6 text-[#ffffff] dark:text-white/60">
                 Hệ thống Booking số dành cho sale và doanh nghiệp hàng đầu Việt
                 Nam
               </p>

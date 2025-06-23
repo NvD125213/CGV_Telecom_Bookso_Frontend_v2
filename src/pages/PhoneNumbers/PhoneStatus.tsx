@@ -705,8 +705,9 @@ function PhoneNumbers() {
         <Spinner />
       ) : (
         <>
-          <PageBreadcrumb pageTitle="Trạng thái số" />
-
+          {isMobile ? null : (
+            <PageBreadcrumb pageTitle="Danh sách trạng thái số" />
+          )}{" "}
           <div className="space-y-6">
             <ResponsiveFilterWrapper drawerTitle="Bộ lọc trạng thái số ">
               <div
