@@ -378,7 +378,10 @@ const HistoryBooked = () => {
       </ResponsiveFilterWrapper>
       <FloatingActionPanel>
         {status === "booked" && (
-          <div className={clsx(isMobile ? "block" : "flex items-end gap-2")}>
+          <div
+            className={clsx(
+              isMobile ? "block" : "flex items-end justify-end gap-2 py-2 px-2"
+            )}>
             <button
               onClick={handleRevoke}
               className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">

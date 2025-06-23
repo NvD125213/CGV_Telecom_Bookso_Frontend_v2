@@ -821,7 +821,7 @@ function PhoneNumbers() {
             </ResponsiveFilterWrapper>
             <FloatingActionPanel>
               {status === "booked" && user.role === 1 && (
-                <div className="flex items-end gap-2">
+                <div className="flex items-end justify-end px-2 py-2 gap-2">
                   <button
                     onClick={handleRevoke}
                     className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">

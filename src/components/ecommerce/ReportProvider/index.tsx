@@ -301,7 +301,7 @@ const ProviderReport = () => {
           plotOptions: {
             bar: {
               horizontal: true,
-              barHeight: "60%",
+              barHeight: "50%",
               dataLabels: {
                 position: "center",
               },
@@ -773,7 +773,7 @@ const ProviderReport = () => {
           plotOptions: {
             bar: {
               horizontal: true,
-              barHeight: 30,
+              barHeight: "50%", // Giảm từ 60% xuống 50% để tạo khoảng cách
               dataLabels: {
                 position: "center",
               },
@@ -892,17 +892,15 @@ const ProviderReport = () => {
             }) {
               const data = sortedData[dataPointIndex];
               return `<div class="p-2">
-                          <div class="dark:text-white"><b>${data.name}</b></div>
-                          <div class="dark:text-white">Đã book: ${
-                            data.booked
-                          }</div>
-                          <div class="dark:text-white">Đã triển khai: ${
-                            data.deployed
-                          }</div>
-                          <div class="dark:text-white"><b>Tổng: ${
-                            (data.booked || 0) + (data.deployed || 0)
-                          }</b></div>
-                        </div>`;
+                    <div class="dark:text-white"><b>${data.name}</b></div>
+                    <div class="dark:text-white">Đã book: ${data.booked}</div>
+                    <div class="dark:text-white">Đã triển khai: ${
+                      data.deployed
+                    }</div>
+                    <div class="dark:text-white"><b>Tổng: ${
+                      (data.booked || 0) + (data.deployed || 0)
+                    }</b></div>
+                  </div>`;
             },
           },
           title: {
@@ -945,7 +943,7 @@ const ProviderReport = () => {
                 },
                 plotOptions: {
                   bar: {
-                    barHeight: 35,
+                    barHeight: "70%", // Giảm để tăng khoảng cách
                   },
                 },
                 yaxis: {
@@ -987,12 +985,12 @@ const ProviderReport = () => {
                 chart: {
                   height: Math.max(
                     minHeight,
-                    Math.min(itemCount * 45, maxHeight)
+                    Math.min(itemCount * 50, maxHeight) // Tăng từ 45 lên 50 để có thêm không gian
                   ),
                 },
                 plotOptions: {
                   bar: {
-                    barHeight: 30,
+                    barHeight: "40%", // Giảm để tăng khoảng cách
                   },
                 },
                 yaxis: {
@@ -1034,12 +1032,12 @@ const ProviderReport = () => {
                 chart: {
                   height: Math.max(
                     minHeight,
-                    Math.min(itemCount * 40, maxHeight)
+                    Math.min(itemCount * 45, maxHeight) // Tăng từ 40 lên 45
                   ),
                 },
                 plotOptions: {
                   bar: {
-                    barHeight: 25,
+                    barHeight: "35%", // Giảm để tăng khoảng cách
                   },
                 },
                 yaxis: {
@@ -1088,12 +1086,12 @@ const ProviderReport = () => {
                 chart: {
                   height: Math.max(
                     minHeight,
-                    Math.min(itemCount * 35, maxHeight)
+                    Math.min(itemCount * 40, maxHeight) // Tăng từ 35 lên 40
                   ),
                 },
                 plotOptions: {
                   bar: {
-                    barHeight: 20,
+                    barHeight: "30%", // Giảm để tăng khoảng cách
                   },
                 },
                 yaxis: {
@@ -1145,12 +1143,12 @@ const ProviderReport = () => {
                 chart: {
                   height: Math.max(
                     minHeight,
-                    Math.min(itemCount * 30, maxHeight)
+                    Math.min(itemCount * 35, maxHeight) // Tăng từ 30 lên 35
                   ),
                 },
                 plotOptions: {
                   bar: {
-                    barHeight: 18,
+                    barHeight: "25%", // Giảm để tăng khoảng cách
                   },
                 },
                 yaxis: {
