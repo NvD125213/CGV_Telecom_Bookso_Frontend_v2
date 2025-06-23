@@ -68,6 +68,7 @@ const navItems: NavItem[] = [
     path: "/time-online",
     icon: <RiBaseStationLine />,
   },
+
   {
     name: "Số điện thoại",
     icon: <TableIcon />,
@@ -109,7 +110,13 @@ const othersItems: NavItem[] = [
 ];
 
 const AppSidebar: React.FC = () => {
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const {
+    isExpanded,
+    isMobileOpen,
+    isHovered,
+    setIsHovered,
+    toggleMobileSidebar,
+  } = useSidebar();
   const location = useLocation();
   const user = useSelector((state: RootState) => state.auth.user);
   const filteredNavItems = navItems
@@ -187,6 +194,13 @@ const AppSidebar: React.FC = () => {
     }
   }, [openSubmenu]);
 
+  const handleMenuClick = () => {
+    // Đóng sidebar trên mobile khi click vào menu item
+    if (isMobileOpen) {
+      toggleMobileSidebar();
+    }
+  };
+
   const handleSubmenuToggle = (index: number, menuType: "main" | "others") => {
     setOpenSubmenu((prevOpenSubmenu) => {
       if (
@@ -242,6 +256,7 @@ const AppSidebar: React.FC = () => {
             nav.path && (
               <Link
                 to={nav.path}
+                onClick={handleMenuClick}
                 className={`menu-item group ${
                   isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
                 }`}>
@@ -276,6 +291,7 @@ const AppSidebar: React.FC = () => {
                   <li key={subItem.name}>
                     <Link
                       to={subItem.path}
+                      onClick={handleMenuClick}
                       className={`menu-dropdown-item ${
                         isActive(subItem.path)
                           ? "menu-dropdown-item-active"
@@ -332,28 +348,39 @@ const AppSidebar: React.FC = () => {
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}>
       <div
-        className={`hidden  lg:flex ${
+        className={`hidden lg:flex ${
           !isExpanded && !isHovered
             ? "lg:justify-center"
             : "justify-start pt-4 pb-4"
         }`}>
-        <Link to="/">
+        <Link to="/" onClick={handleMenuClick}>
           {isExpanded || isHovered || isMobileOpen ? (
             <>
-              <img
-                className="dark:hidden"
-                src="/Logo/Logo_company.png"
-                alt="Logo"
-                width={180}
-                height={50}
-              />
-              <img
-                className="hidden dark:block"
-                src="/Logo/Logo_company.png"
-                alt="Logo"
-                width={180}
-                height={50}
-              />
+              <div
+                style={{
+                  paddingLeft: "10px",
+                }}>
+                <img
+                  className="dark:hidden"
+                  src="/Logo/Logo_company.png"
+                  alt="Logo"
+                  width={180}
+                  height={50}
+                />
+              </div>
+
+              <div
+                style={{
+                  paddingLeft: "10px",
+                }}>
+                <img
+                  className="hidden dark:block"
+                  src="/Logo/logo_darkmode.png"
+                  alt="Logo"
+                  width={180}
+                  height={50}
+                />
+              </div>
             </>
           ) : (
             <img

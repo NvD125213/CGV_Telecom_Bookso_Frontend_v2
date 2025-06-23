@@ -19,7 +19,7 @@ const LayoutContent: React.FC = () => {
           isExpanded || isHovered ? "lg:ml-[290px]" : "lg:ml-[90px]"
         } ${isMobileOpen ? "ml-0" : ""}`}>
         <AppHeader />
-        <div className="p-4 max-w-(--breakpoint-2xl) md:p-6 flex-1">
+        <div className="p-2 max-w-(--breakpoint-2xl) md:p-6 flex-1">
           <Outlet />
         </div>
       </div>

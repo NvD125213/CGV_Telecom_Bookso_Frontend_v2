@@ -10,6 +10,11 @@ import ModalSwalAction from "../../hooks/useModalSwal";
 import ReusableTable from "../../components/common/ReusableTable";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
+import TableMobile from "../../mobiles/TableMobile";
+import { useScreenSize } from "../../hooks/useScreenSize";
+import { LabelValueItem, ActionButton } from "../../mobiles/TableMobile";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 function convertSecondsToTime(seconds: number): string {
   if (!seconds || seconds < 0) return "0s";
@@ -48,6 +53,7 @@ const TypeNumberPages = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [errorData, setErrorData] = useState("");
+  const { isMobile } = useScreenSize();
 
   const user = useSelector((state: RootState) => state.auth.user);
 
@@ -94,6 +100,58 @@ const TypeNumberPages = () => {
     });
   };
 
+  // Chuyển đổi dữ liệu cho TableMobile
+  const convertToMobileData = (): LabelValueItem[][] => {
+    return types.map((item) => [
+      {
+        label: "Mã định dạng số",
+        value: item.id,
+        fieldName: "id",
+        hidden: true,
+      },
+      {
+        label: "Định dạng số",
+        value: item.name,
+        fieldName: "name",
+        hideLabel: true,
+      },
+      {
+        label: "Thời hạn chờ triển khai",
+        value: item.booking_expiration,
+        fieldName: "booking_expiration",
+      },
+      {
+        label: "Thời hạn chờ triển khai cuối tuần",
+        value: item.weekend_booking_expiration,
+        fieldName: "weekend_booking_expiration",
+      },
+    ]);
+  };
+
+  // Actions cho TableMobile
+  const actions: ActionButton[] = [
+    {
+      icon: <EditIcon />,
+      label: "Chỉnh sửa",
+      onClick: (id: string) => {
+        const typeNumber = types.find((p) => String(p.id) === String(id));
+        if (typeNumber) {
+          setType(typeNumber);
+          setOpenModal(true);
+        }
+      },
+      color: "primary",
+    },
+    {
+      icon: <DeleteIcon />,
+      label: "Xóa",
+      onClick: (id: string) => {
+        handleDelete(id);
+      },
+      color: "error",
+    },
+  ];
+
   return (
     <>
       <>
@@ -111,23 +169,59 @@ const TypeNumberPages = () => {
         </div>
         <div className="space-y-6">
           {error && <div className="text-red-500">{error}</div>}
-          <ComponentCard>
-            <ReusableTable
-              error={errorData}
-              disabledReset={true}
-              disabled={true}
-              role={user.role}
-              title="Danh sách số điện thoại"
-              data={types}
-              columns={columns}
-              onEdit={(item) => {
-                setType(item);
-                setOpenModal(!openModal);
-              }}
-              isLoading={loading}
-              onDelete={(id) => handleDelete(String(id))}
-            />
-          </ComponentCard>
+
+          {isMobile ? (
+            // Hiển thị TableMobile cho mobile
+            <ComponentCard>
+              <TableMobile
+                pageTitle="Định dạng số"
+                disabledReset={true}
+                data={convertToMobileData()}
+                actions={actions}
+                showAllData={true}
+                useTailwindStyling={true}
+                hideCheckbox={true}
+                labelClassNames={{
+                  "Định dạng số": `
+                  text-[18px] font-extrabold uppercase
+                `,
+                }}
+                valueClassNames={{
+                  "Định dạng số": `
+                    text-base font-semibold 
+                    bg-blue-50 text-blue-800
+                    dark:bg-blue-900 dark:text-blue-100
+                    px-4 py-2
+                    rounded-lg
+                    border border-blue-200 dark:border-blue-700
+                    text-center
+                    shadow-sm
+                    whitespace-nowrap
+                    font-sans
+                `,
+                }}
+              />
+            </ComponentCard>
+          ) : (
+            // Hiển thị ReusableTable cho desktop
+            <ComponentCard>
+              <ReusableTable
+                error={errorData}
+                disabledReset={true}
+                disabled={true}
+                role={user.role}
+                title="Danh sách định dạng số"
+                data={types}
+                columns={columns}
+                onEdit={(item) => {
+                  setType(item);
+                  setOpenModal(!openModal);
+                }}
+                isLoading={loading}
+                onDelete={(id) => handleDelete(String(id))}
+              />
+            </ComponentCard>
+          )}
         </div>
         <ModalTypeNumber
           isOpen={openModal}

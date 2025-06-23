@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from "react";
-import { useSearchParams } from "react-router-dom"; // Sửa "react-router" thành "react-router-dom"
-
-import { FiEye } from "react-icons/fi";
+import { useSearchParams } from "react-router-dom";
+import { FiDelete, FiEdit, FiEye } from "react-icons/fi";
 import {
   IoCaretBackCircleOutline,
   IoCloudDownloadOutline,
@@ -33,6 +32,12 @@ import PhoneModalDetail from "./PhoneModalDetail";
 import { useDispatch } from "react-redux";
 import { resetSelectedIds } from "../../store/selectedPhoneSlice";
 import { formatPhoneNumber } from "../../helper/formatPhoneNumber";
+import TableMobile, {
+  ActionButton,
+  LabelValueItem,
+} from "../../mobiles/TableMobile";
+import ResponsiveFilterWrapper from "../../components/common/FlipperWrapper";
+import { useScreenSize } from "../../hooks/useScreenSize";
 
 interface PhoneNumberProps {
   total_pages: number;
@@ -631,6 +636,49 @@ function PhoneNumbers() {
     }
   };
 
+  // Xử lý dữ liệu cho TableMobile
+  const convertToMobileData = (data: IPhoneNumber[]): LabelValueItem[][] => {
+    return data.map((item) => [
+      { label: "ID", value: item.id ?? "N/A", hidden: true },
+      { label: "Trạng thái", value: item.status ?? "N/A" },
+      { label: "Số điện thoại", value: item.phone_number ?? "N/A" },
+      { label: "Nhà cung cấp", value: item.provider_name ?? "N/A" },
+      { label: "Loại số", value: item.type_name ?? "N/A" },
+    ]);
+  };
+
+  const dataMobile = convertToMobileData(safeData);
+
+  const actions: ActionButton[] = [
+    {
+      icon: <FiEye />,
+      label: "Xem chi tiết",
+      onClick: (id) => handleGetById(Number(id)),
+      color: "primary",
+    },
+    {
+      icon: <FiDelete />,
+      label: "Xóa",
+      onClick: (id) => handleDelete(Number(id)),
+      color: "error",
+    },
+  ];
+  const { isMobile } = useScreenSize();
+
+  // Function to get status class based on current status
+  const getStatusClass = () => {
+    switch (status) {
+      case "available":
+        return "text-[14px] border border-green-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-green-400/40 bg-green-100 dark:bg-green-500/40 backdrop-blur-sm dark:border-green-400";
+      case "booked":
+        return "text-[14px] border border-yellow-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-yellow-400/40 bg-yellow-100 dark:bg-yellow-500/40 backdrop-blur-sm dark:border-yellow-400";
+      case "released":
+        return "text-[14px] border border-red-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-red-400/40 bg-red-100 dark:bg-red-500/40 backdrop-blur-sm dark:border-red-400";
+      default:
+        return "text-[14px] border border-gray-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-gray-400/40 bg-gray-100 dark:bg-gray-500/40 backdrop-blur-sm dark:border-gray-400";
+    }
+  };
+
   return (
     <>
       {loadingProgress && (
@@ -655,7 +703,7 @@ function PhoneNumbers() {
           <PageBreadcrumb pageTitle="Trạng thái số" />
 
           <div className="space-y-6">
-            <ComponentCard>
+            <ResponsiveFilterWrapper drawerTitle="Bộ lọc trạng thái số ">
               <div
                 className={`grid grid-cols-1 items-end gap-4 lg:grid-cols-3`}>
                 <div>
@@ -774,50 +822,88 @@ function PhoneNumbers() {
                   </div>
                 )}
               </div>
-
-              <ReusableTable
-                disabled={status === "available" || status === "released"}
-                disabledReset={status === "available" || status === "released"}
-                isLoading={loading}
-                onCheck={(selectedIds, selectedRows) => {
-                  setSelectedIds(selectedIds.map((id) => Number(id)));
-                  setSelectedRows(selectedRows);
-                }}
-                role={user.role}
-                setSelectedIds={setSelectedIds}
-                selectedIds={selectedIds}
-                error={error}
-                title="Danh sách số điện thoại"
-                data={safeData}
-                columns={getColumns(status)}
-                pagination={{
-                  currentPage: offset,
-                  pageSize: quantity,
-                }}
-                actions={[
-                  {
-                    icon: <FiEye />,
-                    onClick: (row) => handleGetById(Number(row.id)),
-                    label: "Chi tiết",
-                  },
-                ]}
-                onDelete={(id) => handleDelete(Number(id))}
-              />
-
-              <Pagination
-                limit={quantity}
-                offset={offset}
+            </ResponsiveFilterWrapper>
+            {isMobile ? (
+              <TableMobile
+                pageTitle="Trạng thái số"
+                data={dataMobile}
+                hideCheckbox={false}
+                hidePagination={false}
+                useTailwindStyling={true}
+                showAllData={false}
+                actions={actions as ActionButton[]}
+                defaultItemsPerPage={quantity}
+                itemsPerPageOptions={[10, 20, 50, 100]}
                 totalPages={data?.total_pages ?? 0}
-                onPageChange={(limit, newOffset) => {
-                  setQuantity(limit);
-                  setOffset(newOffset);
+                currentPage={offset + 1}
+                onPageChange={(page) => setOffset(page - 1)}
+                onItemsPerPageChange={(newQuantity) => {
+                  setQuantity(newQuantity);
+                  setOffset(0);
                 }}
-                onLimitChange={(newLimit) => {
-                  setQuantity(newLimit);
-                  setOffset(1);
+                labelClassNames={{
+                  "Nhà cung cấp": "text-[14px]",
+                  "Trạng thái": "text-[14px]",
+                  "Loại số": "text-[14px]",
+                  "Số điện thoại": "text-[14px]",
+                }}
+                valueClassNames={{
+                  "Số điện thoại":
+                    " text-sm tracking-wider bg-blue-100 dark:bg-blue-500/40 align-middle rounded-full border border-blue-200 px-5 py-1 dark:border-blue-400 shadow-sm dark:shadow-blue-400/30 backdrop-blur-sm font-semibold",
+                  "Nhà cung cấp":
+                    "text-[14px] backdrop-blur-sm dark:text-gray-200",
+                  "Loại số": "text-[14px] backdrop-blur-sm dark:text-gray-200",
+                  "Trạng thái": getStatusClass(),
                 }}
               />
-            </ComponentCard>
+            ) : (
+              <>
+                <ReusableTable
+                  disabled={status === "available" || status === "released"}
+                  disabledReset={
+                    status === "available" || status === "released"
+                  }
+                  isLoading={loading}
+                  onCheck={(selectedIds, selectedRows) => {
+                    setSelectedIds(selectedIds.map((id) => Number(id)));
+                    setSelectedRows(selectedRows);
+                  }}
+                  role={user.role}
+                  setSelectedIds={setSelectedIds}
+                  selectedIds={selectedIds}
+                  error={error}
+                  title="Danh sách số điện thoại"
+                  data={safeData}
+                  columns={getColumns(status)}
+                  pagination={{
+                    currentPage: offset,
+                    pageSize: quantity,
+                  }}
+                  actions={[
+                    {
+                      icon: <FiEye />,
+                      onClick: (row) => handleGetById(Number(row.id)),
+                      label: "Chi tiết",
+                    },
+                  ]}
+                  onDelete={(id) => handleDelete(Number(id))}
+                />
+
+                <Pagination
+                  limit={quantity}
+                  offset={offset}
+                  totalPages={data?.total_pages ?? 0}
+                  onPageChange={(limit, newOffset) => {
+                    setQuantity(limit);
+                    setOffset(newOffset);
+                  }}
+                  onLimitChange={(newLimit) => {
+                    setQuantity(newLimit);
+                    setOffset(1);
+                  }}
+                />
+              </>
+            )}
             <PhoneModalDetail
               role={user.role}
               onSuccess={() => fetchData(quantity, status, offset)}

@@ -4,6 +4,7 @@ import { copyToClipBoard } from "../../helper/copyToClipboard";
 import { useState } from "react";
 import { handleError } from "../../helper/handleError";
 import Swal from "sweetalert2";
+import { ScrollToTopButton } from "../../components/common/ScrollToTopButton";
 
 const UploadExcel = () => {
   const [errors, setErrors] = useState<

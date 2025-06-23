@@ -58,39 +58,68 @@ const CustomModal: React.FC<CustomModalProps> = ({
   disabledAll = false,
   errorDetail,
 }) => {
-  const gridCols = fields.length >= 6 ? "grid-cols-2" : "grid-cols-1";
+  // Responsive grid columns dựa trên số lượng fields và kích thước màn hình
+  const getGridCols = () => {
+    if (fields.length <= 2) {
+      return "grid-cols-1";
+    } else if (fields.length <= 4) {
+      return "grid-cols-1 sm:grid-cols-2";
+    } else if (fields.length <= 6) {
+      return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
+    } else {
+      return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
+    }
+  };
+
+  // Kiểm tra xem có cần scroll không
+  const needsScroll = fields.length > 6;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} className="max-w-[700px] m-4">
-      <div className="relative w-full p-4 overflow-y-auto bg-white rounded-3xl dark:bg-gray-900 lg:p-11">
-        <div className="px-2 pr-14">
-          <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      className="w-[95%] max-w-[800px] mx-auto my-2 sm:my-4 lg:my-8 overflow-hidden z-999">
+      <div className="relative w-full bg-white rounded-xl sm:rounded-2xl dark:bg-gray-900 max-h-[95vh] flex flex-col">
+        {/* Header Section - Fixed */}
+        <div className="flex-shrink-0 p-3 sm:p-4 lg:p-6 xl:p-8 border-b border-gray-200 dark:border-gray-700">
+          <h4 className="mb-1 sm:mb-2 text-[15px] sm:text-xl lg:text-2xl font-semibold text-gray-800 dark:text-white/90 leading-tight">
             {title}
           </h4>
           {description && (
-            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
+            <p className="mb-2 sm:mb-3 text-[13px] sm:text-sm lg:text-base text-gray-500 dark:text-gray-400">
               {description}
             </p>
           )}
           {errorDetail && (
-            <p className="mb-4 text-sm text-red-500 ">
+            <p className="mb-2 text-xs sm:text-sm text-red-500">
               Cảnh báo lỗi: {errorDetail}
             </p>
           )}
         </div>
-        <form onSubmit={(e) => e.preventDefault()} className="flex flex-col">
-          <div className="px-2 overflow-y-auto custom-scrollbar">
-            <div className={`grid ${gridCols} gap-x-6 gap-y-5`}>
+
+        {/* Form Section - Scrollable */}
+        <form
+          onSubmit={(e) => e.preventDefault()}
+          className="flex flex-col flex-1 min-h-0">
+          <div
+            className={`flex-1 p-3 sm:p-4 lg:p-6 xl:p-8 ${
+              needsScroll ? "overflow-y-auto" : ""
+            }`}>
+            <div
+              className={`grid ${getGridCols()} gap-2 sm:gap-3 lg:gap-4 gap-y-2 sm:gap-y-3 lg:gap-y-4`}>
               {fields.map((field) => (
-                <div key={field.name}>
-                  <Label>{field.label}</Label>
+                <div key={field.name} className="w-full">
+                  <Label className="text-xs sm:text-sm lg:text-base mb-1 sm:mb-2 block font-medium">
+                    {field.label}
+                  </Label>
                   {field.type === "textarea" ? (
                     <TextArea
                       value={field.value as string}
                       onChange={(value) => field.onChange(value)}
                       placeholder={field.placeholder}
                       disabled={disabledAll || field.disabled}
-                      className={`${
+                      size="sm"
+                      className={`w-full text-xs sm:text-sm ${
                         disabledAll || field.disabled
                           ? "opacity-50 cursor-not-allowed"
                           : ""
@@ -101,7 +130,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
                       value={field.value || field.defaultValue}
                       onChange={(e) => field.onChange(e.target.value)}
                       disabled={disabledAll || field.disabled}
-                      className={`w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:text-white ${
+                      className={`w-full px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm border rounded-lg dark:bg-gray-800 dark:text-white ${
                         disabledAll || field.disabled
                           ? "opacity-50 cursor-not-allowed"
                           : ""
@@ -131,7 +160,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
                       }}
                       placeholder={field.placeholder}
                       disabled={disabledAll || field.disabled}
-                      className={`${
+                      className={`w-full text-xs sm:text-sm ${
                         disabledAll || field.disabled
                           ? "opacity-50 cursor-not-allowed"
                           : ""
@@ -140,15 +169,21 @@ const CustomModal: React.FC<CustomModalProps> = ({
                   )}
                   {/* ✅ Hiển thị lỗi nếu có */}
                   {field.error && (
-                    <p className="mt-1 text-sm text-red-500">{field.error}</p>
+                    <p className="mt-1 text-xs text-red-500">{field.error}</p>
                   )}
                 </div>
               ))}
             </div>
           </div>
-          <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
+
+          {/* Footer Section - Fixed */}
+          <div className="flex-shrink-0 flex flex-col sm:flex-row items-center gap-2 sm:gap-3 p-3 sm:p-4 lg:p-6 xl:p-8 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
             {/* Nút Đóng luôn hiển thị */}
-            <Button size="sm" variant="outline" onClick={onClose}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onClose}
+              className="w-full sm:w-auto order-2 sm:order-1 text-xs sm:text-sm">
               Đóng
             </Button>
             {/* ✅ Vô hiệu hóa nút "Lưu" nếu `disabledAll = true` */}
@@ -158,7 +193,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
                 type="submit"
                 onClick={onSubmit}
                 disabled={disabledAll}
-                className={`${
+                className={`w-full sm:w-auto order-1 sm:order-2 text-xs sm:text-sm ${
                   disabledAll ? "opacity-50 cursor-not-allowed" : ""
                 }`}>
                 {submitText}

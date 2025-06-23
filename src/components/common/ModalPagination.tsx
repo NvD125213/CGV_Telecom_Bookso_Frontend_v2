@@ -10,20 +10,23 @@ import { getProviders } from "../../services/provider";
 import { getDetailReportByOption } from "../../services/report";
 import { getTypeNumber } from "../../services/typeNumber";
 import { RootState } from "../../store";
-import { IProvider, ITypeNumber } from "../../types";
+import { IProvider, IReportDetail, ITypeNumber } from "../../types";
 import Input from "../form/input/InputField";
 import Select from "../form/Select";
 import Pagination from "../pagination/pagination";
 import Button from "../ui/button/Button";
 import ReusableTable from "./ReusableTable";
 import { setRevokeSuccess, triggerRefresh } from "../../store/reportSlice";
-import {
-  resetSelectedIds,
-  setSelectedIds,
-} from "../../store/selectedPhoneSlice";
+import { resetSelectedIds } from "../../store/selectedPhoneSlice";
 import { getPhoneByID } from "../../services/phoneNumber";
-
-import { IPhoneNumber } from "../../types";
+import TableMobile, {
+  ActionButton,
+  LabelValueItem,
+} from "../../mobiles/TableMobile";
+import { useScreenSize } from "../../hooks/useScreenSize";
+import ResponsiveFilterWrapper from "./FlipperWrapper";
+import CustomModal from "./CustomModal";
+import ViewIcon from "@mui/icons-material/Visibility";
 
 interface Column {
   key: string;
@@ -85,7 +88,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [pagination, setPagination] = useState({
-    limit: pageSize,
+    limit: [10, 20, 50, 100].includes(pageSize) ? pageSize : 10,
     offset: currentPage,
     totalPages: 1,
   });
@@ -170,7 +173,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
       setError("");
       setData([]);
       setPagination({
-        limit: pageSize,
+        limit: [10, 20, 50, 100].includes(pageSize) ? pageSize : 10,
         offset: currentPage,
         totalPages: 1,
       });
@@ -193,7 +196,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
     if (isOpen) {
       fetchData();
     }
-  }, [isOpen, pagination.limit, pagination.offset, apiSearchParams]);
+  }, [fetchData]);
 
   // Handle empty data state
   useEffect(() => {
@@ -204,6 +207,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
     }
   }, [data, isLoading, isOpen]);
 
+  // Fix: Separate handlers for desktop and mobile pagination
   const handlePageChange = (newLimit: number, newOffset: number) => {
     setPagination((prev) => ({
       ...prev,
@@ -213,10 +217,34 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
   };
 
   const handleLimitChange = (newLimit: number) => {
+    // Đảm bảo newLimit nằm trong danh sách hợp lệ
+    const validLimits = [10, 20, 50, 100];
+    const validLimit = validLimits.includes(newLimit) ? newLimit : 10;
+
     setPagination((prev) => ({
       ...prev,
-      limit: newLimit,
-      offset: 0,
+      limit: validLimit,
+      offset: 0, // Reset to first page
+    }));
+  };
+
+  // Fix: Add separate handler for mobile page change
+  const handleMobilePageChange = (page: number) => {
+    setPagination((prev) => ({
+      ...prev,
+      offset: page - 1, // Convert 1-based to 0-based
+    }));
+  };
+
+  // Fix: Add separate handler for mobile items per page change
+  const handleMobileItemsPerPageChange = (newQuantity: number) => {
+    const validLimits = [10, 20, 50, 100];
+    const validLimit = validLimits.includes(newQuantity) ? newQuantity : 10;
+
+    setPagination((prev) => ({
+      ...prev,
+      limit: validLimit,
+      offset: 0, // Reset to first page
     }));
   };
 
@@ -327,15 +355,100 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
       await fetchData();
     }
   };
+  // Xử lý dữ liệu cho mobile
+  const { isMobile } = useScreenSize();
+  const convertToMobileData = (data: IReportDetail[]): LabelValueItem[][] => {
+    return data.map((item) => [
+      { label: "ID", value: item.id, hidden: true },
+      {
+        label: "Số điện thoại",
+        value: item.phone_number || "N/A",
+      },
+      { label: "Trạng thái", value: item.status || "N/A" },
+
+      {
+        label: "Nhà mạng",
+        value: item.provider_name || "N/A",
+      },
+      { label: "Loại số", value: item.type_name || "N/A" },
+    ]);
+  };
+
+  const [isOpenDetail, setIsOpenDetail] = useState(false);
+
+  const handleViewDetail = async (id: string) => {
+    if (!id) return;
+    const res = await getPhoneByID(Number(id));
+    if (res?.status == 200) {
+      const data = res.data;
+      const formattedData = {
+        ...data,
+        booked_until: data.booked_until ? formatDate(data.booked_until) : "0",
+        booked_at: data.booked_at ? formatDate(data.booked_at) : "0",
+        released_at: data.released_at ? formatDate(data.released_at) : "0",
+      };
+
+      return (
+        <CustomModal
+          isOpen={isOpenDetail}
+          onClose={() => {
+            setIsOpenDetail(false);
+          }}
+          title="Chi tiết số điện thoại"
+          description="Chi tiết số điện thoại"
+          fields={formattedData}
+        />
+      );
+    }
+  };
+
+  // Chỉ lấy data cho trang hiện tại khi sử dụng TableMobile
+  const mobileData = convertToMobileData(data);
+  const actions: ActionButton[] = [
+    {
+      icon: <ViewIcon />,
+      label: "Xem chi tiết",
+      onClick: handleViewDetail,
+      color: "primary",
+    },
+    {
+      icon: <IoCaretBackCircleOutline />,
+      label: "Thu hồi",
+      onClick: handleRevoke,
+      color: "error",
+    },
+  ];
+
+  // Function to get status class based on current status
+  const getStatusClass = () => {
+    switch (option) {
+      case "available":
+        return "text-[12px] border border-green-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-green-400/40 bg-green-100 dark:bg-green-500/40 backdrop-blur-sm dark:border-green-400";
+      case "booked":
+        return "text-[12px] border border-yellow-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-yellow-400/40 bg-yellow-100 dark:bg-yellow-500/40 backdrop-blur-sm dark:border-yellow-400";
+      case "released":
+        return "text-[12px] border border-red-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-red-400/40 bg-red-100 dark:bg-red-500/40 backdrop-blur-sm dark:border-red-400";
+      default:
+        return "text-[13px] border border-gray-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-gray-400/40 bg-gray-100 dark:bg-gray-500/40 backdrop-blur-sm dark:border-gray-400";
+    }
+  };
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      className="max-w-[90%] min-h-[600px] m-4">
-      <div className="relative w-full max-h-[70vh] overflow-y-auto bg-white rounded-tl-3xl rounded-br-3xl dark:bg-gray-900 lg:p-11">
+      className={`max-w-[90%] min-h-[600px] m-4 ${
+        isMobile ? "max-w-[100%] w-full h-full m-0" : ""
+      }`}>
+      <div
+        className={`relative w-full max-h-[70vh] overflow-y-auto bg-white rounded-tl-3xl rounded-br-3xl dark:bg-gray-900 lg:p-11 ${
+          isMobile ? "p-1 rounded-none h-full max-h-full" : ""
+        }`}>
         <div className="px-2 pr-14">
-          <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+          <h4
+            className={`mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90 ${
+              isMobile ? "text-[18px] p-2" : ""
+            }`}>
             {title}
           </h4>
           {description && (
@@ -345,126 +458,162 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
           )}
         </div>
 
-        <div className="grid gap-4 mb-6 py-3 md:grid-cols-5">
-          <div>
-            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-              Tìm kiếm theo nhân viên
-            </label>
-            <Input
-              type="text"
-              id="username"
-              placeholder="Nhập tên nhân viên..."
-              value={searchUserName}
-              onChange={(e) => setSearchUserName(e.target.value)}
-            />
+        <ResponsiveFilterWrapper>
+          <div className="grid gap-4 mb-6 py-3 md:grid-cols-5">
+            <div>
+              <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                Tìm kiếm theo nhân viên
+              </label>
+              <Input
+                type="text"
+                id="username"
+                placeholder="Nhập tên nhân viên..."
+                value={searchUserName}
+                onChange={(e) => setSearchUserName(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                Tìm kiếm theo số điện thoại
+              </label>
+              <Input
+                type="text"
+                id="filter"
+                placeholder="Nhập số điện thoại..."
+                value={searchNumber}
+                onChange={(e) => setSearchNumber(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                Tìm kiếm theo loại số
+              </label>
+              <Select
+                options={[
+                  { label: "Tất cả", value: "" },
+                  ...types.map((type) => ({
+                    label: type.name,
+                    value: type.name,
+                    key: type.id,
+                  })),
+                ]}
+                className="dark:bg-black dark:text-white "
+                onChange={(value: any) => {
+                  setSearchTypeNumber(value);
+                }}
+                placeholder="Chọn nhà mạng"
+              />
+            </div>
+            <div>
+              <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                Tìm kiếm theo nhà mạng
+              </label>
+              <Select
+                options={[
+                  { label: "Tất cả", value: "" },
+                  ...providers.map((provider) => ({
+                    label: provider.name,
+                    value: provider.name,
+                    key: provider.id,
+                  })),
+                ]}
+                className="dark:bg-black dark:text-white "
+                onChange={(value: any) => {
+                  setSearchTelco(value);
+                }}
+                placeholder="Chọn loại số"
+              />
+            </div>
+            <div className="flex justify-start items-end gap-2">
+              <Button
+                onClick={() => {
+                  setApiSearchParams({
+                    username: searchUserName,
+                    number: searchNumber,
+                    telco: searchTelco,
+                    typeNumber: searchTypeNumber,
+                  });
+                }}
+                className="px-4 py-3 max-h-[44px] text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                Tìm kiếm
+              </Button>
+              {user.role === 1 && option == "booked" && (
+                <div className="flex items-end gap-2">
+                  <button
+                    onClick={handleRevoke}
+                    className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+                    <IoCaretBackCircleOutline size={22} />
+                    Thu hồi
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-          <div>
-            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-              Tìm kiếm theo số điện thoại
-            </label>
-            <Input
-              type="text"
-              id="filter"
-              placeholder="Nhập số điện thoại..."
-              value={searchNumber}
-              onChange={(e) => setSearchNumber(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-              Tìm kiếm theo loại số
-            </label>
-            <Select
-              options={[
-                { label: "Tất cả", value: "" },
-                ...types.map((type) => ({
-                  label: type.name,
-                  value: type.name,
-                  key: type.id,
-                })),
-              ]}
-              className="dark:bg-black dark:text-white "
-              onChange={(value: any) => {
-                setSearchTypeNumber(value);
-              }}
-              placeholder="Chọn nhà mạng"
-            />
-          </div>
-          <div>
-            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-              Tìm kiếm theo nhà mạng
-            </label>
-            <Select
-              options={[
-                { label: "Tất cả", value: "" },
-                ...providers.map((provider) => ({
-                  label: provider.name,
-                  value: provider.name,
-                  key: provider.id,
-                })),
-              ]}
-              className="dark:bg-black dark:text-white "
-              onChange={(value: any) => {
-                setSearchTelco(value);
-              }}
-              placeholder="Chọn loại số"
-            />
-          </div>
-          <div className="flex justify-start items-end gap-2">
-            <Button
-              onClick={() => {
-                setApiSearchParams({
-                  username: searchUserName,
-                  number: searchNumber,
-                  telco: searchTelco,
-                  typeNumber: searchTypeNumber,
-                });
-              }}
-              className="px-4 py-3 max-h-[44px] text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-              Tìm kiếm
-            </Button>
-            {user.role === 1 && option == "booked" && (
-              <div className="flex items-end gap-2">
-                <button
-                  onClick={handleRevoke}
-                  className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
-                  <IoCaretBackCircleOutline size={22} />
-                  Thu hồi
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+        </ResponsiveFilterWrapper>
 
-        <ReusableTable
-          title={title}
-          error={error}
-          data={data}
-          columns={columns}
-          selectedIds={selectedIdsProp}
-          role={user.role}
-          setSelectedIds={setSelectedIdsProp}
-          pagination={{
-            currentPage: pagination.offset,
-            pageSize: pagination.limit,
-          }}
-          onCheck={(selectedIds) => {
-            if (setSelectedIdsProp) {
-              setSelectedIdsProp(selectedIds.map((id) => Number(id)));
-            }
-          }}
-          isLoading={isLoading}
-        />
-
-        <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-          <Pagination
-            limit={pagination.limit}
-            offset={pagination.offset}
+        {isMobile ? (
+          <TableMobile
+            pageTitle={`Danh sách số ${option}`}
+            data={mobileData}
+            hideCheckbox={false}
+            hidePagination={false}
+            disabledReset={true}
+            useTailwindStyling={true}
+            showAllData={false}
+            actions={actions}
+            itemsPerPageOptions={[10, 20, 50, 100]}
             totalPages={pagination.totalPages}
-            onPageChange={handlePageChange}
-            onLimitChange={handleLimitChange}
+            currentPage={pagination.offset + 1}
+            onPageChange={handleMobilePageChange}
+            onItemsPerPageChange={handleMobileItemsPerPageChange}
+            labelClassNames={{
+              "Nhà cung cấp": "text-[13px]",
+              "Trạng thái": "text-[13px]",
+              "Loại số": "text-[13px]",
+              "Số điện thoại": "text-[13px]",
+            }}
+            valueClassNames={{
+              "Số điện thoại":
+                "text-[12px] tracking-wider bg-blue-100 dark:bg-blue-500/40 align-middle rounded-full border border-blue-200 px-5 py-1 dark:border-blue-400 shadow-sm dark:shadow-blue-400/30 backdrop-blur-sm font-semibold",
+              "Nhà cung cấp": "text-[13px] backdrop-blur-sm dark:text-gray-200",
+              "Loại số": "text-[13px] backdrop-blur-sm dark:text-gray-200",
+              "Nhà mạng": "text-[13px] backdrop-blur-sm dark:text-gray-200",
+              "Trạng thái": getStatusClass(),
+            }}
           />
-        </div>
+        ) : (
+          <>
+            <ReusableTable
+              title={title}
+              error={error}
+              data={data}
+              columns={columns}
+              selectedIds={selectedIdsProp}
+              role={user.role}
+              setSelectedIds={setSelectedIdsProp}
+              pagination={{
+                currentPage: pagination.offset,
+                pageSize: pagination.limit,
+              }}
+              onCheck={(selectedIds) => {
+                if (setSelectedIdsProp) {
+                  setSelectedIdsProp(selectedIds.map((id) => Number(id)));
+                }
+              }}
+              isLoading={isLoading}
+            />
+
+            <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
+              <Pagination
+                limit={pagination.limit}
+                offset={pagination.offset}
+                totalPages={pagination.totalPages}
+                onPageChange={handlePageChange}
+                onLimitChange={handleLimitChange}
+              />
+            </div>
+          </>
+        )}
       </div>
     </Modal>
   );

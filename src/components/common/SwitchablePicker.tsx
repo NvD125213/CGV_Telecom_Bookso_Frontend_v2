@@ -16,7 +16,7 @@ import {
 } from "@mui/x-date-pickers";
 import { useTheme } from "../../context/ThemeContext";
 
-type PickerType = "time" | "date" | "datetime" | "month" | "year";
+export type PickerType = "time" | "date" | "datetime" | "month" | "year";
 
 interface PickerWithTypeProps {
   type: PickerType;

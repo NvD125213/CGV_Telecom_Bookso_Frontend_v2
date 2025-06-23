@@ -2,12 +2,14 @@ import React from "react";
 import GridShape from "../../components/common/GridShape";
 import { Link } from "react-router";
 import ThemeTogglerTwo from "../../components/common/ThemeTogglerTwo";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { theme } = useTheme();
   return (
     <div className="relative p-6 bg-white z-1 dark:bg-gray-900 sm:p-0">
       <div className="relative flex flex-col justify-center w-full h-screen lg:flex-row dark:bg-gray-900 sm:p-0">
@@ -18,14 +20,23 @@ export default function AuthLayout({
             <GridShape />
             <div className="flex flex-col items-center max-w-xs">
               <Link to="/" className="block">
-                <img
-                  width={231}
-                  height={48}
-                  src="/Logo/Logo_company.png"
-                  alt="Logo"
-                />
+                {theme == "dark" ? (
+                  <img
+                    width={300}
+                    height={50}
+                    src="/Logo/logo_darkmode.png"
+                    alt="Logo"
+                  />
+                ) : (
+                  <img
+                    width={300}
+                    height={50}
+                    src="/Logo/logo_darkmode.png"
+                    alt="Logo"
+                  />
+                )}
               </Link>
-              <p className="text-center pt-4 text-gray-400 dark:text-white/60">
+              <p className="text-center pt-6 text-gray-400 dark:text-white/60">
                 Hệ thống Booking số dành cho sale và doanh nghiệp hàng đầu Việt
                 Nam
               </p>

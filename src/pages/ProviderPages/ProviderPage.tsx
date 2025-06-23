@@ -11,6 +11,10 @@ import ModalSwalAction from "../../hooks/useModalSwal";
 import { IProvider } from "../../types";
 import ReusableTable from "../../components/common/ReusableTable";
 import { sortByPriority } from "../../helper/priorityProviderList";
+import TableMobile from "../../mobiles/TableMobile";
+import { Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
+import { useIsMobile } from "../../hooks/useScreenSize";
+import { LabelValueItem, ActionButton } from "../../mobiles/TableMobile";
 
 const columns: { key: keyof IProvider; label: string }[] = [
   { key: "name", label: "Nhà cung cấp" },
@@ -41,6 +45,7 @@ const ProviderPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorData, setErrorData] = useState("");
+  const isMobile = useIsMobile(768);
   const user = useSelector((state: RootState) => state.auth.user);
 
   const getAllData = async () => {
@@ -85,10 +90,48 @@ const ProviderPage = () => {
     });
   };
 
+  // Chuyển đổi dữ liệu cho TableMobile - ID luôn ở vị trí đầu tiên
+  const convertToMobileData = (data: IProvider[]): LabelValueItem[][] => {
+    return data.map((provider) => [
+      { label: "Mã nhà cung cấp", value: provider.id, hidden: true },
+      { label: "Nhà cung cấp", value: provider.name, hideLabel: true },
+      { label: "Mô tả", value: provider.description || "Không có mô tả" },
+      {
+        label: "Hạn mức cảnh báo",
+        value: provider.phone_number_limit_alert.toString(),
+      },
+    ]);
+  };
+
+  // Actions đã được đơn giản hóa - chỉ nhận ID
+  const actions: ActionButton[] = [
+    {
+      icon: <EditIcon />,
+      label: "Chỉnh sửa",
+      onClick: (id: string) => {
+        const providerData = providers.find((p) => String(p.id) === String(id));
+        if (providerData) {
+          setProvider(providerData);
+          setOpenModal(true);
+        }
+      },
+      color: "primary",
+    },
+    {
+      icon: <DeleteIcon />,
+      label: "Xóa",
+      onClick: (id: string) => {
+        handleDelete(id);
+      },
+      color: "error",
+    },
+  ];
+
+  const mobileData = convertToMobileData(providers);
+
   return (
     <>
       <>
-        <PageBreadcrumb pageTitle="Nhà cung cấp" />
         <div className="flex justify-end mb-4">
           <button
             onClick={() => {
@@ -102,23 +145,58 @@ const ProviderPage = () => {
         </div>
         <div className="space-y-6">
           {error && <div className="text-red-500">{error}</div>}
-          <ComponentCard>
-            <ReusableTable
-              error={errorData}
-              role={user.role}
-              disabledReset={true}
-              title="Danh sách số điện thoại"
-              data={providers}
-              columns={columns}
-              onEdit={(item) => {
-                setProvider(item);
-                setOpenModal(!openModal);
-              }}
-              disabled={true}
-              isLoading={loading}
-              onDelete={(id) => handleDelete(String(id))}
-            />
-          </ComponentCard>
+
+          {isMobile ? (
+            <ComponentCard>
+              <TableMobile
+                pageTitle="Nhà cung cấp"
+                disabledReset={true}
+                data={mobileData}
+                actions={actions}
+                hideCheckbox={true}
+                hidePagination={true}
+                showAllData={true}
+                useTailwindStyling={true}
+                labelClassNames={{
+                  "Nhà cung cấp": `
+                  text-[18px] font-extrabold uppercase
+                `,
+                }}
+                valueClassNames={{
+                  "Nhà cung cấp": `
+                    text-base font-semibold 
+                    bg-blue-50 text-blue-800
+                    dark:bg-blue-900 dark:text-blue-100
+                    px-4 py-2
+                    rounded-lg
+                    border border-blue-200 dark:border-blue-700
+                    text-center
+                    shadow-sm
+                    whitespace-nowrap
+                    font-sans
+                  `,
+                }}
+              />
+            </ComponentCard>
+          ) : (
+            <ComponentCard>
+              <ReusableTable
+                error={errorData}
+                role={user.role}
+                disabledReset={true}
+                title="Danh sách số điện thoại"
+                data={providers}
+                columns={columns}
+                onEdit={(item) => {
+                  setProvider(item);
+                  setOpenModal(!openModal);
+                }}
+                disabled={true}
+                isLoading={loading}
+                onDelete={(id) => handleDelete(String(id))}
+              />
+            </ComponentCard>
+          )}
         </div>
         <ModalProvider
           isOpen={openModal}

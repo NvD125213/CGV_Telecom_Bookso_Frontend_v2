@@ -11,6 +11,10 @@ import Label from "../../components/form/Label";
 import Pagination from "../../components/pagination/pagination";
 import { useSearchParams } from "react-router-dom";
 import SwitchablePicker from "../../components/common/SwitchablePicker";
+import ResponsiveFilterWrapper from "../../components/common/FlipperWrapper";
+import TableMobile from "../../mobiles/TableMobile";
+import { useScreenSize } from "../../hooks/useScreenSize";
+import { LabelValueItem } from "../../mobiles/TableMobile";
 
 type PickerType = "time" | "date" | "datetime" | "month" | "year";
 
@@ -19,9 +23,31 @@ const columns: { key: keyof SessionData; label: string }[] = [
   { key: "duration", label: "Thời gian hoạt động" },
 ];
 
+// Styling tùy chỉnh cho từng field
+const fieldClassNames = {
+  "Tên tài khoản":
+    "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 border-blue-200 dark:border-blue-600/50 shadow-sm hover:shadow-md transition-all duration-200",
+  "Thời gian hoạt động":
+    "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/20 border-green-200 dark:border-green-600/50 shadow-sm hover:shadow-md transition-all duration-200",
+};
+
+const labelClassNames = {
+  "Tên tài khoản":
+    "text-blue-700 dark:text-blue-300 font-bold text-sm uppercase tracking-wide",
+  "Thời gian hoạt động":
+    "text-green-700 dark:text-green-300 font-bold text-sm uppercase tracking-wide",
+};
+
+const valueClassNames = {
+  "Tên tài khoản": "text-blue-900 dark:text-blue-100 font-semibold text-base",
+  "Thời gian hoạt động":
+    "text-green-900 dark:text-green-100 font-semibold text-base",
+};
+
 type SessionRow = SessionData & { id: string | number };
 
 const SessionPage = () => {
+  const { isMobile } = useScreenSize();
   const [searchParams, setSearchParams] = useSearchParams();
   // Initialize searchDate with current yyyy-mm or URL param
   const currentDate = new Date();
@@ -250,47 +276,96 @@ const SessionPage = () => {
     handlePageChange(newPage);
   };
 
+  const convertToMobileData = (data: SessionRow[]): LabelValueItem[][] => {
+    return data.map((item) => [
+      {
+        label: "Tên tài khoản",
+        value: item.username || "N/A",
+        fieldName: "username",
+      },
+      {
+        label: "Thời gian hoạt động",
+        value: item.duration || "N/A",
+        fieldName: "duration",
+      },
+    ]);
+  };
+
+  const mobileData = convertToMobileData(historySession);
+
   return (
     <>
       <PageBreadcrumb pageTitle="Lịch sử online" />
       <div className="space-y-6">
         {error && <div className="text-red-500">{error}</div>}
         <ComponentCard>
-          <div className="flex justify-between items-center gap-4 mb-4 py-4 ">
-            <div>
-              <Label>Tìm kiếm</Label>
-              <Input
-                placeholder="Tìm theo tên tài khoản..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
-              />
+          <ResponsiveFilterWrapper drawerTitle="Bộ lọc tìm kiếm">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="w-full sm:w-auto">
+                <Label>Tìm kiếm</Label>
+                <Input
+                  placeholder="Tìm theo tên tài khoản..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
+                />
+              </div>
+              <div className="w-full sm:w-auto">
+                <Label>Ngày hoạt động</Label>
+                <SwitchablePicker
+                  value={searchDate ? new Date(searchDate) : null}
+                  onChange={handleDateChange}
+                  onTypeChange={handlePickerTypeChange}
+                />
+              </div>
             </div>
-            <div>
-              <Label>Ngày hoạt động</Label>
-              <SwitchablePicker
-                value={searchDate ? new Date(searchDate) : null}
-                onChange={handleDateChange}
-                onTypeChange={handlePickerTypeChange}
-              />
+          </ResponsiveFilterWrapper>
+
+          {/* Hiển thị TableMobile trên mobile, ReusableTable trên desktop */}
+          {isMobile ? (
+            <div className="mt-4">
+              {loading ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                </div>
+              ) : errorData ? (
+                <div className="text-center py-8 text-red-500">{errorData}</div>
+              ) : (
+                <TableMobile
+                  data={mobileData}
+                  hideCheckbox={true}
+                  hidePagination={true}
+                  disabledReset={true}
+                  showAllData={true}
+                  useTailwindStyling={true}
+                  fieldClassNames={fieldClassNames}
+                  labelClassNames={labelClassNames}
+                  valueClassNames={valueClassNames}
+                />
+              )}
             </div>
-          </div>
-          <ReusableTable
-            error={errorData}
-            role={user.role}
-            title="Lịch sử online"
-            data={historySession}
-            disabledReset={true}
-            columns={columns}
-            isLoading={loading}
-          />
-          <Pagination
-            limit={pageSize}
-            offset={page - 1}
-            totalPages={totalPages}
-            onPageChange={(_limit, newOffset) => onPaginationChange(newOffset)}
-            onLimitChange={handleLimitChange}
-          />
+          ) : (
+            <>
+              <ReusableTable
+                error={errorData}
+                role={user.role}
+                title="Lịch sử online"
+                data={historySession}
+                disabledReset={true}
+                columns={columns}
+                isLoading={loading}
+              />
+              <Pagination
+                limit={pageSize}
+                offset={page - 1}
+                totalPages={totalPages}
+                onPageChange={(_limit, newOffset) =>
+                  onPaginationChange(newOffset)
+                }
+                onLimitChange={handleLimitChange}
+              />
+            </>
+          )}
         </ComponentCard>
       </div>
     </>

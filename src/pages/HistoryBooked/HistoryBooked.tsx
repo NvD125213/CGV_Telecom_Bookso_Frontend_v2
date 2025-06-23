@@ -1,25 +1,30 @@
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
 import { IHistoryBooked } from "../../types";
-import useDateFilter from "../../hooks/useDateFilter";
 import ReusableTable from "../../components/common/ReusableTable";
 import { getBookingByCurrent } from "../../services/report";
 import Label from "../../components/form/Label";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { formatDate } from "../../helper/formatDateToISOString";
 import { formatNumber } from "../../helper/formatCurrencyVND";
 import Pagination from "../../components/pagination/pagination";
 import { useSearchParams } from "react-router-dom";
-import { debounce } from "lodash";
-import DatePicker from "../../components/form/date-picker";
 import Select from "../../components/form/Select";
 import { IoCaretBackCircleOutline } from "react-icons/io5";
-import Input from "../../components/form/input/InputField";
 import Swal from "sweetalert2";
 import { getPhoneByID, revokeNumber } from "../../services/phoneNumber";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../store";
 import { resetSelectedIds } from "../../store/selectedPhoneSlice";
+import ResponsiveFilterWrapper from "../../components/common/FlipperWrapper";
+import TableMobile, {
+  ActionButton,
+  LabelValueItem,
+} from "../../mobiles/TableMobile";
+import { useScreenSize } from "../../hooks/useScreenSize";
+import SwitchablePicker, {
+  PickerType,
+} from "../../components/common/SwitchablePicker";
+import clsx from "clsx";
 
 const getColumns = (status: string) => {
   const columns: {
@@ -80,8 +85,8 @@ const HistoryBooked = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<IHistoryBooked[]>([]);
   const [loading, setLoading] = useState(false);
-  const { month, year, setYear, setMonth, setAll } = useDateFilter();
-  const [filterType, setFilterType] = useState<"day" | "monthYear">("day");
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [pickerType, setPickerType] = useState<PickerType>("date");
   const [limit, setLimit] = useState(Number(searchParams.get("limit")) || 20);
   const [offset, setOffset] = useState(Number(searchParams.get("offset")) || 0);
   const [status, setStatus] = useState<StatusType>("booked");
@@ -151,63 +156,48 @@ const HistoryBooked = () => {
     }
   };
 
-  const debouncedFetchData = useCallback(
-    debounce((month: number | undefined, year: number | undefined) => {
-      if (year) {
-        fetchData({ month, year });
-      }
-    }, 500),
-    [limit, offset, status]
-  );
+  const handleDateChange = (date: Date | null) => {
+    setSelectedDate(date);
 
-  const handleDateChange = (date: Date[]) => {
-    if (date.length > 0) {
-      const selectedDate = date[0];
-      setAll(selectedDate);
+    if (date) {
+      const day = date.getDate();
+      const month = date.getMonth() + 1;
+      const year = date.getFullYear();
 
-      const day = selectedDate.getDate();
-      const month = selectedDate.getMonth() + 1;
-      const year = selectedDate.getFullYear();
-
-      if (filterType === "monthYear") {
+      if (pickerType === "year") {
+        fetchData({ year });
+      } else if (pickerType === "month") {
         fetchData({ year, month });
       } else {
         fetchData({ day, month, year });
       }
+    } else {
+      // Reset data when no date is selected
+      fetchData();
     }
   };
 
-  const handleFilterTypeChange = (newFilterType: "day" | "monthYear") => {
-    setFilterType(newFilterType);
+  const handlePickerTypeChange = (newType: PickerType) => {
+    setPickerType(newType);
+    setSelectedDate(null);
     setOffset(0);
-    setMonth(null);
-    setYear(null);
     fetchData();
   };
+
   const handleStatusChange = (newStatus: StatusType) => {
     setStatus(newStatus);
     setOffset(0);
-    setMonth(null); // Đặt lại month nếu cần
-    setYear(null); // Đặt lại year nếu cần
+    setSelectedDate(null);
     setSearchParams({
       limit: limit.toString(),
       offset: "0",
       option: newStatus,
     });
   };
-  useEffect(() => {
-    if (filterType !== "monthYear") {
-      fetchData();
-    }
-  }, [limit, offset, status, filterType]);
 
   useEffect(() => {
-    if (filterType === "monthYear") {
-      const adjustedMonth = month === null ? undefined : month;
-      const adjustedYear = year === null ? undefined : year;
-      debouncedFetchData(adjustedMonth, adjustedYear);
-    }
-  }, [month, year, filterType, debouncedFetchData]);
+    fetchData();
+  }, [limit, offset, status]);
 
   const handleRevoke = async () => {
     if (selectedIdsFromStore.length === 0) {
@@ -313,136 +303,170 @@ const HistoryBooked = () => {
     }
   };
 
+  // Xử lý dữ liệu cho TableMobile
+  const convertToMobileData = (data: IHistoryBooked[]): LabelValueItem[][] => {
+    return data.map((item) => {
+      return [
+        { label: "ID", value: item.id, hidden: true },
+        { label: "Trạng thái", value: item.status },
+        { label: "Số điện thoại", value: item.phone_number },
+        { label: "Nhà cung cấp", value: item.provider_name },
+        { label: "Loại số", value: item.type_name },
+      ];
+    });
+  };
+
+  const actions = [
+    {
+      icon: <IoCaretBackCircleOutline size={22} />,
+      label: "Thu hồi",
+      onClick: handleRevoke,
+      color: "error",
+    },
+  ];
+
+  const dataMobile = convertToMobileData(data);
+
+  const { isMobile } = useScreenSize();
+
+  // Function to get status class based on current status
+  const getStatusClass = () => {
+    switch (status) {
+      case "booked":
+        return "text-[14px] border border-yellow-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-yellow-400/40 bg-yellow-100 dark:bg-yellow-500/40 backdrop-blur-sm dark:border-yellow-400";
+      case "released":
+        return "text-[14px] border border-red-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-red-400/40 bg-red-100 dark:bg-red-500/40 backdrop-blur-sm dark:border-red-400";
+      default:
+        return "text-[14px] border border-gray-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-gray-400/40 bg-gray-100 dark:bg-gray-500/40 backdrop-blur-sm dark:border-gray-400";
+    }
+  };
+
   return (
     <>
-      <PageBreadcrumb pageTitle="Lịch sử book số của bạn" />
-      <div className="flex flex-wrap w-full items-end justify-start gap-3 mb-4">
-        <div className="w-full md:w-auto">
-          <Label htmlFor="filterType">Lọc theo</Label>
-          <Select
-            options={[
-              { label: "Tìm kiếm cụ thể từng ngày", value: "day" },
-              { label: "Tìm kiếm theo năm, tháng", value: "monthYear" },
-            ]}
-            className="border rounded-md px-3 py-3 w-full md:w-auto dark:bg-black dark:text-white"
-            onChange={(value) =>
-              handleFilterTypeChange(value as "day" | "monthYear")
-            }
-            placeholder="Chọn kiểu tìm kiếm"
+      <ResponsiveFilterWrapper drawerTitle="Bộ lọc" pageTitle="Lịch sử đặt số">
+        <div
+          className={`w-full gap-3 mb-4 ${
+            isMobile
+              ? "block space-y-3"
+              : "flex flex-wrap items-end justify-start"
+          }`}>
+          <Label>Bộ lọc thời gian</Label>
+          <SwitchablePicker
+            value={selectedDate}
+            onChange={handleDateChange}
+            onTypeChange={handlePickerTypeChange}
           />
-        </div>
 
-        <div className="w-full md:w-auto">
-          {filterType === "day" ? (
-            <div className=" w-full">
-              <DatePicker
-                id="date-picker"
-                label="Nhập mốc thời gian"
-                placeholder="Select a date"
-                onChange={(dates) => handleDateChange(dates)}
-              />
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 items-center justify-start gap-3 ">
-              <div>
-                <Label htmlFor="">Nhập năm</Label>
+          <div>
+            <Label>Trạng thái</Label>
+            <Select
+              options={[
+                { label: "Đã book", value: "booked" },
+                { label: "Triển khai", value: "released" },
+              ]}
+              className="border rounded-md px-3 py-3 w-full md:w-auto dark:bg-black dark:text-white"
+              onChange={(value) => handleStatusChange(value as StatusType)}
+              placeholder="Chọn trạng thái"
+            />
+          </div>
 
-                <Input
-                  type="number"
-                  placeholder="Năm..."
-                  value={year ?? ""}
-                  onChange={(e: any) => setYear(Number(e.target.value))}
-                  className="border border-gray-300 rounded px-3 py-2 w-24 dark:placeholder-white/50 dark:text-white"
-                  min={1}
-                />
+          <div>
+            {status === "booked" && (
+              <div
+                className={clsx(isMobile ? "block" : "flex items-end gap-2")}>
+                <button
+                  onClick={handleRevoke}
+                  className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+                  <IoCaretBackCircleOutline size={22} />
+                  Thu hồi
+                </button>
               </div>
-              <div>
-                <Label htmlFor="">Nhập tháng</Label>
-                <Input
-                  type="number"
-                  placeholder="Tháng"
-                  value={month ?? ""}
-                  onChange={(e: any) => setMonth(Number(e.target.value))}
-                  className="border border-gray-300 rounded px-3 py-2 w-24 dark:placeholder-white/50 dark:text-white"
-                  min={1}
-                  max={12}
-                />
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-        <div>
-          <Label>Trạng thái</Label>
-          <Select
-            options={[
-              { label: "Đã book", value: "booked" },
-              { label: "Triển khai", value: "released" },
-            ]}
-            className="border rounded-md px-3 py-3 w-full md:w-auto dark:bg-black dark:text-white"
-            onChange={(value) => handleStatusChange(value as StatusType)}
-            placeholder="Chọn trạng thái"
-          />
-        </div>
-
-        <div>
-          {status === "booked" && (
-            <div className="flex items-end gap-2">
-              <button
-                onClick={handleRevoke}
-                className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
-                <IoCaretBackCircleOutline size={22} />
-                Thu hồi
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
+      </ResponsiveFilterWrapper>
       <div className="space-y-6">
-        <ComponentCard>
-          <ReusableTable
-            error={errors}
-            title="Bảng lịch sử chi tiết"
-            data={data ?? []}
-            columns={getColumns(status)}
-            isLoading={loading}
-            pagination={{
-              currentPage: offset,
-              pageSize: limit,
-            }}
-            disabled={status !== "booked"}
-            onCheck={(
-              selectedIds: (string | number)[],
-              selectedRows: IHistoryBooked[]
-            ) => {
-              setSelectedIds(selectedIds.map((id) => Number(id)));
-              setSelectedRows(selectedRows);
-            }}
-          />
-          <Pagination
-            limit={limit}
-            offset={offset}
+        {isMobile ? (
+          <TableMobile
+            data={dataMobile}
+            pageTitle="Lịch sử đặt số"
+            hideCheckbox={status !== "booked"}
+            hidePagination={false}
+            useTailwindStyling={true}
+            disabledReset={status !== "booked"}
+            showAllData={false}
+            actions={actions as ActionButton[]}
+            defaultItemsPerPage={limit}
+            itemsPerPageOptions={[10, 20, 50, 100]}
             totalPages={totalPages}
-            onPageChange={(newLimit, newOffset) => {
-              setLimit(newLimit);
-              setOffset(newOffset);
-              setSearchParams({
-                limit: newLimit.toString(),
-                offset: newOffset.toString(),
-                option: status,
-              });
-            }}
-            onLimitChange={(newLimit) => {
-              setLimit(newLimit);
+            currentPage={offset + 1}
+            onPageChange={(page) => setOffset(page - 1)}
+            onItemsPerPageChange={(newQuantity) => {
+              setLimit(newQuantity);
               setOffset(0);
-              setSearchParams({
-                limit: newLimit.toString(),
-                offset: "0",
-                option: status,
-              });
+            }}
+            labelClassNames={{
+              "Nhà cung cấp": "text-[14px]",
+              "Trạng thái": "text-[14px]",
+              "Loại số": "text-[14px]",
+              "Số điện thoại": "text-[14px]",
+            }}
+            valueClassNames={{
+              "Số điện thoại":
+                " text-sm tracking-wider bg-blue-100 dark:bg-blue-500/40 align-middle rounded-full border border-blue-200 px-5 py-1 dark:border-blue-400 shadow-sm dark:shadow-blue-400/30 backdrop-blur-sm font-semibold",
+              "Nhà cung cấp": "text-[14px] backdrop-blur-sm dark:text-gray-200",
+              "Loại số": "text-[14px] backdrop-blur-sm dark:text-gray-200",
+              "Trạng thái": getStatusClass(),
             }}
           />
-        </ComponentCard>
+        ) : (
+          <ComponentCard>
+            <>
+              <ReusableTable
+                error={errors}
+                title="Bảng lịch sử chi tiết"
+                data={data ?? []}
+                columns={getColumns(status)}
+                isLoading={loading}
+                pagination={{
+                  currentPage: offset,
+                  pageSize: limit,
+                }}
+                disabled={status !== "booked"}
+                onCheck={(
+                  selectedIds: (string | number)[],
+                  selectedRows: IHistoryBooked[]
+                ) => {
+                  setSelectedIds(selectedIds.map((id) => Number(id)));
+                  setSelectedRows(selectedRows);
+                }}
+              />
+              <Pagination
+                limit={limit}
+                offset={offset}
+                totalPages={totalPages}
+                onPageChange={(newLimit, newOffset) => {
+                  setLimit(newLimit);
+                  setOffset(newOffset);
+                  setSearchParams({
+                    limit: newLimit.toString(),
+                    offset: newOffset.toString(),
+                    option: status,
+                  });
+                }}
+                onLimitChange={(newLimit) => {
+                  setLimit(newLimit);
+                  setOffset(0);
+                  setSearchParams({
+                    limit: newLimit.toString(),
+                    offset: "0",
+                    option: status,
+                  });
+                }}
+              />
+            </>
+          </ComponentCard>
+        )}
       </div>
     </>
   );

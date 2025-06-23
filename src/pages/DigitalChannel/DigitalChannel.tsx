@@ -18,6 +18,9 @@ import Input from "../../components/form/input/InputField";
 import ReusableTable from "../../components/common/ReusableTable";
 import Pagination from "../../components/pagination/pagination";
 import Select from "../../components/form/Select";
+import TableMobile, { LabelValueItem } from "../../mobiles/TableMobile";
+import ResponsiveFilterWrapper from "../../components/common/FlipperWrapper";
+import { useScreenSize } from "../../hooks/useScreenSize";
 
 // Define types for different data sources
 type DataSource = "gvoice" | "vpbx" | "gigafone";
@@ -323,6 +326,78 @@ const DigitalChannel = () => {
     setPrefix(value);
     setPage("1");
   };
+  // Xử lý dữ liệu cho TableMobile
+  // Xử lý dữ liệu cho TableMobile
+  const convertToMobileData = (data: any[]): LabelValueItem[][] => {
+    return data.map((item) => {
+      const baseFields = [
+        { label: "ID", value: item.phone_number ?? "N/A", hidden: true },
+        { label: "Số điện thoại", value: item.phone_number ?? "N/A" },
+      ];
+
+      switch (dataSource) {
+        case "gvoice": {
+          const gvoiceFields = [
+            ...baseFields,
+            { label: "Loại số", value: item.number_type ?? "N/A" },
+            { label: "Phí cam kết", value: item.commitment_fee ?? "N/A" },
+            { label: "Phí hàng tháng", value: item.subscription_fee ?? "N/A" },
+            { label: "Trạng thái", value: item.status ?? "N/A" },
+          ];
+
+          // Thêm các trường đặc biệt cho prefix 1900
+          if (prefix.value === "ListPublicDVGTGT.aspx") {
+            gvoiceFields.push(
+              { label: "Giá tại Viettel", value: item.vtl_fee ?? "N/A" },
+              { label: "Giá tại VMS", value: item.vms_fee ?? "N/A" },
+              { label: "Giá tại VNPT", value: item.vnpt_fee ?? "N/A" },
+              { label: "Giá khác", value: item.other_fee ?? "N/A" }
+            );
+          }
+
+          return gvoiceFields;
+        }
+
+        case "vpbx": {
+          return [
+            ...baseFields,
+            { label: "Phí hàng tháng", value: item.subscription_fee ?? "N/A" },
+            { label: "Phí cuộc gọi", value: item.call_fee ?? "N/A" },
+          ];
+        }
+
+        case "gigafone": {
+          return [
+            ...baseFields,
+            { label: "Loại số", value: item.number_type ?? "N/A" },
+            { label: "Giá trị định giá", value: item.valuation ?? "N/A" },
+            { label: "Phí cam kết", value: item.commitment_fee ?? "N/A" },
+            {
+              label: "Thời gian cam kết",
+              value: item.commitment_time ?? "N/A",
+            },
+            { label: "Phí thuê bao", value: item.subscription_fee ?? "N/A" },
+            { label: "Phí gọi", value: item.call_fee ?? "N/A" },
+            { label: "Trạng thái", value: item.status ?? "N/A" },
+          ];
+        }
+      }
+    });
+  };
+
+  const dataMobile = convertToMobileData(data?.data || []);
+
+  const { isMobile } = useScreenSize();
+
+  // Xử lý phân trang cho TableMobile
+  const handleMobilePageChange = (newPage: number) => {
+    setPage(newPage.toString());
+  };
+
+  const handleMobileItemsPerPageChange = (newItemsPerPage: number) => {
+    setPerPage(newItemsPerPage.toString());
+    setPage("1");
+  };
 
   return (
     <>
@@ -333,101 +408,114 @@ const DigitalChannel = () => {
       <div className="space-y-6">
         {error && <div className="text-red-500">{error}</div>}
         <ComponentCard>
-          <div className="flex justify-start gap-4 mb-4">
-            <div>
-              <Label>Nguồn dữ liệu</Label>
-              <Select
-                options={[
-                  {
-                    label: "Gtel",
-                    value: "gvoice",
-                  },
-                  {
-                    label: "HTC",
-                    value: "vpbx",
-                  },
-                  {
-                    label: "CMC",
-                    value: "gigafone",
-                  },
-                ]}
-                value={dataSource}
-                onChange={(e) => handleDataSourceChange(e as DataSource)}
-                className="border dark:text-gray-300 border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
-            {dataSource == "gvoice" && (
+          <ResponsiveFilterWrapper>
+            <div
+              className={`${
+                isMobile ? "block" : "flex"
+              } justify-start gap-4 mb-4`}>
               <div>
-                <Label>Đầu số</Label>
+                <Label>Nguồn dữ liệu</Label>
                 <Select
                   options={[
-                    {
-                      label: "Đầu số 1900",
-                      value: "ListPublicDVGTGT.aspx",
-                    },
-                    {
-                      label: "Đầu số 1800",
-                      value: "ListPublicDVGTGT1800.aspx",
-                    },
+                    { label: "Gtel", value: "gvoice" },
+                    { label: "HTC", value: "vpbx" },
+                    { label: "CMC", value: "gigafone" },
                   ]}
-                  value={prefix.value}
-                  onChange={(value) =>
-                    handleChangeNumberPrefix({
-                      value: value as
-                        | "ListPublicDVGTGT.aspx"
-                        | "ListPublicDVGTGT1800.aspx",
-                      label:
-                        value === "ListPublicDVGTGT.aspx"
-                          ? "Đầu số 1900"
-                          : "Đầu số 1800",
-                    })
-                  }
+                  value={dataSource}
+                  onChange={(e) => handleDataSourceChange(e as DataSource)}
                   className="border dark:text-gray-300 border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
               </div>
-            )}
-            <div>
-              <Label>Tìm kiếm</Label>
-              <Input
-                placeholder="Tìm theo số điện thoại..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={handleKeyDown}
-              />
+
+              {dataSource === "gvoice" && (
+                <div>
+                  <Label>Đầu số</Label>
+                  <Select
+                    options={[
+                      { label: "Đầu số 1900", value: "ListPublicDVGTGT.aspx" },
+                      {
+                        label: "Đầu số 1800",
+                        value: "ListPublicDVGTGT1800.aspx",
+                      },
+                    ]}
+                    value={prefix.value}
+                    onChange={(value) =>
+                      handleChangeNumberPrefix({
+                        value: value as
+                          | "ListPublicDVGTGT.aspx"
+                          | "ListPublicDVGTGT1800.aspx",
+                        label:
+                          value === "ListPublicDVGTGT.aspx"
+                            ? "Đầu số 1900"
+                            : "Đầu số 1800",
+                      })
+                    }
+                    className="border dark:text-gray-300 border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                </div>
+              )}
+
+              <div>
+                <Label>Tìm kiếm</Label>
+                <Input
+                  placeholder="Tìm theo số điện thoại..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                />
+              </div>
             </div>
-          </div>
-          <ReusableTable<TableData>
-            error={errorData}
-            disabledReset={true}
-            title={getTableTitle()}
-            showId={false}
-            data={data?.data.map((item) => ({
-              ...item,
-              id: item.phone_number,
-            }))}
-            columns={
-              getColumns() as {
-                key: string;
-                label: string;
-                type?: string;
-                classname?: string;
-              }[]
-            }
-            isLoading={loading}
-            disabled={true}
-          />
-          <Pagination
-            limit={Number(perPage) || 10}
-            offset={(Number(page) || 1) - 1}
-            totalPages={data?.pagination.total_pages ?? 1}
-            totalResults={data?.pagination.total_results}
-            paginationMode={dataSource === "vpbx" ? "total" : "page"}
-            onPageChange={(limit, newOffset) =>
-              onPaginationChange(limit, newOffset)
-            }
-            onLimitChange={handleLimitChange}
-            showLimitSelector={false}
-          />
+          </ResponsiveFilterWrapper>
+
+          {isMobile ? (
+            <TableMobile
+              data={dataMobile}
+              pageTitle="Danh sách đầu số các kênh"
+              totalPages={data?.pagination.total_pages ?? 1}
+              currentPage={Number(page) || 1}
+              onPageChange={handleMobilePageChange}
+              onItemsPerPageChange={handleMobileItemsPerPageChange}
+              disabled={true}
+              disabledReset={true}
+              hideCheckbox={true}
+              showAllData={false}
+            />
+          ) : (
+            <>
+              <ReusableTable<TableData>
+                error={errorData}
+                disabledReset={true}
+                title={getTableTitle()}
+                showId={false}
+                data={data?.data.map((item) => ({
+                  ...item,
+                  id: item.phone_number,
+                }))}
+                columns={
+                  getColumns() as {
+                    key: string;
+                    label: string;
+                    type?: string;
+                    classname?: string;
+                  }[]
+                }
+                isLoading={loading}
+                disabled={true}
+              />
+              <Pagination
+                limit={Number(perPage) || 10}
+                offset={(Number(page) || 1) - 1}
+                totalPages={data?.pagination.total_pages ?? 1}
+                totalResults={data?.pagination.total_results}
+                paginationMode={dataSource === "vpbx" ? "total" : "page"}
+                onPageChange={(limit, newOffset) =>
+                  onPaginationChange(limit, newOffset)
+                }
+                onLimitChange={handleLimitChange}
+                showLimitSelector={false}
+              />
+            </>
+          )}
         </ComponentCard>
       </div>
     </>
