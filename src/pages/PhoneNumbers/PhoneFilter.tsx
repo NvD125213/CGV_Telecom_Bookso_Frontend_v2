@@ -130,7 +130,6 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
     };
   }, []);
 
-  // Get list providers
   const { data: providers } = useSelectData<IProvider>({
     service: getProviders,
   });
@@ -598,7 +597,7 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
                     "Loại số":
                       "text-[14px] backdrop-blur-sm dark:text-gray-200",
                     "Trạng thái":
-                      "text-[14px] border border-green-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-green-400/40 bg-green-100 dark:bg-green-500/40 backdrop-blur-sm dark:border-green-400",
+                      "text-[14px] border border-green-500 text-green-500 uppercase px-9 py-1 rounded-full text-center shadow-sm dark:shadow-green-400/40 bg-green-100 dark:bg-green-500/40 backdrop-blur-sm dark:border-green-400",
                   }}
                 />
               ) : (

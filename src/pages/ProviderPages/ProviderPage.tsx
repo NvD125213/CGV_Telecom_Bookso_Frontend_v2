@@ -5,8 +5,7 @@ import ModalProvider from "./ProviderModal";
 import { deleteProvider, getProviders } from "../../services/provider";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import ModalSwalAction from "../../hooks/useModalSwal";
 import { IProvider } from "../../types";
 import ReusableTable from "../../components/common/ReusableTable";
@@ -47,8 +46,9 @@ const ProviderPage = () => {
   const [errorData, setErrorData] = useState("");
   const isMobile = useIsMobile(768);
   const user = useSelector((state: RootState) => state.auth.user);
+  const hasFetchedRef = useRef(false);
 
-  const getAllData = async () => {
+  const getAllData = useCallback(async () => {
     setError(null);
     setLoading(true);
     try {
@@ -61,21 +61,19 @@ const ProviderPage = () => {
         phone_number_limit_alert: item.phone_number_limit_alert,
       }));
       setProviders(mappedProviders);
-
-      if (!res || res.length === 0) {
-        setErrorData("Không có dữ liệu");
-        setLoading(false);
-      } else {
-        setErrorData("");
-        setLoading(false);
-      }
+      setErrorData(!res || res.length === 0 ? "Không có dữ liệu" : "");
     } catch (err: any) {
       setError(`${err}`);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    getAllData();
+    if (!hasFetchedRef.current) {
+      getAllData();
+      hasFetchedRef.current = true;
+    }
   }, []);
 
   const handleDelete = async (id: string) => {

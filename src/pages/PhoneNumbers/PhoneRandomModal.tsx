@@ -9,6 +9,7 @@ import { validateRandomPhone } from "../../validate/phoneNumber";
 import { getRandomNumber } from "../../services/phoneNumber";
 import { copyToClipBoard } from "../../helper/copyToClipboard";
 import Spinner from "../../components/common/LoadingSpinner";
+import { useScreenSize } from "../../hooks/useScreenSize";
 export interface IBookRandom {
   quantity: number;
   provider_id: number;
@@ -143,7 +144,6 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
       setLoading(false);
     }
   };
-
   return (
     <>
       {loading ? (
@@ -152,7 +152,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
         <CustomModal
           isOpen={isOpen}
           title={"Book ngẫu nhiên số điện thoại"}
-          description="Lựa chọn danh sách số phù hợp với yêu cầu book của bạn "
+          description={`Lựa chọn danh sách số phù hợp với yêu cầu book của bạn`}
           //   errorDetail={errorDetail}
           fields={[
             {

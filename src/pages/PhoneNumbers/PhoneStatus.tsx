@@ -38,6 +38,7 @@ import TableMobile, {
 import ResponsiveFilterWrapper from "../../components/common/FlipperWrapper";
 import { useScreenSize } from "../../hooks/useScreenSize";
 import FloatingActionPanel from "../../components/common/FloatingActionPanel";
+import ComponentCard from "../../components/common/ComponentCard";
 
 interface PhoneNumberProps {
   total_pages: number;
@@ -393,11 +394,11 @@ function PhoneNumbers() {
         title: "Xác nhận danh sách số",
         html: `
           <div class="text-left">
-            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            <label class="block mb-2 text-sm font-medium text-gray-90">
               Danh sách số sẽ thu hồi:
             </label>
-            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
-              <div class="text-sm text-gray-700 dark:text-gray-300">${phoneDetails.join(
+            <div class="p-3 bg-gray-50 rounded-lg border border-gray-300">
+              <div class="text-sm text-gray-700">${phoneDetails.join(
                 ", "
               )}</div>
             </div>
@@ -674,11 +675,11 @@ function PhoneNumbers() {
   const getStatusClass = () => {
     switch (status) {
       case "available":
-        return "text-[14px] border border-green-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-green-400/40 bg-green-100 dark:bg-green-500/40 backdrop-blur-sm dark:border-green-400";
+        return "uppercase text-green-500 text-[14px] border border-green-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-green-400/40 bg-green-100 dark:bg-green-500/40 backdrop-blur-sm dark:border-green-400";
       case "booked":
-        return "text-[14px] border border-yellow-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-yellow-400/40 bg-yellow-100 dark:bg-yellow-500/40 backdrop-blur-sm dark:border-yellow-400";
+        return "uppercase text-yellow-500 text-[14px] border border-yellow-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-yellow-400/40 bg-yellow-100 dark:bg-yellow-500/40 backdrop-blur-sm dark:border-yellow-400";
       case "released":
-        return "text-[14px] border border-red-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-red-400/40 bg-red-100 dark:bg-red-500/40 backdrop-blur-sm dark:border-red-400";
+        return "uppercase text-red-500 text-[14px] border border-red-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-red-400/40 bg-red-100 dark:bg-red-500/40 backdrop-blur-sm dark:border-red-400";
       default:
         return "text-[14px] border border-gray-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-gray-400/40 bg-gray-100 dark:bg-gray-500/40 backdrop-blur-sm dark:border-gray-400";
     }
@@ -705,222 +706,227 @@ function PhoneNumbers() {
         <Spinner />
       ) : (
         <>
-          {isMobile ? null : (
-            <PageBreadcrumb pageTitle="Danh sách trạng thái số" />
-          )}{" "}
-          <div className="space-y-6">
-            <ResponsiveFilterWrapper drawerTitle="Bộ lọc trạng thái số ">
-              <div
-                className={`grid grid-cols-1 items-end gap-4 lg:grid-cols-3`}>
-                <div>
-                  <Label>Trạng thái</Label>
-                  <Select
-                    options={[
-                      { label: "Có sẵn", value: "available" },
-                      { label: "Đã đặt", value: "booked" },
-                      { label: "Đã triển khai", value: "released" },
-                    ]}
-                    placeholder="Lựa chọn trạng thái"
-                    defaultValue={status}
-                    onChange={handleChangeStatus}
-                    className="dark:bg-dark-900"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="inputTwo">Tìm kiếm theo đầu số</Label>
-                  <Input
-                    type="text"
-                    id="inputTwo"
-                    placeholder="Nhập đầu số..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    onKeyDown={handleOnKeyDown}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="providerSelect">
-                    Tìm kiếm theo nhà cung cấp
-                  </Label>
-                  <Select
-                    options={[
-                      { label: "Tất cả", value: "" },
-                      ...(providers?.map((provider) => ({
-                        label: provider.name,
-                        value: provider.name,
-                      })) || []),
-                    ]}
-                    placeholder="Chọn nhà cung cấp..."
-                    defaultValue={searchProvider}
-                    onChange={(value) => {
-                      setSearchProvider(value);
-                      fetchData(
-                        quantity,
-                        status,
-                        offset,
-                        search,
-                        value,
-                        searchTypeNumber
-                      );
-                    }}
-                    className="dark:bg-dark-900"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="typeSelect">Tìm kiếm theo định dạng số</Label>
-                  <Select
-                    options={[
-                      { label: "Tất cả", value: "" },
-                      ...(type_numbers?.map((type) => ({
-                        label: type.name,
-                        value: type.name,
-                      })) || []),
-                    ]}
-                    placeholder="Chọn định dạng số..."
-                    defaultValue={searchTypeNumber}
-                    onChange={(value) => {
-                      console.log("Type number selected:", value); // Debug log
-                      setSearchTypeNumber(value);
-                      // Make sure we're passing the current search and provider values
-                      fetchData(
-                        quantity,
-                        status,
-                        offset,
-                        search,
-                        searchProvider,
-                        value
-                      );
-                    }}
-                    className="dark:bg-dark-900"
-                  />
-                </div>
+          <ComponentCard>
+            {isMobile ? null : (
+              <PageBreadcrumb pageTitle="Danh sách trạng thái số" />
+            )}{" "}
+            <div className="space-y-6">
+              <ResponsiveFilterWrapper drawerTitle="Bộ lọc trạng thái số ">
+                <div
+                  className={`grid grid-cols-1 items-end gap-4 lg:grid-cols-3`}>
+                  <div>
+                    <Label>Trạng thái</Label>
+                    <Select
+                      options={[
+                        { label: "Có sẵn", value: "available" },
+                        { label: "Đã đặt", value: "booked" },
+                        { label: "Đã triển khai", value: "released" },
+                      ]}
+                      placeholder="Lựa chọn trạng thái"
+                      defaultValue={status}
+                      onChange={handleChangeStatus}
+                      className="dark:bg-dark-900"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="inputTwo">Tìm kiếm theo đầu số</Label>
+                    <Input
+                      type="text"
+                      id="inputTwo"
+                      placeholder="Nhập đầu số..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      onKeyDown={handleOnKeyDown}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="providerSelect">
+                      Tìm kiếm theo nhà cung cấp
+                    </Label>
+                    <Select
+                      options={[
+                        { label: "Tất cả", value: "" },
+                        ...(providers?.map((provider) => ({
+                          label: provider.name,
+                          value: provider.name,
+                        })) || []),
+                      ]}
+                      placeholder="Chọn nhà cung cấp..."
+                      defaultValue={searchProvider}
+                      onChange={(value) => {
+                        setSearchProvider(value);
+                        fetchData(
+                          quantity,
+                          status,
+                          offset,
+                          search,
+                          value,
+                          searchTypeNumber
+                        );
+                      }}
+                      className="dark:bg-dark-900"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="typeSelect">
+                      Tìm kiếm theo định dạng số
+                    </Label>
+                    <Select
+                      options={[
+                        { label: "Tất cả", value: "" },
+                        ...(type_numbers?.map((type) => ({
+                          label: type.name,
+                          value: type.name,
+                        })) || []),
+                      ]}
+                      placeholder="Chọn định dạng số..."
+                      defaultValue={searchTypeNumber}
+                      onChange={(value) => {
+                        console.log("Type number selected:", value); // Debug log
+                        setSearchTypeNumber(value);
+                        // Make sure we're passing the current search and provider values
+                        fetchData(
+                          quantity,
+                          status,
+                          offset,
+                          search,
+                          searchProvider,
+                          value
+                        );
+                      }}
+                      className="dark:bg-dark-900"
+                    />
+                  </div>
 
-                <div className="flex items-center gap-2">
-                  <Select
-                    placeholder="Option export"
-                    className="flex-2"
-                    onChange={(value) => setExportOption(value)}
-                    options={[
-                      {
-                        label: "Theo trạng thái",
-                        value: "status",
-                      },
-                      {
-                        label: "Tổng hợp",
-                        value: "allStatus",
-                      },
-                    ]}
-                  />
+                  <div className="flex items-center gap-2">
+                    <Select
+                      placeholder="Option export"
+                      className="flex-2"
+                      onChange={(value) => setExportOption(value)}
+                      options={[
+                        {
+                          label: "Theo trạng thái",
+                          value: "status",
+                        },
+                        {
+                          label: "Tổng hợp",
+                          value: "allStatus",
+                        },
+                      ]}
+                    />
 
-                  <button
-                    onClick={() => handleExport(exportOption)}
-                    className="flex flex-1 items-center justify-center w-10 h-10 rounded-full border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:bg-black dark:text-white">
-                    <IoCloudDownloadOutline size={20} />
-                  </button>
+                    <button
+                      onClick={() => handleExport(exportOption)}
+                      className="flex flex-1 items-center justify-center w-10 h-10 rounded-full border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:bg-black dark:text-white">
+                      <IoCloudDownloadOutline size={20} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </ResponsiveFilterWrapper>
-            <FloatingActionPanel>
-              {status === "booked" && user.role === 1 && (
-                <div className="flex items-end justify-end px-2 py-2 gap-2">
-                  <button
-                    onClick={handleRevoke}
-                    className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
-                    <IoCaretBackCircleOutline size={22} />
-                    Thu hồi
-                  </button>
-                </div>
-              )}
-            </FloatingActionPanel>
+              </ResponsiveFilterWrapper>
+              <FloatingActionPanel>
+                {status === "booked" && user.role === 1 && (
+                  <div className="flex items-end justify-end px-2 py-2 gap-2">
+                    <button
+                      onClick={handleRevoke}
+                      className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+                      <IoCaretBackCircleOutline size={22} />
+                      Thu hồi
+                    </button>
+                  </div>
+                )}
+              </FloatingActionPanel>
 
-            {isMobile ? (
-              <TableMobile
-                pageTitle="Trạng thái số"
-                data={dataMobile}
-                hideCheckbox={false}
-                hidePagination={false}
-                useTailwindStyling={true}
-                showAllData={false}
-                actions={actions as ActionButton[]}
-                defaultItemsPerPage={quantity}
-                itemsPerPageOptions={[10, 20, 50, 100]}
-                totalPages={data?.total_pages ?? 0}
-                currentPage={offset + 1}
-                onPageChange={(page) => setOffset(page - 1)}
-                onItemsPerPageChange={(newQuantity) => {
-                  setQuantity(newQuantity);
-                  setOffset(0);
-                }}
-                labelClassNames={{
-                  "Nhà cung cấp": "text-[14px]",
-                  "Trạng thái": "text-[14px]",
-                  "Loại số": "text-[14px]",
-                  "Số điện thoại": "text-[14px]",
-                }}
-                valueClassNames={{
-                  "Số điện thoại":
-                    "text-sm border-blue-500 tracking-wider bg-blue-100 dark:bg-blue-500/40 align-middle rounded-full border border-blue-200 px-5 py-1 dark:border-blue-400 shadow-sm dark:shadow-blue-400/30 backdrop-blur-sm font-semibold",
-                  "Nhà cung cấp":
-                    "text-[14px] backdrop-blur-sm dark:text-gray-200",
-                  "Loại số": "text-[14px] backdrop-blur-sm dark:text-gray-200",
-                  "Trạng thái": getStatusClass(),
-                }}
-              />
-            ) : (
-              <>
-                <ReusableTable
-                  disabled={status === "available" || status === "released"}
-                  disabledReset={
-                    status === "available" || status === "released"
-                  }
-                  isLoading={loading}
-                  onCheck={(selectedIds, selectedRows) => {
-                    setSelectedIds(selectedIds.map((id) => Number(id)));
-                    setSelectedRows(selectedRows);
-                  }}
-                  role={user.role}
-                  setSelectedIds={setSelectedIds}
-                  selectedIds={selectedIds}
-                  error={error}
-                  title="Danh sách số điện thoại"
-                  data={safeData}
-                  columns={getColumns(status)}
-                  pagination={{
-                    currentPage: offset,
-                    pageSize: quantity,
-                  }}
-                  actions={[
-                    {
-                      icon: <FiEye />,
-                      onClick: (row) => handleGetById(Number(row.id)),
-                      label: "Chi tiết",
-                    },
-                  ]}
-                  onDelete={(id) => handleDelete(Number(id))}
-                />
-
-                <Pagination
-                  limit={quantity}
-                  offset={offset}
+              {isMobile ? (
+                <TableMobile
+                  pageTitle="Trạng thái số"
+                  data={dataMobile}
+                  hideCheckbox={false}
+                  hidePagination={false}
+                  useTailwindStyling={true}
+                  showAllData={false}
+                  actions={actions as ActionButton[]}
+                  defaultItemsPerPage={quantity}
+                  itemsPerPageOptions={[10, 20, 50, 100]}
                   totalPages={data?.total_pages ?? 0}
-                  onPageChange={(limit, newOffset) => {
-                    setQuantity(limit);
-                    setOffset(newOffset);
+                  currentPage={offset + 1}
+                  onPageChange={(page) => setOffset(page - 1)}
+                  onItemsPerPageChange={(newQuantity) => {
+                    setQuantity(newQuantity);
+                    setOffset(0);
                   }}
-                  onLimitChange={(newLimit) => {
-                    setQuantity(newLimit);
-                    setOffset(1);
+                  labelClassNames={{
+                    "Nhà cung cấp": "text-[14px]",
+                    "Trạng thái": "text-[14px]",
+                    "Loại số": "text-[14px]",
+                    "Số điện thoại": "text-[14px]",
+                  }}
+                  valueClassNames={{
+                    "Số điện thoại":
+                      "text-sm border-blue-500 tracking-wider bg-blue-100 dark:bg-blue-500/40 align-middle rounded-full border border-blue-200 px-5 py-1 dark:border-blue-400 shadow-sm dark:shadow-blue-400/30 backdrop-blur-sm font-semibold",
+                    "Nhà cung cấp":
+                      "text-[14px] backdrop-blur-sm dark:text-gray-200",
+                    "Loại số":
+                      "text-[14px] backdrop-blur-sm dark:text-gray-200",
+                    "Trạng thái": getStatusClass(),
                   }}
                 />
-              </>
-            )}
-            <PhoneModalDetail
-              role={user.role}
-              onSuccess={() => fetchData(quantity, status, offset)}
-              isOpen={openModal}
-              onCloseModal={() => setOpenModal(false)}
-              data={selectedPhone}
-            />
-          </div>
+              ) : (
+                <>
+                  <ReusableTable
+                    disabled={status === "available" || status === "released"}
+                    disabledReset={
+                      status === "available" || status === "released"
+                    }
+                    isLoading={loading}
+                    onCheck={(selectedIds, selectedRows) => {
+                      setSelectedIds(selectedIds.map((id) => Number(id)));
+                      setSelectedRows(selectedRows);
+                    }}
+                    role={user.role}
+                    setSelectedIds={setSelectedIds}
+                    selectedIds={selectedIds}
+                    error={error}
+                    title="Danh sách số điện thoại"
+                    data={safeData}
+                    columns={getColumns(status)}
+                    pagination={{
+                      currentPage: offset,
+                      pageSize: quantity,
+                    }}
+                    actions={[
+                      {
+                        icon: <FiEye />,
+                        onClick: (row) => handleGetById(Number(row.id)),
+                        label: "Chi tiết",
+                      },
+                    ]}
+                    onDelete={(id) => handleDelete(Number(id))}
+                  />
+
+                  <Pagination
+                    limit={quantity}
+                    offset={offset}
+                    totalPages={data?.total_pages ?? 0}
+                    onPageChange={(limit, newOffset) => {
+                      setQuantity(limit);
+                      setOffset(newOffset);
+                    }}
+                    onLimitChange={(newLimit) => {
+                      setQuantity(newLimit);
+                      setOffset(1);
+                    }}
+                  />
+                </>
+              )}
+              <PhoneModalDetail
+                role={user.role}
+                onSuccess={() => fetchData(quantity, status, offset)}
+                isOpen={openModal}
+                onCloseModal={() => setOpenModal(false)}
+                data={selectedPhone}
+              />
+            </div>
+          </ComponentCard>
         </>
       )}
     </>

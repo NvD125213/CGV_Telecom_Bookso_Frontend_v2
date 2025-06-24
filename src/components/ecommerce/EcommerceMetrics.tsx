@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MdEventAvailable } from "react-icons/md";
 import { MdCalendarMonth } from "react-icons/md";
 
@@ -15,6 +15,10 @@ export default function EcommerceMetrics() {
   const [quantityPhoneNumberAvailable, setQuantityPhoneNumberAvailable] =
     useState<number>(0);
   const [phoneCurrent, setPhoneCurrent] = useState(null);
+
+  // Sử dụng useRef để theo dõi việc đã gọi API
+  const hasFetchedData = useRef(false);
+  const currentYearRef = useRef<number>(new Date().getFullYear());
 
   const fetchDataNumberCurrent = async (data: INumberCurrent) => {
     try {
@@ -38,9 +42,16 @@ export default function EcommerceMetrics() {
   };
 
   useEffect(() => {
+    // Chỉ gọi API nếu chưa gọi hoặc năm hiện tại thay đổi
     const currentYear = new Date().getFullYear();
-    fetchDataNumberCurrent({ year: currentYear });
-    fetchingDataPhoneNumberAvailable();
+
+    if (!hasFetchedData.current || currentYear !== currentYearRef.current) {
+      hasFetchedData.current = true;
+      currentYearRef.current = currentYear;
+
+      fetchDataNumberCurrent({ year: currentYear });
+      fetchingDataPhoneNumberAvailable();
+    }
   }, []);
 
   return (

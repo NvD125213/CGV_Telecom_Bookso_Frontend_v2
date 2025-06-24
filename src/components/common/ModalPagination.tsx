@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import { IoCaretBackCircleOutline } from "react-icons/io5";
 import { useSelector, useDispatch } from "react-redux";
 import Swal from "sweetalert2";
@@ -85,6 +85,12 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
     telco: "",
     typeNumber: "",
   });
+
+  // Sử dụng useRef để theo dõi các thay đổi và tránh gọi API không cần thiết
+  const hasFetchedRef = useRef(false);
+  const lastFetchParamsRef = useRef<any>(null);
+  const isInitialMountRef = useRef(true);
+
   const [data, setData] = useState<any[]>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -100,27 +106,93 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
     (state: RootState) => state.selectedPhone.selectedIds
   );
 
+  // Tạo object chứa tất cả các tham số để so sánh
+  const getCurrentParams = useCallback(
+    () => ({
+      isOpen,
+      option,
+      limit: pagination.limit,
+      offset: pagination.offset,
+      year:
+        typeof year === "number" && !isNaN(year)
+          ? year
+          : new Date().getFullYear(),
+      month: typeof month === "number" ? month : new Date().getMonth() + 1,
+      day: day ? Number(day) : undefined,
+      telco: apiSearchParams.telco || telco,
+      filter: apiSearchParams.number || filter,
+      type_number: apiSearchParams.typeNumber || type_number,
+      username: apiSearchParams.username || username,
+    }),
+    [
+      isOpen,
+      option,
+      pagination.limit,
+      pagination.offset,
+      year,
+      month,
+      day,
+      telco,
+      filter,
+      type_number,
+      username,
+      apiSearchParams,
+    ]
+  );
+
+  // Kiểm tra xem có cần fetch data hay không
+  const shouldFetchData = useCallback(() => {
+    const currentParams = getCurrentParams();
+
+    // Nếu modal chưa mở, không fetch
+    if (!currentParams.isOpen) return false;
+
+    // Nếu là lần đầu mount và modal đang mở, cần fetch
+    if (isInitialMountRef.current && currentParams.isOpen) {
+      isInitialMountRef.current = false;
+      return true;
+    }
+
+    // So sánh với lần fetch cuối cùng
+    if (lastFetchParamsRef.current === null) {
+      return true;
+    }
+
+    // So sánh từng tham số
+    const lastParams = lastFetchParamsRef.current;
+    return (
+      currentParams.option !== lastParams.option ||
+      currentParams.limit !== lastParams.limit ||
+      currentParams.offset !== lastParams.offset ||
+      currentParams.year !== lastParams.year ||
+      currentParams.month !== lastParams.month ||
+      currentParams.day !== lastParams.day ||
+      currentParams.telco !== lastParams.telco ||
+      currentParams.filter !== lastParams.filter ||
+      currentParams.type_number !== lastParams.type_number ||
+      currentParams.username !== lastParams.username
+    );
+  }, [getCurrentParams]);
+
   const fetchData = useCallback(async () => {
-    if (!isOpen) return;
+    if (!shouldFetchData()) return;
 
     setIsLoading(true);
     setError("");
     try {
-      const now = new Date();
-      const validYear =
-        typeof year === "number" && !isNaN(year) ? year : now.getFullYear();
+      const currentParams = getCurrentParams();
 
       const response = await getDetailReportByOption({
-        option: option || undefined,
-        limit: pagination.limit,
-        offset: pagination.offset,
-        year: validYear,
-        month: typeof month === "number" ? month : now.getMonth() + 1,
-        day: day ? Number(day) : undefined,
-        telco: apiSearchParams.telco || telco,
-        filter: apiSearchParams.number || filter,
-        type_number: apiSearchParams.typeNumber || type_number,
-        username: apiSearchParams.username || username,
+        option: currentParams.option || undefined,
+        limit: currentParams.limit,
+        offset: currentParams.offset,
+        year: currentParams.year,
+        month: currentParams.month,
+        day: currentParams.day,
+        telco: currentParams.telco,
+        filter: currentParams.filter,
+        type_number: currentParams.type_number,
+        username: currentParams.username,
       });
 
       const formattedData = response.data.data.map((item: any) => ({
@@ -135,6 +207,10 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
         ...prev,
         totalPages: response.data.total_pages,
       }));
+
+      // Cập nhật tham số cuối cùng đã fetch
+      lastFetchParamsRef.current = currentParams;
+      hasFetchedRef.current = true;
     } catch (error: any) {
       console.log("Lỗi khi lấy dữ liệu:", error.response?.data?.detail);
       setError(
@@ -143,20 +219,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [
-    isOpen,
-    option,
-    pagination.limit,
-    pagination.offset,
-    year,
-    month,
-    day,
-    telco,
-    filter,
-    type_number,
-    username,
-    apiSearchParams,
-  ]);
+  }, [shouldFetchData, getCurrentParams]);
 
   // Reset state when modal closes
   useEffect(() => {
@@ -181,6 +244,11 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
       // Reset selectedIds when modal closes
       dispatch(resetSelectedIds());
       setSelectedIdsProp?.([]);
+
+      // Reset refs khi modal đóng
+      hasFetchedRef.current = false;
+      lastFetchParamsRef.current = null;
+      isInitialMountRef.current = true;
     }
   }, [isOpen, pageSize, currentPage, dispatch, setSelectedIdsProp]);
 
@@ -192,11 +260,9 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
     };
   }, [dispatch, setSelectedIdsProp]);
 
-  // Fetch data when modal opens or pagination changes
+  // Fetch data khi có thay đổi
   useEffect(() => {
-    if (isOpen) {
-      fetchData();
-    }
+    fetchData();
   }, [fetchData]);
 
   // Handle empty data state
@@ -338,6 +404,8 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
             setSelectedIdsProp?.([]);
             dispatch(setRevokeSuccess(true));
             dispatch(triggerRefresh());
+            // Force refetch data after revoke
+            lastFetchParamsRef.current = null;
             fetchData();
             onSuccess?.();
           });
@@ -353,9 +421,12 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
       // Reset states on error
       dispatch(resetSelectedIds());
       setSelectedIdsProp?.([]);
+      // Force refetch data after error
+      lastFetchParamsRef.current = null;
       await fetchData();
     }
   };
+
   // Xử lý dữ liệu cho mobile
   const { isMobile } = useScreenSize();
   const convertToMobileData = (data: IReportDetail[]): LabelValueItem[][] => {
@@ -412,25 +483,29 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
       onClick: handleViewDetail,
       color: "primary",
     },
-    {
-      icon: <IoCaretBackCircleOutline />,
-      label: "Thu hồi",
-      onClick: handleRevoke,
-      color: "error",
-    },
+    ...(option == "booked"
+      ? [
+          {
+            icon: <IoCaretBackCircleOutline />,
+            label: "Thu hồi",
+            onClick: handleRevoke,
+            color: "error" as const,
+          },
+        ]
+      : []),
   ];
 
   // Function to get status class based on current status
   const getStatusClass = () => {
     switch (option) {
       case "available":
-        return "text-[10px] border border-green-500 rounded-full py-1 text-center shadow-sm dark:shadow-green-400/40 bg-green-100 dark:bg-green-500/40 backdrop-blur-sm dark:border-green-400";
+        return "uppercase text-[10px] border border-green-500 rounded-full py-1 text-center shadow-sm dark:shadow-green-400/40 bg-green-100 dark:bg-green-500/40 backdrop-blur-sm dark:border-green-400 text-green-500";
       case "booked":
-        return "text-[10px] border border-yellow-500 rounded-full py-1 text-center shadow-sm dark:shadow-yellow-400/40 bg-yellow-100 dark:bg-yellow-500/40 backdrop-blur-sm dark:border-yellow-400";
+        return "uppercase text-[10px] border border-yellow-500 rounded-full py-1 text-center shadow-sm dark:shadow-yellow-400/40 bg-yellow-100 dark:bg-yellow-500/40 backdrop-blur-sm dark:border-yellow-400 text-yellow-500";
       case "released":
-        return "text-[10px] border border-red-500 rounded-full py-1 text-center shadow-sm dark:shadow-red-400/40 bg-red-100 dark:bg-red-500/40 backdrop-blur-sm dark:border-red-400";
+        return "uppercase text-[10px] border border-red-500 rounded-full py-1 text-center shadow-sm dark:shadow-red-400/40 bg-red-100 dark:bg-red-500/40 backdrop-blur-sm dark:border-red-400 text-red-500";
       default:
-        return "text-[10px] border border-gray-500 py-1 rounded-full text-center shadow-sm dark:shadow-gray-400/40 bg-gray-100 dark:bg-gray-500/40 backdrop-blur-sm dark:border-gray-400";
+        return "uppercase text-[10px] border border-gray-500 py-1 rounded-full text-center shadow-sm dark:shadow-gray-400/40 bg-gray-100 dark:bg-gray-500/40 backdrop-blur-sm dark:border-gray-400";
     }
   };
 
@@ -453,14 +528,14 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
             {title}
           </h4>
           {description && (
-            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
+            <p className="text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
               {description}
             </p>
           )}
         </div>
 
         <ResponsiveFilterWrapper>
-          <div className="grid gap-4 mb-6 py-3 md:grid-cols-5">
+          <div className="grid gap-4 py-3 md:grid-cols-5">
             <div>
               <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                 Tìm kiếm theo nhân viên
@@ -534,33 +609,35 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
                     telco: searchTelco,
                     typeNumber: searchTypeNumber,
                   });
+                  // Force refetch khi thay đổi search params
+                  lastFetchParamsRef.current = null;
                 }}
                 className="px-4 py-3 max-h-[44px] text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
                 Tìm kiếm
               </Button>
-              <FloatingActionPanel>
-                {user.role === 1 && option == "booked" && (
-                  <div className="flex items-end gap-2">
-                    <button
-                      onClick={handleRevoke}
-                      className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
-                      <IoCaretBackCircleOutline size={22} />
-                      Thu hồi
-                    </button>
-                  </div>
-                )}
-              </FloatingActionPanel>
             </div>
           </div>
         </ResponsiveFilterWrapper>
+        <FloatingActionPanel>
+          {user.role === 1 && option == "booked" && (
+            <div className="flex items-center gap-2 justify-end mb-4">
+              <button
+                onClick={handleRevoke}
+                className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+                <IoCaretBackCircleOutline size={22} />
+                Thu hồi
+              </button>
+            </div>
+          )}
+        </FloatingActionPanel>
 
         {isMobile ? (
           <TableMobile
             pageTitle={`Danh sách số ${option}`}
             data={mobileData}
-            hideCheckbox={false}
+            hideCheckbox={option == "booked" ? false : true}
             hidePagination={false}
-            disabledReset={true}
+            disabledReset={option == "booked" ? false : true}
             useTailwindStyling={true}
             showAllData={false}
             actions={actions}
@@ -577,7 +654,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
             }}
             valueClassNames={{
               "Số điện thoại":
-                "text-[12px] tracking-wider bg-blue-100 dark:bg-blue-500/40 align-middle rounded-full border border-blue-200 py-1 dark:border-blue-400 shadow-sm dark:shadow-blue-400/30 backdrop-blur-sm font-semibold",
+                "text-[12px] tracking-wider bg-blue-100 dark:bg-blue-500/40 align-middle rounded-full border border-blue-200 py-1 dark:border-blue-400 shadow-sm dark:shadow-blue-400/30 backdrop-blur-sm font-semibold dark:text-[#03e3fc]",
               "Nhà cung cấp": "text-[13px] backdrop-blur-sm dark:text-gray-200",
               "Loại số": "text-[13px] backdrop-blur-sm dark:text-gray-200",
               "Nhà mạng": "text-[13px] backdrop-blur-sm dark:text-gray-200",

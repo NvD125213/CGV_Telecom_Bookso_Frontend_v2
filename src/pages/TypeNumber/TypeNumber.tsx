@@ -2,7 +2,7 @@ import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
 import { IoIosAdd } from "react-icons/io";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { ITypeNumber } from "../../types";
 import { deleteTypeNumber, getTypeNumber } from "../../services/typeNumber";
 import ModalTypeNumber from "./TypeNumberModal";
@@ -55,6 +55,8 @@ const TypeNumberPages = () => {
   const [errorData, setErrorData] = useState("");
   const { isMobile } = useScreenSize();
 
+  const hasFetchedRef = useRef(false);
+
   const user = useSelector((state: RootState) => state.auth.user);
 
   const getAllData = async () => {
@@ -85,7 +87,10 @@ const TypeNumberPages = () => {
   };
 
   useEffect(() => {
-    getAllData();
+    if (!hasFetchedRef.current) {
+      getAllData();
+      hasFetchedRef.current = true;
+    }
   }, []);
 
   const handleDelete = async (id: string) => {

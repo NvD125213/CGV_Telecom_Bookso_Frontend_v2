@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Cell,
   Legend,
@@ -90,12 +90,55 @@ const NumberStatusPieChart = () => {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
-  const fetchData = async () => {
+  // Sử dụng useRef để theo dõi các thay đổi và tránh gọi API không cần thiết
+  const lastFetchParamsRef = useRef<any>(null);
+  const isInitialMountRef = useRef(true);
+  const hasFetchedRef = useRef(false);
+
+  // Tạo object chứa tất cả các tham số để so sánh
+  const getCurrentParams = useCallback(
+    () => ({
+      year,
+      month,
+      day: day ? parseInt(day) : undefined,
+    }),
+    [year, month, day]
+  );
+
+  // Kiểm tra xem có cần fetch data hay không
+  const shouldFetchData = useCallback(() => {
+    const currentParams = getCurrentParams();
+
+    // Nếu là lần đầu mount, cần fetch
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      return true;
+    }
+
+    // So sánh với lần fetch cuối cùng
+    if (lastFetchParamsRef.current === null) {
+      return true;
+    }
+
+    // So sánh từng tham số
+    const lastParams = lastFetchParamsRef.current;
+    return (
+      currentParams.year !== lastParams.year ||
+      currentParams.month !== lastParams.month ||
+      currentParams.day !== lastParams.day
+    );
+  }, [getCurrentParams]);
+
+  const fetchData = useCallback(async () => {
+    if (!shouldFetchData()) return;
+
     try {
+      const currentParams = getCurrentParams();
+
       const response = await getDashBoard({
-        year,
-        month,
-        day: day ? parseInt(day) : undefined,
+        year: currentParams.year,
+        month: currentParams.month,
+        day: currentParams.day,
       });
 
       setData([
@@ -110,14 +153,18 @@ const NumberStatusPieChart = () => {
           detail: "released",
         },
       ]);
+
+      // Cập nhật tham số cuối cùng đã fetch
+      lastFetchParamsRef.current = currentParams;
+      hasFetchedRef.current = true;
     } catch (error: any) {
       console.log("Lỗi khi lấy dữ liệu:", error.response?.data?.detail);
     }
-  };
+  }, [shouldFetchData, getCurrentParams]);
 
   useEffect(() => {
     fetchData();
-  }, [year, month, day]);
+  }, [fetchData]);
 
   const handleClick = (entry: any) => {
     // For Pie chart clicks, entry is the full data object
@@ -236,7 +283,7 @@ const NumberStatusPieChart = () => {
                 }))}
                 value={year.toString()}
                 onChange={(value) => setYear(parseInt(value))}
-                className="w-full"
+                className="w-full rounded-none"
               />
             </div>
             <div className="col-span-1">
@@ -247,14 +294,14 @@ const NumberStatusPieChart = () => {
                 }))}
                 value={month.toString()}
                 onChange={(value) => setMonth(parseInt(value))}
-                className="w-full"
+                className="w-full rounded-none"
               />
             </div>
             {/* Input ngày */}
             <div className="col-span-1">
               <Input
                 type="number"
-                className="w-full"
+                className="w-full rounded-none"
                 placeholder="Ngày"
                 value={day}
                 onChange={(e) => setDay(e.target.value)}
@@ -325,6 +372,8 @@ const NumberStatusPieChart = () => {
 
       <ModalPagination
         onSuccess={async () => {
+          // Force refetch data after success
+          lastFetchParamsRef.current = null;
           await fetchData();
         }}
         isOpen={isModalOpen}

@@ -11,7 +11,7 @@ import { useSearchParams } from "react-router-dom";
 import Select from "../../components/form/Select";
 import { IoCaretBackCircleOutline } from "react-icons/io5";
 import Swal from "sweetalert2";
-import { getPhoneByID, revokeNumber } from "../../services/phoneNumber";
+import { getPhoneByID, revokeNumberForSale } from "../../services/phoneNumber";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../store";
 import { resetSelectedIds } from "../../store/selectedPhoneSlice";
@@ -252,7 +252,7 @@ const HistoryBooked = () => {
           id_phone_numbers: selectedIdsFromStore,
         };
 
-        const res = await revokeNumber(dataRevoke);
+        const res = await revokeNumberForSale(dataRevoke);
         if (res.status === 200) {
           await Swal.fire({
             title: "Thu hồi thành công!",
@@ -337,16 +337,16 @@ const HistoryBooked = () => {
   const getStatusClass = () => {
     switch (status) {
       case "booked":
-        return "text-[14px] border border-yellow-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-yellow-400/40 bg-yellow-100 dark:bg-yellow-500/40 backdrop-blur-sm dark:border-yellow-400";
+        return "uppercase text-yellow-500 text-[14px] border border-yellow-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-yellow-400/40 bg-yellow-100 dark:bg-yellow-500/40 backdrop-blur-sm dark:border-yellow-400";
       case "released":
-        return "text-[14px] border border-red-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-red-400/40 bg-red-100 dark:bg-red-500/40 backdrop-blur-sm dark:border-red-400";
+        return "uppercase text-red-500 text-[14px] border border-red-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-red-400/40 bg-red-100 dark:bg-red-500/40 backdrop-blur-sm dark:border-red-400";
       default:
         return "text-[14px] border border-gray-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-gray-400/40 bg-gray-100 dark:bg-gray-500/40 backdrop-blur-sm dark:border-gray-400";
     }
   };
 
   return (
-    <>
+    <ComponentCard>
       {isMobile ? null : <PageBreadcrumb pageTitle="Lịch sử đặt số" />}{" "}
       <ResponsiveFilterWrapper drawerTitle="Bộ lọc" pageTitle="Lịch sử đặt số">
         <div
@@ -419,62 +419,61 @@ const HistoryBooked = () => {
             }}
             valueClassNames={{
               "Số điện thoại":
-                " text-sm tracking-wider bg-blue-100 dark:bg-blue-500/40 align-middle rounded-full border border-blue-200 px-5 py-1 dark:border-blue-400 shadow-sm dark:shadow-blue-400/30 backdrop-blur-sm font-semibold",
+                "text-sm border-blue-500 tracking-wider bg-blue-100 dark:bg-blue-500/40 align-middle rounded-full border border-blue-200 px-5 py-1 dark:border-blue-400 shadow-sm dark:shadow-blue-400/30 backdrop-blur-sm font-semibold",
               "Nhà cung cấp": "text-[14px] backdrop-blur-sm dark:text-gray-200",
               "Loại số": "text-[14px] backdrop-blur-sm dark:text-gray-200",
               "Trạng thái": getStatusClass(),
             }}
           />
         ) : (
-          <ComponentCard>
-            <>
-              <ReusableTable
-                error={errors}
-                title="Bảng lịch sử chi tiết"
-                data={data ?? []}
-                columns={getColumns(status)}
-                isLoading={loading}
-                pagination={{
-                  currentPage: offset,
-                  pageSize: limit,
-                }}
-                disabled={status !== "booked"}
-                onCheck={(
-                  selectedIds: (string | number)[],
-                  selectedRows: IHistoryBooked[]
-                ) => {
-                  setSelectedIds(selectedIds.map((id) => Number(id)));
-                  setSelectedRows(selectedRows);
-                }}
-              />
-              <Pagination
-                limit={limit}
-                offset={offset}
-                totalPages={totalPages}
-                onPageChange={(newLimit, newOffset) => {
-                  setLimit(newLimit);
-                  setOffset(newOffset);
-                  setSearchParams({
-                    limit: newLimit.toString(),
-                    offset: newOffset.toString(),
-                    option: status,
-                  });
-                }}
-                onLimitChange={(newLimit) => {
-                  setLimit(newLimit);
-                  setOffset(0);
-                  setSearchParams({
-                    limit: newLimit.toString(),
-                    offset: "0",
-                    option: status,
-                  });
-                }}
-              />
-            </>
-          </ComponentCard>
+          <>
+            <ReusableTable
+              error={errors}
+              title="Bảng lịch sử chi tiết"
+              data={data ?? []}
+              columns={getColumns(status)}
+              isLoading={loading}
+              pagination={{
+                currentPage: offset,
+                pageSize: limit,
+              }}
+              disabledReset={status !== "booked"}
+              disabled={status !== "booked"}
+              onCheck={(
+                selectedIds: (string | number)[],
+                selectedRows: IHistoryBooked[]
+              ) => {
+                setSelectedIds(selectedIds.map((id) => Number(id)));
+                setSelectedRows(selectedRows);
+              }}
+            />
+            <Pagination
+              limit={limit}
+              offset={offset}
+              totalPages={totalPages}
+              onPageChange={(newLimit, newOffset) => {
+                setLimit(newLimit);
+                setOffset(newOffset);
+                setSearchParams({
+                  limit: newLimit.toString(),
+                  offset: newOffset.toString(),
+                  option: status,
+                });
+              }}
+              onLimitChange={(newLimit) => {
+                setLimit(newLimit);
+                setOffset(0);
+                setSearchParams({
+                  limit: newLimit.toString(),
+                  offset: "0",
+                  option: status,
+                });
+              }}
+            />
+          </>
         )}
       </div>
-    </>
+    </ComponentCard>
   );
 };
 

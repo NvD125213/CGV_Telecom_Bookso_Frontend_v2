@@ -56,6 +56,9 @@ const ModalDetailReport = ({
   const [isLoading, setIsLoading] = useState(false);
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
+  // Thêm useRef để theo dõi việc fetch data
+  const isFetching = useRef(false);
+
   const darkMode = document.documentElement.classList.contains("dark");
 
   // Tính toán series name dựa trên option và optionType hiện tại
@@ -288,18 +291,21 @@ const ModalDetailReport = ({
     }
 
     try {
+      if (isFetching.current) return;
+      isFetching.current = true;
+
       const result = await getBookingStatusBySales(params);
 
       // Extracting the keys and values from the result data
       const categories = Object.keys(result.data);
-      const values = Object.values(result.data) as number[];
+      const values = Object.values(result.data) as number[]; // Fixed: Cast to number array
 
-      // Lưu raw data để có thể cập nhật chart options khi cần
       setRawData({ categories, values });
     } catch (error) {
       console.error("Error fetching booking status:", error);
     } finally {
       setIsLoading(false); // Kết thúc loading
+      isFetching.current = false; // Reset fetching flag
     }
   }, [data?.name, date, optionType, option]);
 
@@ -342,7 +348,7 @@ const ModalDetailReport = ({
       }
 
       const result = await getBookingStatusBySales(params);
-      Object.entries(result.data).map(([key, value]) => {
+      const tableData = Object.entries(result.data).map(([key, value]) => {
         const typedValue = value as BookingStatusValue;
         return {
           phone_number: key,
@@ -353,6 +359,9 @@ const ModalDetailReport = ({
           id: typedValue.id,
         };
       });
+
+      // If you need to use tableData, store it in state or return it
+      return tableData;
     } catch (error) {
       console.error("Error fetching table data:", error);
     }
@@ -369,6 +378,7 @@ const ModalDetailReport = ({
       });
       setRawData({ categories: [], values: [] });
       setIsLoading(false);
+      isFetching.current = false; // Reset fetching flag
     }
   }, [visible]);
 
