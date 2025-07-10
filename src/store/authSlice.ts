@@ -40,7 +40,6 @@ export const login = createAsyncThunk(
       if (token) {
         const decoded = jwtDecode(token);
         Cookies.set("user", JSON.stringify(decoded));
-
         return { token, refreshToken, user: decoded };
       } else {
         throw new Error("Token is not available");

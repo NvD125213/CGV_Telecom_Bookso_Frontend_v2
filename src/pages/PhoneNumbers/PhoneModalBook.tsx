@@ -30,7 +30,7 @@ const PhoneModalBook: React.FC<PhoneNumberProps> = ({
     id_phone_numbers: [],
   });
 
-  const { user } = useSelector((state: RootState) => state.auth.user);
+  const user = useSelector((state: RootState) => state.auth.user);
   const [errors, setError] = useState("");
   const setValue = (name: keyof IBookPhoneNumber, value: string | number) => {
     setPhone((prev) => ({

@@ -26,7 +26,7 @@ const AppHeader: React.FC = () => {
   const [timeOnline, setTimeOnline] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { user } = useSelector((state: RootState) => state.auth.user);
+  const user = useSelector((state: RootState) => state.auth.user);
 
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
 

@@ -1,5 +1,10 @@
 import axios from "axios";
 import Cookies from "js-cookie";
+import { jwtDecode } from "jwt-decode";
+
+interface JWTPayload {
+  exp: number;
+}
 
 // Biến toàn cục để inject hàm reset từ context
 let resetTimerFn: (() => void) | null = null;
@@ -8,21 +13,65 @@ export const setAxiosInactivityHandler = (resetFn: () => void) => {
   resetTimerFn = resetFn;
 };
 
+// Hàm kiểm tra hạn của refresh token
+function checkTokenExpirationAndHandle() {
+  const refreshToken = Cookies.get("refreshToken");
+
+  if (!refreshToken) return true;
+
+  try {
+    const decodedRefresh: JWTPayload = jwtDecode(String(refreshToken));
+    const now = Math.floor(Date.now() / 1000);
+    const refreshRemaining = decodedRefresh.exp - now;
+
+    if (refreshRemaining <= 5 * 60) {
+      console.warn(
+        "Phiên đăng nhập đã hết hạn. Đăng nhập lại để tiếp tục sử dụng !"
+      );
+      alert(
+        "Phiên đăng nhập còn dưới 5 phút. Hãy logout và đăng nhập lại để đảm bảo trải nghiệm sử dụng tốt nhất !"
+      );
+      logoutAndRedirect();
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Lỗi khi decode refresh token:", err);
+    logoutAndRedirect();
+    return false;
+  }
+}
+
+// Hàm logout và redirect
+function logoutAndRedirect() {
+  Cookies.remove("token");
+  Cookies.remove("refreshToken");
+  Cookies.remove("user");
+  localStorage.clear();
+  document.location.href = "/signin";
+}
+
 const axiosInstance = axios.create({
-  // baseURL: "http://52.77.226.21:8000/",
   baseURL: "https://bookso.cgvtelecom.vn:8000/",
 });
 
 let isAlertShown = false;
 
+// Request Interceptor
 axiosInstance.interceptors.request.use(
   async (config) => {
     const token = Cookies.get("token");
+
+    // Kiểm tra token hết hạn
+    const stillValid = checkTokenExpirationAndHandle();
+    if (!stillValid) {
+      throw new axios.Cancel("Refresh token hết hạn, hủy request");
+    }
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Reset timeout nếu có hàm reset từ context
     if (resetTimerFn) {
       resetTimerFn();
     }
@@ -32,6 +81,7 @@ axiosInstance.interceptors.request.use(
   (err) => Promise.reject(err)
 );
 
+// Response Interceptor
 axiosInstance.interceptors.response.use(
   (res) => res,
   async (err) => {
@@ -41,9 +91,7 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
 
       const refreshToken = Cookies.get("refreshToken");
-      if (!refreshToken) {
-        return Promise.reject(err);
-      }
+      if (!refreshToken) return Promise.reject(err);
 
       Cookies.remove("token");
 
@@ -58,9 +106,8 @@ axiosInstance.interceptors.response.use(
         );
 
         const newAccessToken = res.data?.access_token;
-        if (!newAccessToken) {
+        if (!newAccessToken)
           throw new Error("Không nhận được access token mới");
-        }
 
         Cookies.set("token", newAccessToken, {
           sameSite: "None",
@@ -74,12 +121,7 @@ axiosInstance.interceptors.response.use(
 
         if (!isAlertShown) {
           isAlertShown = true;
-
-          alert("Phiên đăng nhập đã hết hạn");
-
-          document.location.href = "/signin";
-          Cookies.remove("refreshToken");
-          Cookies.remove("user");
+          logoutAndRedirect();
         }
 
         return Promise.reject(refreshErr);

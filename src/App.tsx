@@ -26,7 +26,6 @@ import SessionPage from "./pages/SessionPages/SessionPage";
 import { useLocation } from "react-router";
 import { useDispatch } from "react-redux";
 import { resetSelectedIds } from "./store/selectedPhoneSlice";
-import { ScrollToTopButton } from "./components/common/ScrollToTopButton";
 
 function AppWithInactivityHandler() {
   const { resetInactivityTimer } = useAuth();

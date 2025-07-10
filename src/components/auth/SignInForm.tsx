@@ -1,9 +1,7 @@
 import { useState } from "react";
-// import { Link } from "react-router";
 import { EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
-// import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
@@ -11,6 +9,7 @@ import { useDispatch } from "react-redux";
 import type { AppDispatch } from "../../store";
 import { useNavigate } from "react-router";
 import { login } from "../../store/authSlice";
+
 // Validate Schema SignIn
 const SignInSchema = Yup.object().shape({
   username: Yup.string().required("Tên đăng nhập là bắt buộc"),
@@ -32,12 +31,9 @@ export interface SignInValues {
 export default function SignInForm() {
   // Show password
   const [showPassword, setShowPassword] = useState(false);
-  // Click button save password
-  // const [isChecked, setIsChecked] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-
   const handleSubmit = async (values: SignInValues) => {
     try {
       setApiError(null);
