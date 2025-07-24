@@ -233,9 +233,6 @@ const ProviderReport = () => {
     const index = config?.dataPointIndex;
     const seriesIndex = config?.seriesIndex;
 
-    // Thêm log để debug
-    console.log("Chart clicked:", { index, seriesIndex, config });
-
     if (index === undefined || index < 0 || !chartData[index]) {
       console.log("Invalid index or no data at index:", index);
       return;
@@ -376,10 +373,7 @@ const ProviderReport = () => {
               enabled: true,
               speed: 800,
             },
-            events: {
-              click: handleChartClick,
-              dataPointSelection: handleChartClick,
-            },
+
             redrawOnWindowResize: true,
             redrawOnParentResize: true,
           },
@@ -553,10 +547,6 @@ const ProviderReport = () => {
               options: {
                 chart: {
                   height: 700,
-                  events: {
-                    click: handleChartClick,
-                    dataPointSelection: handleChartClick,
-                  },
                 },
                 plotOptions: {
                   bar: {
@@ -603,10 +593,6 @@ const ProviderReport = () => {
               options: {
                 chart: {
                   height: 500,
-                  events: {
-                    click: handleChartClick,
-                    dataPointSelection: handleChartClick,
-                  },
                 },
                 plotOptions: {
                   bar: {
@@ -659,11 +645,7 @@ const ProviderReport = () => {
               options: {
                 chart: {
                   height: 500,
-                  width: "100%", // Đảm bảo chart chiếm toàn bộ width
-                  events: {
-                    click: handleChartClick,
-                    dataPointSelection: handleChartClick,
-                  },
+                  width: "100%",
                 },
                 plotOptions: {
                   bar: {
@@ -723,9 +705,9 @@ const ProviderReport = () => {
         },
       };
     } else {
-      const sortedData = [...chartData].sort(
-        (a, b) => (b.total || 0) - (a.total || 0)
-      );
+      const sortedData = [...chartData]
+        .filter((item) => (item.total || 0) > 0)
+        .sort((a, b) => (b.total || 0) - (a.total || 0));
 
       // Kiểm tra dữ liệu trước khi xử lý
       if (sortedData.length === 0) {

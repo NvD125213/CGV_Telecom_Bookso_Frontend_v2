@@ -229,7 +229,7 @@ const NumberStatusPieChart = () => {
   const { innerRadius, outerRadius } = getRadius();
 
   return (
-    <ComponentCard>
+    <ComponentCard className="h-[500px]">
       <div className="flex flex-col items-center py-3">
         <h3 className="text-lg sm:text-xl font-semibold mb-4 dark:text-white">
           Thống kê số theo trạng thái
@@ -317,7 +317,7 @@ const NumberStatusPieChart = () => {
             Chưa có dữ liệu
           </div>
         ) : (
-          <div className="w-full z-0 max-w-[500px] min-h-[320px] h-[320px] md:h-[350px] lg:h-[400px]">
+          <div className="w-full z-0 max-w-[500px] min-h-[320px] h-[320px] md:h-[350px]">
             <ResponsiveContainer width={"100%"} height={"100%"}>
               <PieChart margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                 <Pie
