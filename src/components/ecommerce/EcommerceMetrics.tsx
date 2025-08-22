@@ -22,13 +22,18 @@ export default function EcommerceMetrics() {
 
   const fetchDataNumberCurrent = async (data: INumberCurrent) => {
     try {
-      const response = await getNumberCurrent({ year: data.year });
-      const result = response.data;
+      const response = await getNumberCurrent({ year: data?.year });
+      const result = response?.data;
+
       const date = new Date();
       const currentMonth = date.getMonth() + 1;
-      setPhoneCurrent(result[currentMonth]);
-    } catch (error) {
-      console.error("Lỗi khi lấy dữ liệu:", error);
+
+      setPhoneCurrent(result?.[currentMonth] ?? 0);
+    } catch (error: any) {
+      console.error(
+        "Lỗi khi lấy dữ liệu:",
+        error?.response?.data?.detail ?? error.message
+      );
     }
   };
 

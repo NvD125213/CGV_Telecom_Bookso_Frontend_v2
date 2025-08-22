@@ -10,6 +10,7 @@ import Cookies from "js-cookie";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { logout } from "../store/authSlice";
+import toast from "react-hot-toast";
 
 interface AuthContextProps {
   socket: Socket | null;
@@ -70,7 +71,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const startInactivityTimer = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
-      alert("Bạn đã không hoạt động trong 5 phút. Vui lòng đăng nhập lại.");
+      toast("Bạn đã không hoạt động trong 5 phút. Vui lòng đăng nhập lại.", {
+        icon: "⚠️",
+        style: {
+          background: "#fef3c7",
+          color: "#92400e",
+        },
+      });
+
       clearSession();
     }, INACTIVITY_LIMIT);
   };

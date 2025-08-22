@@ -122,20 +122,20 @@ const PhoneNumberModal: React.FC<PhoneNumberProps> = ({
           error: errors.provider_id,
         },
         {
-          name: "type_id",
+          name: "type_id", // đổi lại cho đúng
           label: "Loại số",
           type: "select",
-          value: phone.type_number_id,
+          value: phone.type_id,
           options: [
             { label: "Chọn loại số", value: "", key: "default" },
             ...typeNumbers.map((type) => ({
-              label: `${type.name}`,
+              label: type.name,
               value: type.id,
               key: type.id,
             })),
           ],
-          onChange: (value) => setValue("type_id", value),
-          error: errors.type_id,
+          onChange: (value) => setValue("type_id", value), // đổi key đúng
+          error: errors.type_id, // đổi key đúng
         },
         {
           name: "installation_fee",

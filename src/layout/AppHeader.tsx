@@ -62,8 +62,9 @@ const AppHeader: React.FC = () => {
   const handleGetTimeOnlineByUser = async () => {
     try {
       const res = await getTimeOnlineByUser();
-      if (res.status === 200) {
-        const seconds = timeStringToSeconds(res.data.total_seconds); // convert
+
+      if (res?.status === 200) {
+        const seconds = timeStringToSeconds(res?.data?.total_seconds ?? "0");
         setTimeOnline(seconds);
       }
     } catch (err) {

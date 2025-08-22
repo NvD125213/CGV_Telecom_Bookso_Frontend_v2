@@ -13,7 +13,7 @@ export const newProvider = {
 export const getProviders = async () => {
   try {
     const res = await axiosInstance.get("/api/v2/provider/all");
-    return res.data;
+    return res?.data;
   } catch (error: any) {
     throw new Error(error);
   }

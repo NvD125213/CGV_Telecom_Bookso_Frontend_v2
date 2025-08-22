@@ -1,6 +1,7 @@
 import axios from "axios";
 import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
+import toast from "react-hot-toast";
 
 interface JWTPayload {
   exp: number;
@@ -13,33 +14,26 @@ export const setAxiosInactivityHandler = (resetFn: () => void) => {
   resetTimerFn = resetFn;
 };
 
-// Hàm kiểm tra hạn của refresh token
-function checkTokenExpirationAndHandle() {
-  const refreshToken = Cookies.get("refreshToken");
-
-  if (!refreshToken) return true;
-
+function decodeToken(token: string): JWTPayload | null {
   try {
-    const decodedRefresh: JWTPayload = jwtDecode(String(refreshToken));
-    const now = Math.floor(Date.now() / 1000);
-    const refreshRemaining = decodedRefresh.exp - now;
-
-    if (refreshRemaining <= 5 * 60) {
-      console.warn(
-        "Phiên đăng nhập đã hết hạn. Đăng nhập lại để tiếp tục sử dụng !"
-      );
-      alert(
-        "Phiên đăng nhập còn dưới 5 phút. Hãy logout và đăng nhập lại để đảm bảo trải nghiệm sử dụng tốt nhất !"
-      );
-      logoutAndRedirect();
-      return false;
-    }
-    return true;
-  } catch (err) {
-    console.error("Lỗi khi decode refresh token:", err);
-    logoutAndRedirect();
-    return false;
+    return jwtDecode<JWTPayload>(token);
+  } catch {
+    return null;
   }
+}
+
+// Hàm check refresh token còn hạn > 5 phút
+function isRefreshTokenStillValid(): boolean {
+  const refreshToken = Cookies.get("refreshToken");
+  if (!refreshToken) return false;
+
+  const decoded = decodeToken(refreshToken);
+  if (!decoded) return false;
+
+  const now = Math.floor(Date.now() / 1000);
+  const refreshRemaining = decoded.exp - now;
+
+  return refreshRemaining > 5 * 60;
 }
 
 // Hàm logout và redirect
@@ -57,31 +51,20 @@ const axiosInstance = axios.create({
 
 let isAlertShown = false;
 
-// Request Interceptor
+// ✅ Request Interceptor (chỉ gắn access token)
 axiosInstance.interceptors.request.use(
   async (config) => {
     const token = Cookies.get("token");
-
-    // Kiểm tra token hết hạn
-    const stillValid = checkTokenExpirationAndHandle();
-    if (!stillValid) {
-      throw new axios.Cancel("Refresh token hết hạn, hủy request");
-    }
-
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-
-    if (resetTimerFn) {
-      resetTimerFn();
-    }
-
+    if (resetTimerFn) resetTimerFn();
     return config;
   },
   (err) => Promise.reject(err)
 );
 
-// Response Interceptor
+// ✅ Response Interceptor
 axiosInstance.interceptors.response.use(
   (res) => res,
   async (err) => {
@@ -93,15 +76,20 @@ axiosInstance.interceptors.response.use(
       const refreshToken = Cookies.get("refreshToken");
       if (!refreshToken) return Promise.reject(err);
 
-      Cookies.remove("token");
-
+      // Check refresh token còn hạn không
+      if (!isRefreshTokenStillValid()) {
+        toast("Phiên đăng nhập đã hết hạn. Đăng nhập lại để tiếp tục!", {
+          icon: "⚠️",
+          style: { background: "#fef3c7", color: "#92400e" },
+        });
+        logoutAndRedirect();
+        return Promise.reject(err);
+      }
       try {
         const res = await axios.get(
           "https://bookso.cgvtelecom.vn:8000/api/v1/auth/access_token_by_refresh_token",
           {
-            headers: {
-              Authorization: `Bearer ${refreshToken}`,
-            },
+            headers: { Authorization: `Bearer ${refreshToken}` },
           }
         );
 
@@ -116,14 +104,13 @@ axiosInstance.interceptors.response.use(
 
         originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
         return axiosInstance(originalRequest);
-      } catch (refreshErr: any) {
+      } catch (refreshErr) {
         console.log("Lỗi làm mới token:", refreshErr);
 
         if (!isAlertShown) {
           isAlertShown = true;
           logoutAndRedirect();
         }
-
         return Promise.reject(refreshErr);
       }
     }
