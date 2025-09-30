@@ -313,7 +313,7 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
               Danh sách số sẽ book:
             </label>
             <div class="p-3 bg-gray-50 rounded-lg border border-gray-300">
-              <div class="text-sm text-gray-700">${
+              <div class="text-sm not-allow-select text-gray-700">${
                 user.role !== 1
                   ? formattedPhoneList
                   : requestBody.phone_details.join(", ")
@@ -459,6 +459,7 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
         ]
       : []),
   ];
+
   return (
     <>
       {bookLoading ? (

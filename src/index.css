@@ -781,3 +781,9 @@ span.flatpickr-weekday,
 .flatpickr-month {
   color: red !important;
 }
+
+.not-allow-select {
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+}

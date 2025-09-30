@@ -54,6 +54,22 @@ export const uploadFile = async (file: File) => {
   return res.data;
 };
 
+export const uploadFileV2 = async (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await axiosInstance.post(
+    "/api/v1/phone/upload-phone-number-v2",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+  return res.data;
+};
+
 export const createPhoneNumber = async (data: IPhoneNumber) => {
   const res = await axiosInstance.post("/api/v1/phone", data);
   return res;

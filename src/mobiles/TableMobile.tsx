@@ -357,6 +357,7 @@ const TableMobile: React.FC<MobileListProps> = ({
   return (
     <Container
       ref={containerRef}
+      className="not-allow-select"
       maxWidth="lg"
       sx={{
         py: 4,

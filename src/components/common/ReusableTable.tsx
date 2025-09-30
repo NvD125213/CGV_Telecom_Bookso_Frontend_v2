@@ -127,7 +127,7 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
   return error ? (
     <div className="dark:text-white">{error}</div>
   ) : (
-    <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-black">
+    <div className="rounded-xl not-allow-select border border-gray-200 bg-white dark:border-gray-800 dark:bg-black">
       {disabledReset == false ? (
         <div className="flex justify-end px-4 py-2">
           <button
