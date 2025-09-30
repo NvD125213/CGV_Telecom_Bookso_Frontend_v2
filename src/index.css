@@ -7,7 +7,7 @@ layer(base);
 
 @theme {
   --font-*: initial;
-  --font-outfit: Roboto, sans-serif;
+  --font-outfit: 'SF Pro Rounded', sans-serif;
 
   --breakpoint-*: initial;
   --breakpoint-2xsm: 375px;
