@@ -54,6 +54,7 @@ interface Props<T> {
   showId?: boolean; // Renamed from showStt to showId for clarity
   disabled?: boolean; // Simple disabled prop
   disabledReset?: boolean;
+  classname?: string;
 }
 
 const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
@@ -69,6 +70,7 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
   showId = true,
   disabled = false, // Default to false
   disabledReset = false,
+  classname,
 }: Props<T>) => {
   const dispatch = useDispatch();
   const { selectedIds } = useSelector(
@@ -127,7 +129,8 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
   return error ? (
     <div className="dark:text-white">{error}</div>
   ) : (
-    <div className="rounded-xl not-allow-select border border-gray-200 bg-white dark:border-gray-800 dark:bg-black">
+    <div
+      className={`rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-black ${classname}`}>
       {disabledReset == false ? (
         <div className="flex justify-end px-4 py-2">
           <button

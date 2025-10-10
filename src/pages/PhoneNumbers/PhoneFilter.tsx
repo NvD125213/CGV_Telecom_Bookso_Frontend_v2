@@ -592,7 +592,7 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
                   }}
                   valueClassNames={{
                     "Số điện thoại":
-                      "text-sm border border-blue-500 tracking-wider bg-blue-100 dark:bg-blue-500/40 align-middle rounded-full px-5 py-1 dark:border-blue-400 shadow-sm dark:shadow-blue-400/30 backdrop-blur-sm font-semibold text-blue-100",
+                      "text-sm not-allow-select border border-blue-500 tracking-wider bg-blue-100 dark:bg-blue-500/40 align-middle rounded-full px-5 py-1 dark:border-blue-400 shadow-sm dark:shadow-blue-400/30 backdrop-blur-sm font-semibold text-blue-100",
                     "Nhà cung cấp":
                       "text-[14px] backdrop-blur-sm dark:text-gray-200",
                     "Loại số":
@@ -607,6 +607,7 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
                     role={user.role}
                     isLoading={loading}
                     title="Danh sách số điện thoại"
+                    classname="not-allow-select"
                     data={safeData}
                     onCheck={(selectedIds) => getIds(selectedIds)}
                     setSelectedIds={setSelectedIds}
