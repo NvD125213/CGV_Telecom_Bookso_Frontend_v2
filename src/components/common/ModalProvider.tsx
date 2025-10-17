@@ -3,6 +3,7 @@ import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
 import TextArea from "../../components/form/input/TextArea";
+import Switch from "../../components/form/switch/Switch";
 import { useState, useRef, useEffect } from "react";
 import { useScreenSize } from "../../hooks/useScreenSize";
 import AutocompleteMultiple from "../../components/ui/autocomplete/auto-complete";
@@ -244,7 +245,7 @@ const EnhancedSelect: React.FC<{
   );
 };
 
-const CustomModal: React.FC<CustomModalProps> = ({
+const ModalCustomProvider: React.FC<CustomModalProps> = ({
   isOpen,
   title,
   description,
@@ -294,69 +295,150 @@ const CustomModal: React.FC<CustomModalProps> = ({
                 ? "overflow-y-auto overflow-x-visible"
                 : "overflow-visible"
             }`}>
-            <div
-              className={`grid ${
-                fields.length > 4 ? "grid-cols-2" : "grid-cols-1"
-              } gap-2 sm:gap-3 lg:gap-4`}>
-              {fields.map((field) => (
-                <div key={field.name} className="w-full">
-                  <Label className="text-xs sm:text-sm lg:text-base mb-1 sm:mb-2 block font-medium">
-                    {field.label}
-                  </Label>
+            <div className="flex flex-col gap-2 sm:gap-3 lg:gap-4">
+              {/* Tách fields thành textarea và các field khác */}
+              {(() => {
+                const textareaFields = fields.filter(
+                  (field) => field.type === "textarea"
+                );
+                const autocompleteFields = fields.filter(
+                  (field) => field.type === "autocomplete"
+                );
+                const switchFields = fields.filter(
+                  (field) => field.type === "switch"
+                );
+                const otherFields = fields.filter(
+                  (field) =>
+                    field.type !== "textarea" &&
+                    field.type !== "autocomplete" &&
+                    field.type !== "switch"
+                );
 
-                  {field.type === "textarea" ? (
-                    <TextArea
-                      value={field.value as string}
-                      onChange={(value) => field.onChange(value)}
-                      placeholder={field.placeholder}
-                      disabled={disabledAll || field.disabled}
-                      size="sm"
-                      className={`w-full text-xs sm:text-sm ${
-                        disabledAll || field.disabled
-                          ? "opacity-50 cursor-not-allowed"
-                          : ""
-                      } ${field.error ? "border-red-500" : ""}`}
-                    />
-                  ) : field.type === "select" && field.options ? (
-                    <EnhancedSelect
-                      field={field}
-                      disabled={disabledAll || Boolean(field.disabled)}
-                    />
-                  ) : field.type === "autocomplete" && field.options ? (
-                    <AutocompleteMultiple
-                      value={field.value as any}
-                      onChange={(newValue) => field.onChange?.(newValue as any)}
-                      options={(field.options as any) || []}
-                      placeholder={field.placeholder}
-                    />
-                  ) : (
-                    <Input
-                      type={field.type}
-                      value={(field.value as any) ?? ""}
-                      min="0"
-                      onChange={(e) => {
-                        if (field.type === "number") {
-                          const val = e.target.value;
-                          field.onChange(val === "" ? "" : Number(val));
-                        } else {
-                          field.onChange(e.target.value);
-                        }
-                      }}
-                      placeholder={field.placeholder}
-                      disabled={disabledAll || field.disabled}
-                      className={`w-full text-xs sm:text-sm ${
-                        disabledAll || field.disabled
-                          ? "opacity-50 cursor-not-allowed"
-                          : ""
-                      } ${field.error ? "border-red-500" : ""}`}
-                    />
-                  )}
+                return (
+                  <>
+                    {/* Render switch fields - chiếm riêng 1 hàng 1 cột, hiển thị đầu tiên */}
+                    {switchFields.map((field) => (
+                      <div key={field.name} className="w-full">
+                        <Label className="text-xs sm:text-sm lg:text-base mb-1 sm:mb-2 block font-medium">
+                          {field.label}
+                        </Label>
+                        <Switch
+                          label={field.value ? "Public" : "Private"}
+                          checked={field.value as boolean}
+                          disabled={disabledAll || field.disabled}
+                          onChange={(checked) => field.onChange(checked)}
+                        />
+                        {field.error && (
+                          <p className="mt-1 text-xs text-red-500">
+                            {field.error}
+                          </p>
+                        )}
+                      </div>
+                    ))}
 
-                  {field.error && (
-                    <p className="mt-1 text-xs text-red-500">{field.error}</p>
-                  )}
-                </div>
-              ))}
+                    {/* Render other fields với layout flexbox 2 cột */}
+                    {otherFields.length > 0 && (
+                      <div className="flex flex-wrap gap-2 sm:gap-3 lg:gap-4">
+                        {otherFields.map((field, index) => (
+                          <div
+                            key={field.name}
+                            className="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(50%-0.75rem)]">
+                            <Label className="text-xs sm:text-sm lg:text-base mb-1 sm:mb-2 block font-medium">
+                              {field.label}
+                            </Label>
+
+                            {field.type === "select" && field.options ? (
+                              <EnhancedSelect
+                                field={field}
+                                disabled={
+                                  disabledAll || Boolean(field.disabled)
+                                }
+                              />
+                            ) : (
+                              <Input
+                                type={field.type}
+                                value={(field.value as any) ?? ""}
+                                min="0"
+                                onChange={(e) => {
+                                  if (field.type === "number") {
+                                    const val = e.target.value;
+                                    field.onChange(
+                                      val === "" ? "" : Number(val)
+                                    );
+                                  } else {
+                                    field.onChange(e.target.value);
+                                  }
+                                }}
+                                placeholder={field.placeholder}
+                                disabled={disabledAll || field.disabled}
+                                className={`w-full text-xs sm:text-sm ${
+                                  disabledAll || field.disabled
+                                    ? "opacity-50 cursor-not-allowed"
+                                    : ""
+                                } ${field.error ? "border-red-500" : ""}`}
+                              />
+                            )}
+
+                            {field.error && (
+                              <p className="mt-1 text-xs text-red-500">
+                                {field.error}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Render autocomplete fields - chiếm riêng 1 hàng 1 cột */}
+                    {autocompleteFields.map((field) => (
+                      <div key={field.name} className="w-full">
+                        <Label className="text-xs sm:text-sm lg:text-base mb-1 sm:mb-2 block font-medium">
+                          {field.label}
+                        </Label>
+                        <AutocompleteMultiple
+                          value={field.value as any}
+                          onChange={(newValue) =>
+                            field.onChange?.(newValue as any)
+                          }
+                          options={(field.options as any) || []}
+                          placeholder={field.placeholder}
+                        />
+                        {field.error && (
+                          <p className="mt-1 text-xs text-red-500">
+                            {field.error}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* Render textarea fields - chiếm riêng 1 hàng 1 cột */}
+                    {textareaFields.map((field) => (
+                      <div key={field.name} className="w-full">
+                        <Label className="text-xs sm:text-sm lg:text-base mb-1 sm:mb-2 block font-medium">
+                          {field.label}
+                        </Label>
+                        <TextArea
+                          value={field.value as string}
+                          onChange={(value) => field.onChange(value)}
+                          placeholder={field.placeholder}
+                          disabled={disabledAll || field.disabled}
+                          size="sm"
+                          className={`w-full text-xs sm:text-sm ${
+                            disabledAll || field.disabled
+                              ? "opacity-50 cursor-not-allowed"
+                              : ""
+                          } ${field.error ? "border-red-500" : ""}`}
+                        />
+                        {field.error && (
+                          <p className="mt-1 text-xs text-red-500">
+                            {field.error}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </>
+                );
+              })()}
             </div>
           </div>
 
@@ -388,4 +470,4 @@ const CustomModal: React.FC<CustomModalProps> = ({
   );
 };
 
-export default CustomModal;
+export default ModalCustomProvider;

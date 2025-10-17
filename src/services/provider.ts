@@ -7,6 +7,8 @@ export const newProvider = {
   name: "",
   description: "",
   phone_number_limit_alert: 0,
+  is_public: false,
+  users: { rule: [] },
 };
 
 // Get all list provider

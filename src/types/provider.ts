@@ -4,4 +4,10 @@ export interface IProvider {
   active?: string;
   description: string | null;
   phone_number_limit_alert: number;
+  is_public: boolean | string;
+  users?:
+    | string
+    | {
+        rule: string[];
+      };
 }

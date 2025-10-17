@@ -44,8 +44,8 @@ function logoutAndRedirect() {
   localStorage.clear();
   document.location.href = "/signin";
 }
-
 const axiosInstance = axios.create({
+  // baseURL: "https://bookso.cgvtelecom.vn:8000/",
   baseURL: "https://bookso.cgvtelecom.vn:8000/",
 });
 

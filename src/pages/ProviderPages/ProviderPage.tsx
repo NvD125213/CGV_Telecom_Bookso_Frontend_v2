@@ -17,11 +17,19 @@ import { LabelValueItem, ActionButton } from "../../mobiles/TableMobile";
 
 const columns: { key: keyof IProvider; label: string }[] = [
   { key: "name", label: "Nhà cung cấp" },
-  { key: "description", label: "Mô tả" },
+  {
+    key: "users",
+    label: "Người được phép sử dụng",
+  },
   {
     key: "phone_number_limit_alert",
     label: "Hạn mức cảnh báo",
   },
+  {
+    key: "is_public",
+    label: "Trạng thái",
+  },
+  { key: "description", label: "Mô tả" },
 ];
 
 const priorityList = [
@@ -54,12 +62,22 @@ const ProviderPage = () => {
     try {
       const res = await getProviders();
       const sortedProvider = sortByPriority(res, priorityList);
-      const mappedProviders: IProvider[] = sortedProvider.map((item) => ({
-        id: item.id,
-        name: item.name,
-        description: item.description,
-        phone_number_limit_alert: item.phone_number_limit_alert,
-      }));
+
+      const mappedProviders: IProvider[] = sortedProvider.map((item) => {
+        const rules = Array.isArray(item?.users?.rule)
+          ? (item.users.rule as string[]).filter((u) => !!u && u.trim() !== "")
+          : [];
+        return {
+          id: item.id,
+          name: item.name,
+          description: item.description,
+          phone_number_limit_alert: item.phone_number_limit_alert || 0,
+          is_public: item.is_public ? "public" : "private",
+          // Lưu dưới dạng chuỗi hiển thị, nhưng KHÔNG chèn placeholder vào dữ liệu
+          users: rules.join(", "),
+        };
+      });
+
       setProviders(mappedProviders);
       setErrorData(!res || res.length === 0 ? "Không có dữ liệu" : "");
     } catch (err: any) {
@@ -74,7 +92,7 @@ const ProviderPage = () => {
       getAllData();
       hasFetchedRef.current = true;
     }
-  }, []);
+  }, [getAllData]);
 
   const handleDelete = async (id: string) => {
     await ModalSwalAction({
@@ -88,17 +106,30 @@ const ProviderPage = () => {
     });
   };
 
-  // Chuyển đổi dữ liệu cho TableMobile - ID luôn ở vị trí đầu tiên
   const convertToMobileData = (data: IProvider[]): LabelValueItem[][] => {
-    return data.map((provider) => [
-      { label: "Mã nhà cung cấp", value: provider.id, hidden: true },
-      { label: "Nhà cung cấp", value: provider.name, hideLabel: true },
-      { label: "Mô tả", value: provider.description || "Không có mô tả" },
-      {
-        label: "Hạn mức cảnh báo",
-        value: provider.phone_number_limit_alert.toString(),
-      },
-    ]);
+    return data.map((provider) => {
+      // users ở state đang là chuỗi hiển thị hoặc rỗng
+      const usersDisplay =
+        typeof (provider as any).users === "string"
+          ? ((provider as any).users as string) || "-"
+          : Array.isArray((provider as any)?.users?.rule)
+          ? ((provider as any).users.rule as string[]).join(", ")
+          : "-";
+
+      return [
+        { label: "Mã nhà cung cấp", value: provider.id, hidden: true },
+        { label: "Nhà cung cấp", value: provider.name || "-", hideLabel: true },
+        {
+          label: "Người được phép sử dụng",
+          value: usersDisplay,
+        },
+        { label: "Mô tả", value: provider.description || "-" },
+        {
+          label: "Hạn mức cảnh báo",
+          value: provider.phone_number_limit_alert?.toString() ?? "-",
+        },
+      ];
+    });
   };
 
   // Actions đã được đơn giản hóa - chỉ nhận ID
@@ -142,6 +173,7 @@ const ProviderPage = () => {
             Thêm
           </button>
         </div>
+
         <div className="space-y-6">
           {error && <div className="text-red-500">{error}</div>}
 
