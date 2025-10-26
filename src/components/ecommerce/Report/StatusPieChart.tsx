@@ -192,7 +192,7 @@ const NumberStatusPieChart = () => {
     const displayData = data.map((item) => ({
       ...item,
       displayValue: item.value === 0 ? 0 : Math.max(item.value, minValue),
-      originalValue: item.value, // Lưu giá trị gốc để hiển thị trong tooltip
+      originalValue: item.value, // Lưu giá trị chính để hiển thị trong tooltip
     }));
 
     return displayData;

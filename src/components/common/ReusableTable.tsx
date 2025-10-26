@@ -294,25 +294,35 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
                             {item.id}
                           </TableCell>
                         )}
-                        {columns.map((col) => (
-                          <TableCell
-                            key={col.key}
-                            className={`px-5 py-3 text-sm text-gray-500 dark:text-gray-300 ${
-                              isManyColumns ? "text-[13px]" : "text-sm"
-                            }`}>
-                            {col.type === "button" ? (
-                              <button className={col.classname}>
-                                {item[col.key] as string}
-                              </button>
-                            ) : col.type === "span" ? (
-                              <span className={col.classname}>
-                                {item[col.key] as string}
-                              </span>
-                            ) : (
-                              (item[col.key] as string)
-                            )}
-                          </TableCell>
-                        ))}
+                        {columns.map((col) => {
+                          const value = item[col.key];
+                          const displayValue =
+                            value === null ||
+                            value === undefined ||
+                            value === ""
+                              ? "-"
+                              : value;
+
+                          return (
+                            <TableCell
+                              key={col.key}
+                              className={`px-5 py-3 text-sm text-gray-500 dark:text-gray-300 ${
+                                isManyColumns ? "text-[13px]" : "text-sm"
+                              }`}>
+                              {col.type === "button" ? (
+                                <button className={col.classname}>
+                                  {displayValue as string}
+                                </button>
+                              ) : col.type === "span" ? (
+                                <span className={col.classname}>
+                                  {displayValue as string}
+                                </span>
+                              ) : (
+                                displayValue
+                              )}
+                            </TableCell>
+                          );
+                        })}
                         {hasActionColumn && (
                           <TableCell
                             className={`flex gap-2 px-5 py-3 items-center ${
@@ -325,7 +335,7 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
                                 <PencilIcon />
                               </button>
                             )}
-                            {onDelete && role === 1 && (
+                            {onDelete && (
                               <button
                                 onClick={() => onDelete(item.id)}
                                 className="bg-red-400 text-white px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2">
