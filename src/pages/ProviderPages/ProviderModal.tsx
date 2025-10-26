@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { createProvider, updateProvider } from "../../services/provider";
 import { IProvider } from "../../types";
 import { newProvider } from "../../services/provider";
-import CustomModal from "../../components/common/CustomModal";
 import { users } from "../../constants/user";
 import ModalCustomProvider from "../../components/common/ModalProvider";
 import Swal from "sweetalert2";

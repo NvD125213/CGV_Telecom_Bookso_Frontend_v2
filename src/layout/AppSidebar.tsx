@@ -11,6 +11,8 @@ import {
 import { MdOutlineProductionQuantityLimits } from "react-icons/md";
 import { GrChannel } from "react-icons/gr";
 import { MdOutlineMiscellaneousServices } from "react-icons/md";
+import { LuPackagePlus } from "react-icons/lu";
+import { PiUserList } from "react-icons/pi";
 
 import { useSidebar } from "../context/SidebarContext";
 import { FaCloudUploadAlt } from "react-icons/fa";
@@ -43,11 +45,6 @@ const navItems: NavItem[] = [
     name: "Dashboard",
     subItems: [{ name: "Báo cáo thống kê", path: "/", pro: false }],
   },
-  // {
-  //   icon: <CalenderIcon />,
-  //   name: "Lịch",
-  //   path: "/calendar",
-  // },
   {
     icon: <SiAmazonsimpleemailservice width="1em" height="1em" />,
     name: "Nhà cung cấp",
@@ -68,7 +65,16 @@ const navItems: NavItem[] = [
     path: "/time-online",
     icon: <RiBaseStationLine />,
   },
-
+  {
+    name: "Gói số",
+    path: "/plans",
+    icon: <LuPackagePlus />,
+  },
+  {
+    name: "Đơn đặt gói",
+    path: "/subscriptions",
+    icon: <PiUserList />,
+  },
   {
     name: "Số điện thoại",
     icon: <TableIcon />,
