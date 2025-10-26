@@ -284,7 +284,7 @@ const SubsciptionList = () => {
   const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading] = useState(false);
   const isMobile = useIsMobile(768);
-  const user = useSelector((state: RootState) => state.auth?.user);
+  const user = useSelector((state: RootState) => state.auth.user);
 
   const [expiredFrom, setExpiredFrom] = useState<string>("");
   const [expiredTo, setExpiredTo] = useState<string>("");

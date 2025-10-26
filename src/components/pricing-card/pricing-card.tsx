@@ -87,15 +87,36 @@ const PricingCard: React.FC<PricingCardProps> = ({
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    const seconds = String(date.getSeconds()).padStart(2, "0");
+    if (!dateString) return "";
 
-    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+    try {
+      // Parse ISO 8601 string: "2026-01-01T15:34:00+07:00"
+      const match = dateString.match(
+        /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/
+      );
+
+      if (match) {
+        const [, year, month, day, hours, minutes, seconds] = match;
+        return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+      }
+
+      // Fallback: sử dụng Date object
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return dateString;
+      }
+
+      const d = String(date.getDate()).padStart(2, "0");
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const y = date.getFullYear();
+      const h = String(date.getHours()).padStart(2, "0");
+      const min = String(date.getMinutes()).padStart(2, "0");
+      const sec = String(date.getSeconds()).padStart(2, "0");
+
+      return `${d}/${m}/${y} ${h}:${min}:${sec}`;
+    } catch (error) {
+      return dateString;
+    }
   };
 
   const defaultFeatures = [
@@ -103,9 +124,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
     `${currentData.did_count} số DID`,
     `${currentData.total_users} người dùng`,
     `Hạn gói: ${formatDate(currentData.expiration_time)}`,
-    `Thời gian chờ xác nhận: ${formatDate(
-      currentData.expiration_time_package
-    )}`,
+    `Thời gian chờ xác nhận: ${currentData.expiration_time_package} tiếng kể từ lúc đặt gói`,
   ];
 
   const features = customFeatures || defaultFeatures;

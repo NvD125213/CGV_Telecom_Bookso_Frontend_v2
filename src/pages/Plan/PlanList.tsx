@@ -39,9 +39,10 @@ export const PlanList = () => {
   const [query, setQuery] = useQuerySync<PlanQuery>({
     page: 1,
     size: 10,
-    order_by: "created_at",
-    order_dir: "desc",
+    order_by: "price_vnd",
+    order_dir: "asc",
     is_root: "True",
+    status: "1",
   });
   const [searchInput, setSearchInput] = useState(query.search);
   const [plans, setPlans] = useState<Plans | null>(null);
@@ -59,6 +60,14 @@ export const PlanList = () => {
   const handlePaginationChange = (page: number, size: number) => {
     setQuery({ ...query, page, size });
   };
+
+  // Đảm bảo order_dir luôn là "asc" hoặc "desc"
+  useEffect(() => {
+    if (query.order_dir !== "asc" && query.order_dir !== "desc") {
+      setQuery({ ...query, order_dir: "asc" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query.order_dir]);
 
   // Nếu role không phải là 1 (admin), set status = "1"
   useEffect(() => {
@@ -80,7 +89,13 @@ export const PlanList = () => {
   const fetchPlans = async () => {
     setLoading(true);
     try {
-      const result = await planService.get(query);
+      // Đảm bảo order_dir là "asc" hoặc "desc"
+      const validOrderDir = query.order_dir === "desc" ? "desc" : "asc";
+      const validQuery = {
+        ...query,
+        order_dir: validOrderDir,
+      };
+      const result = await planService.get(validQuery);
       setPlans(result.data);
       setPagination(result.data.meta);
     } catch (err: any) {
@@ -160,13 +175,15 @@ export const PlanList = () => {
     <>
       <PageBreadcrumb pageTitle="Danh sách gói cước" />
       <div className="flex justify-end mb-4">
-        <button
-          onClick={() => navigate("/plans/create")}
-          className="flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
-          {" "}
-          <IoIosAdd size={24} />
-          Thêm
-        </button>
+        {user.role === 1 && (
+          <button
+            onClick={() => navigate("/plans/create")}
+            className="flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
+            {" "}
+            <IoIosAdd size={24} />
+            Thêm
+          </button>
+        )}
       </div>
       <ComponentCard>
         <div className="max-w-7xl mx-auto">
@@ -184,23 +201,6 @@ export const PlanList = () => {
               />
             </div>
 
-            {/* Trạng thái - Chỉ hiển thị cho admin (role = 1) */}
-            {user.role === 1 && (
-              <div className="w-full">
-                <Label>Trạng thái</Label>
-                <Select
-                  options={[
-                    { label: "Không hoạt động", value: "0" },
-                    { label: "Đang hoạt động", value: "1" },
-                  ]}
-                  onChange={(value) => setQuery({ ...query, status: value })}
-                  placeholder="Trạng thái"
-                />
-              </div>
-            )}
-
-            {/* Loại gói */}
-
             <div className="w-full">
               <Label>Thứ tự</Label>
               <Select
@@ -208,7 +208,20 @@ export const PlanList = () => {
                   { label: "Tăng dần", value: "asc" },
                   { label: "Giảm dần", value: "desc" },
                 ]}
+                value={query.order_dir}
                 onChange={(value) => setQuery({ ...query, order_dir: value })}
+                placeholder="Thứ tự"
+              />
+            </div>
+            <div className="w-full">
+              <Label>Trạng thái</Label>
+              <Select
+                options={[
+                  { label: "Hoạt động", value: "1" },
+                  { label: "Không hoạt động", value: "0" },
+                ]}
+                value={query.status}
+                onChange={(value) => setQuery({ ...query, status: value })}
                 placeholder="Loại gói"
               />
             </div>

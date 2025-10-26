@@ -19,6 +19,7 @@ import { useScrollPagination } from "../../hooks/useScrollPagination";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import Skeleton from "react-loading-skeleton";
 import { Pagination } from "../../components/common/Pagination";
+import PaginationComponent from "../../components/pagination/pagination";
 import SubscriptionItemAction, {
   SubscriptionItem,
 } from "./SubscriptionItemAction";
@@ -224,6 +225,13 @@ export const SubcriptionActionPage = () => {
   // State cho tab active
   const [activeTab, setActiveTab] = useState<"phones" | "items">("phones");
 
+  // State cho phân trang của phones
+  const [phonePagination, setPhonePagination] = useState({
+    limit: 20,
+    offset: 0,
+    totalPages: 1,
+  });
+
   // State cho edit/delete subscription items
   const [editingItem, setEditingItem] = useState<SubscriptionItem | null>(null);
   const [itemFormData, setItemFormData] = useState<SubscriptionItem>({
@@ -366,9 +374,28 @@ export const SubcriptionActionPage = () => {
     }
   }, [isUpdate, form.slide_users]);
 
+  // Cập nhật tổng số trang cho phones khi phone_numbers thay đổi
+  useEffect(() => {
+    if (form.phone_numbers && form.phone_numbers.length > 0) {
+      const totalPages = Math.ceil(
+        form.phone_numbers.length / phonePagination.limit
+      );
+      setPhonePagination((prev) => ({ ...prev, totalPages }));
+    }
+  }, [form.phone_numbers, phonePagination.limit]);
+
   // Handler cho pagination
   const handlePlanPaginationChange = (page: number, size: number) => {
     setPlanQuery({ ...planQuery, page, size });
+  };
+
+  // Handler cho phone pagination
+  const handlePhonePaginationChange = (_limit: number, offset: number) => {
+    setPhonePagination((prev) => ({ ...prev, offset }));
+  };
+
+  const handlePhoneLimitChange = (_limit: number) => {
+    // Không cần thay đổi limit, giữ cố định 20
   };
 
   /** --- Handle changes --- */
@@ -964,16 +991,33 @@ export const SubcriptionActionPage = () => {
             {activeTab === "phones" &&
               form.phone_numbers &&
               form.phone_numbers.length > 0 && (
-                <ReusableTable
-                  title="Danh sách số điện thoại"
-                  data={form.phone_numbers}
-                  columns={phoneColumns}
-                  isLoading={loading}
-                  error=""
-                  disabled={true}
-                  disabledReset={true}
-                  showId={false}
-                />
+                <>
+                  <ReusableTable
+                    title="Danh sách số điện thoại"
+                    data={form.phone_numbers.slice(
+                      phonePagination.offset,
+                      phonePagination.offset + phonePagination.limit
+                    )}
+                    columns={phoneColumns}
+                    isLoading={loading}
+                    error=""
+                    disabled={true}
+                    disabledReset={true}
+                    showId={false}
+                  />
+                  {form.phone_numbers.length > phonePagination.limit && (
+                    <div className="mt-4">
+                      <PaginationComponent
+                        limit={phonePagination.limit}
+                        offset={phonePagination.offset}
+                        totalPages={phonePagination.totalPages}
+                        onPageChange={handlePhonePaginationChange}
+                        onLimitChange={handlePhoneLimitChange}
+                        showLimitSelector={false}
+                      />
+                    </div>
+                  )}
+                </>
               )}
 
             {activeTab === "items" && items && items.length > 0 && (
@@ -1060,23 +1104,22 @@ export const SubcriptionActionPage = () => {
                       <h4 className="text-md font-semibold text-gray-700 dark:text-gray-300 mb-3">
                         Thông tin CID ({comboDetailData.cids_data.length} mục)
                       </h4>
-                      <div className="max-h-[600px] overflow-y-auto">
-                        <ReusableTable
-                          title=""
-                          data={comboDetailData.cids_data
-                            .slice(0, displayedCidsCount)
-                            .map((item, index) => ({
-                              ...item,
-                              id: index,
-                            }))}
-                          columns={cidsColumns}
-                          isLoading={false}
-                          error=""
-                          disabled={true}
-                          disabledReset={true}
-                          showId={false}
-                        />
-                      </div>
+                      <ReusableTable
+                        title=""
+                        data={comboDetailData.cids_data
+                          .slice(0, displayedCidsCount)
+                          .map((item, index) => ({
+                            ...item,
+                            id: index,
+                          }))}
+                        columns={cidsColumns}
+                        isLoading={false}
+                        error=""
+                        classname="overflow-y-none"
+                        disabled={true}
+                        disabledReset={true}
+                        showId={false}
+                      />
                       {displayedCidsCount <
                         comboDetailData.cids_data.length && (
                         <div className="mt-4 text-center">
