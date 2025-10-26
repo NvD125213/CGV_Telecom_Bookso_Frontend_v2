@@ -102,8 +102,23 @@ axiosInstance.interceptors.response.use(
           secure: true,
         });
 
+        // Đợi 1 giây trước khi retry request với token mới
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        // Cập nhật token vào header trước khi retry
+        originalRequest.headers = originalRequest.headers || {};
         originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
-        return axiosInstance(originalRequest);
+
+        // Tạo lại request config với token mới
+        const retryConfig = {
+          ...originalRequest,
+          headers: {
+            ...originalRequest.headers,
+            Authorization: `Bearer ${newAccessToken}`,
+          },
+        };
+
+        return axiosInstance(retryConfig);
       } catch (refreshErr) {
         console.log("Lỗi làm mới token:", refreshErr);
 
