@@ -123,8 +123,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
     `${currentData.minutes.toLocaleString()} phút gọi`,
     `${currentData.did_count} số DID`,
     `${currentData.total_users} người dùng`,
-    `Hạn gói: ${formatDate(currentData.expiration_time)}`,
-    `Thời gian chờ xác nhận: ${currentData.expiration_time_package} tiếng kể từ lúc đặt gói`,
+    `${currentData.expiration_time_package} ngày chờ xác nhận kể từ lúc đặt gói`,
   ];
 
   const features = customFeatures || defaultFeatures;

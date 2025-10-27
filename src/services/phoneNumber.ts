@@ -1,5 +1,4 @@
 import axiosInstance from "../config/apiToken";
-import axios from "axios";
 import { IPhoneNumber, IReportDate } from "../types";
 
 export const initialPhoneNumber: IPhoneNumber = {
@@ -43,8 +42,8 @@ export const uploadFile = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await axios.post(
-    "http://103.216.124.164:8000/api/v1/phone/upload-phone-number",
+  const res = await axiosInstance.post(
+    "/api/v1/phone/upload-phone-number",
     formData,
     {
       headers: {
@@ -60,7 +59,7 @@ export const uploadFileV2 = async (file: File) => {
   formData.append("file", file);
 
   const res = await axiosInstance.post(
-    "http://103.216.124.164:8000/api/v1/phone/upload-phone-number-v2",
+    "/api/v1/phone/upload-phone-number-v2",
     formData,
     {
       headers: {

@@ -74,19 +74,16 @@ export const getDetailCombo = async (
   list_account?: string,
   month_year?: string
 ) => {
-  const listHeader = list_account || '["SGCRD.2020.VoiceOTP","CGV275"]';
-  const monthHeader = month_year || "2025-09";
+  const listHeader = list_account;
+  const monthHeader = month_year;
 
   try {
-    const response = await axios.get(
-      "http://180.93.175.210:8989/combo/detail",
-      {
-        headers: {
-          list_account: listHeader,
-          month_year: monthHeader,
-        },
-      }
-    );
+    const response = await axiosInstance.get("/api/v3/combo/detail", {
+      headers: {
+        list_account: listHeader,
+        month_year: monthHeader,
+      },
+    });
     return response.data;
   } catch (error: any) {
     console.error("❌ Lỗi khi gọi combo detail:", error);

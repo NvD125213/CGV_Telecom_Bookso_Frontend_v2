@@ -5,6 +5,6 @@ export const instanceStatic = axios.create({
   headers: {
     "Content-Type": "application/json",
     Authorization:
-      "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJIVVlMUSIsInVzZXJfaWQiOjQ2NCwicm9sZSI6MSwiY2hhdF9pZCI6ODY4Mjk0NTU0LCJlbWFpbCI6IkhVWUxRQENHVlRFTEVDT00uVk4iLCJleHAiOjE3NjE0OTExMTYsInR5cGVfdG9rZW4iOiJhcyJ9.c8C_9HUpB0ysEo13lHWIPWPqyqDEiYHZNCxZoEh4MK8",
+      "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJIVVlMUSIsInVzZXJfaWQiOjQ2NCwicm9sZSI6MSwiY2hhdF9pZCI6ODY4Mjk0NTU0LCJlbWFpbCI6IkhVWUxRQENHVlRFTEVDT00uVk4iLCJleHAiOjE3NjE1MzQyNzcsInR5cGVfdG9rZW4iOiJhcyJ9.6pLqz8UjDPqaBLOHJ7LjT1rVA9RiqB4kQd9DLfxt-CQ",
   },
 });

@@ -238,7 +238,7 @@ const CustomSubscriptionTable = ({
                                 <PencilIcon />
                               </button>
                             )}
-                            {onDelete && role === 1 && (
+                            {onDelete && (
                               <button
                                 onClick={() => onDelete(item.id)}
                                 className="bg-red-400 text-white px-3 py-2 rounded-full text-xs hover:brightness-110 transition-all duration-200 flex items-center gap-1">
@@ -613,7 +613,6 @@ const SubsciptionList = () => {
                   navigate(`/subscriptions/edit/${item.id}`);
                 }}
                 onDelete={(id) => handleDelete(id)}
-                role={user.role}
               />
               <Pagination data={pagination} onChange={handlePaginationChange} />
             </>

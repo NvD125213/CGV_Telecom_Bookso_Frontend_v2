@@ -184,7 +184,7 @@ export const SubcriptionActionPage = () => {
         Swal.fire({
           icon: "warning",
           title: "Cảnh báo",
-          text: "Vui lòng chọn gói cước trước khi tạo hợp đồng",
+          text: "Vui lòng chọn gói cước trước khi tạo thông tin",
           confirmButtonText: "Quay lại",
         }).then(() => {
           navigate("/subscriptions");
@@ -271,7 +271,10 @@ export const SubcriptionActionPage = () => {
 
   // Fetch plans với useApi
   const { data: plansData, isLoading: isLoadingPlans } = useApi<any>(
-    () => planService.getChildren(form?.root_plan_id || 0),
+    () =>
+      form?.root_plan_id
+        ? planService.getChildren(form.root_plan_id)
+        : Promise.resolve(null),
     [form?.root_plan_id]
   );
 
@@ -338,9 +341,14 @@ export const SubcriptionActionPage = () => {
 
   /** --- Load subscription items --- */
   useEffect(() => {
-    const fetchItems = async () => {
-      if (!isUpdate || !form.id || form.id === 0) return;
+    // Chỉ fetch khi:
+    // 1. Đang ở chế độ update
+    // 2. Có id từ URL
+    // 3. form.id hợp lệ và > 0
+    // 4. form đã được load xong (loading = false)
+    if (!isUpdate || !id || !form.id || form.id === 0 || loading) return;
 
+    const fetchItems = async () => {
       try {
         setItemsLoading(true);
         const response = await subscriptionItemService.get({
@@ -356,7 +364,7 @@ export const SubcriptionActionPage = () => {
     };
 
     fetchItems();
-  }, [isUpdate, form.id]);
+  }, [isUpdate, id, form.id, loading]); // Thêm các dependency để kiểm soát tốt hơn
 
   // Set tháng/năm mặc định là tháng hiện tại
   useEffect(() => {
@@ -434,7 +442,11 @@ export const SubcriptionActionPage = () => {
 
         const result = await subscriptionService.create(form as any);
         if (result.status == 200) {
-          Swal.fire("Thành công", "Tạo hợp đồng thành công", "success");
+          Swal.fire(
+            "Thành công",
+            "Tạo thông tin gói book thành công",
+            "success"
+          );
           navigate("/subscriptions");
         }
       }
@@ -516,10 +528,12 @@ export const SubcriptionActionPage = () => {
           await subscriptionItemService.delete(id);
           Swal.fire("Thành công", "Đã xóa gói bổ sung", "success");
           // Refresh items
-          const response = await subscriptionItemService.get({
-            subscription_id: form.id,
-          });
-          setItems(response.data?.items || []);
+          if (form.id && form.id > 0) {
+            const response = await subscriptionItemService.get({
+              subscription_id: form.id,
+            });
+            setItems(response.data?.items || []);
+          }
         } catch (error: any) {
           Swal.fire(
             "Lỗi",
@@ -548,10 +562,12 @@ export const SubcriptionActionPage = () => {
       setIsItemModalOpen(false);
       setEditingItem(null);
       // Refresh items
-      const response = await subscriptionItemService.get({
-        subscription_id: form.id,
-      });
-      setItems(response.data?.items || []);
+      if (form.id && form.id > 0) {
+        const response = await subscriptionItemService.get({
+          subscription_id: form.id,
+        });
+        setItems(response.data?.items || []);
+      }
     } catch (error: any) {
       Swal.fire({
         icon: "error",
@@ -626,7 +642,6 @@ export const SubcriptionActionPage = () => {
     total_call_out: 0,
   });
   const [comboLoading, setComboLoading] = useState(false);
-  const [displayedCidsCount, setDisplayedCidsCount] = useState(20);
 
   // Tạo danh sách tháng và năm
   const months = Array.from({ length: 12 }, (_, i) => ({
@@ -679,8 +694,6 @@ export const SubcriptionActionPage = () => {
             cids_vt: response.data.cids_vt || 0,
             total_call_out: response.data.total_call_out || 0,
           });
-          // Reset displayed count khi có dữ liệu mới
-          setDisplayedCidsCount(20);
         }
       } catch (error: any) {
         console.error("Lỗi khi tải combo detail:", error);
@@ -707,7 +720,9 @@ export const SubcriptionActionPage = () => {
         toolbar: {
           show: true,
         },
+        fontFamily: "'Inter', 'Segoe UI', 'Roboto', 'Arial', sans-serif", // ✅ font hỗ trợ tiếng Việt
       },
+
       stroke: {
         curve: "smooth",
         width: 2,
@@ -721,7 +736,7 @@ export const SubcriptionActionPage = () => {
       },
       yaxis: {
         title: {
-          text: "call_out",
+          text: "Gọi ra (Call_out)",
         },
       },
       dataLabels: {
@@ -770,10 +785,30 @@ export const SubcriptionActionPage = () => {
     },
   ];
 
+  // Phân trang cho bảng cids_data
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
+
+  const totalItems = comboDetailData.cids_data?.length || 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+
+  const paginatedData =
+    comboDetailData.cids_data
+      ?.slice(startIndex, endIndex)
+      .map((item, index) => ({
+        ...item,
+        id: startIndex + index + 1,
+      })) || [];
+
   return (
     <>
       <PageBreadcrumb
-        pageTitle={isUpdate ? "Cập nhật hợp đồng" : "Thêm hợp đồng mới"}
+        pageTitle={
+          isUpdate ? "Chỉnh sửa thông tin book gói" : "Thông tin book gói"
+        }
       />
 
       {/* Hiển thị thông tin gói cước đã chọn */}
@@ -952,8 +987,8 @@ export const SubcriptionActionPage = () => {
             {loading
               ? "Đang lưu..."
               : isUpdate
-              ? "Cập nhật hợp đồng"
-              : "Tạo hợp đồng"}
+              ? "Xác nhận thông tin"
+              : "Xác nhận thông tin"}
           </button>
         </div>
       </ComponentCard>
@@ -1098,20 +1133,18 @@ export const SubcriptionActionPage = () => {
             {!comboLoading && selectedMonth && selectedYear && monthYear && (
               <>
                 {/* Bảng CIDs */}
-                {comboDetailData.cids_data &&
-                  comboDetailData.cids_data.length > 0 && (
-                    <div className="mb-6">
-                      <h4 className="text-md font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                        Thông tin CID ({comboDetailData.cids_data.length} mục)
-                      </h4>
+                {comboDetailData.cids_data?.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-md font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                      Thông tin CID ({totalItems} mục)
+                    </h4>
+
+                    <div
+                      className="overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg"
+                      style={{ maxHeight: "500px" }}>
                       <ReusableTable
                         title=""
-                        data={comboDetailData.cids_data
-                          .slice(0, displayedCidsCount)
-                          .map((item, index) => ({
-                            ...item,
-                            id: index,
-                          }))}
+                        data={paginatedData}
                         columns={cidsColumns}
                         isLoading={false}
                         error=""
@@ -1120,59 +1153,73 @@ export const SubcriptionActionPage = () => {
                         disabledReset={true}
                         showId={false}
                       />
-                      {displayedCidsCount <
-                        comboDetailData.cids_data.length && (
-                        <div className="mt-4 text-center">
-                          <button
-                            onClick={() =>
-                              setDisplayedCidsCount((prev) => prev + 20)
-                            }
-                            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                            Xem thêm (
-                            {comboDetailData.cids_data.length -
-                              displayedCidsCount}{" "}
-                            mục còn lại)
-                          </button>
-                        </div>
-                      )}
                     </div>
-                  )}
+
+                    {/* Pagination controls */}
+                    {totalPages > 1 && (
+                      <div className="flex justify-center mt-4 gap-2">
+                        <button
+                          disabled={currentPage === 1}
+                          onClick={() => setCurrentPage((prev) => prev - 1)}
+                          className={`px-3 py-1 border rounded ${
+                            currentPage === 1
+                              ? "text-gray-400 border-gray-300 cursor-not-allowed"
+                              : "text-indigo-600 border-indigo-400 hover:bg-indigo-50"
+                          }`}>
+                          Trước
+                        </button>
+                        <span className="px-2 py-1 text-sm text-gray-600 dark:text-gray-300">
+                          Trang {currentPage}/{totalPages}
+                        </span>
+                        <button
+                          disabled={currentPage === totalPages}
+                          onClick={() => setCurrentPage((prev) => prev + 1)}
+                          className={`px-3 py-1 border rounded ${
+                            currentPage === totalPages
+                              ? "text-gray-400 border-gray-300 cursor-not-allowed"
+                              : "text-indigo-600 border-indigo-400 hover:bg-indigo-50"
+                          }`}>
+                          Sau
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Biểu đồ Quota */}
-                {comboDetailData.quota_data &&
-                  comboDetailData.quota_data.length > 0 && (
-                    <div>
-                      <div className="flex justify-between items-center mb-3">
-                        <h4 className="text-md font-semibold text-gray-700 dark:text-gray-300">
-                          Biểu đồ sử dụng (call_out)
-                        </h4>
-                        <div className="flex gap-4 text-sm">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-gray-600 dark:text-gray-400">
-                              Tổng:
-                            </span>
-                            <span className="text-indigo-600 dark:text-indigo-400 font-bold">
-                              {comboDetailData.total_call_out.toLocaleString(
-                                "vi-VN"
-                              )}
-                            </span>
-                          </div>
+                {comboDetailData.quota_data?.length > 0 && (
+                  <div>
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="text-md font-semibold text-gray-700 dark:text-gray-300">
+                        Biểu đồ sử dụng (call_out)
+                      </h4>
+                      <div className="flex gap-4 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-600 dark:text-gray-400">
+                            Tổng:
+                          </span>
+                          <span className="text-indigo-600 dark:text-indigo-400 font-bold">
+                            {comboDetailData.total_call_out.toLocaleString(
+                              "vi-VN"
+                            )}
+                          </span>
                         </div>
                       </div>
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                        <Chart
-                          options={getQuotaChartOptions()}
-                          series={getQuotaChartSeries()}
-                          type="line"
-                          height={350}
-                        />
-                      </div>
                     </div>
-                  )}
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                      <Chart
+                        options={getQuotaChartOptions()}
+                        series={getQuotaChartSeries()}
+                        type="line"
+                        height={350}
+                      />
+                    </div>
+                  </div>
+                )}
 
-                {comboDetailData.cids_data.length === 0 &&
-                  comboDetailData.quota_data.length === 0 &&
-                  monthYear && (
+                {/* Không có dữ liệu */}
+                {comboDetailData.cids_data?.length === 0 &&
+                  comboDetailData.quota_data?.length === 0 && (
                     <div className="text-center py-8 text-gray-500">
                       Không có dữ liệu cho tháng/năm đã chọn
                     </div>
