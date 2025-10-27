@@ -102,9 +102,6 @@ axiosInstance.interceptors.response.use(
           secure: true,
         });
 
-        // Đợi 1 giây trước khi retry request với token mới
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
         // Cập nhật token vào header trước khi retry
         originalRequest.headers = originalRequest.headers || {};
         originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
