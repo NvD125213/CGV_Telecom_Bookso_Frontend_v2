@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const dispatch = useDispatch();
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const INACTIVITY_LIMIT = 60 * 60 * 1000;
+  const INACTIVITY_LIMIT = 5 * 60 * 1000;
 
   const sendMessage = (message: string) => {
     if (socket && isConnected) {
