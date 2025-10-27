@@ -84,7 +84,6 @@ const CustomSubscriptionTable = ({
   isLoading,
   onEdit,
   onDelete,
-  role,
 }: {
   data: any[];
   isLoading: boolean;
@@ -101,7 +100,6 @@ const CustomSubscriptionTable = ({
     { key: "username", label: "Sale" },
     { key: "root_plan_id", label: "Gói chính" },
     { key: "total_price", label: "Tổng giá" },
-    { key: "auto_renew", label: "Renew" },
     { key: "status", label: "Trạng thái" },
   ];
 
@@ -238,7 +236,7 @@ const CustomSubscriptionTable = ({
                                 <PencilIcon />
                               </button>
                             )}
-                            {onDelete && role === 1 && (
+                            {onDelete && (
                               <button
                                 onClick={() => onDelete(item.id)}
                                 className="bg-red-400 text-white px-3 py-2 rounded-full text-xs hover:brightness-110 transition-all duration-200 flex items-center gap-1">
@@ -613,7 +611,6 @@ const SubsciptionList = () => {
                   navigate(`/subscriptions/edit/${item.id}`);
                 }}
                 onDelete={(id) => handleDelete(id)}
-                role={user.role}
               />
               <Pagination data={pagination} onChange={handlePaginationChange} />
             </>

@@ -3,11 +3,6 @@ import CustomModal from "../../components/common/CustomModal";
 import { subscriptionItemService } from "../../services/subcription";
 import { planService } from "../../services/plan";
 import Swal from "sweetalert2";
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-import ComponentCard from "../../components/common/ComponentCard";
-import Button from "../../components/ui/button/Button";
-import ReusableTable from "../../components/common/ReusableTable";
-import { IoMdAdd } from "react-icons/io";
 import { useApi } from "../../hooks/useApi";
 
 export interface SubscriptionItem {
@@ -34,8 +29,6 @@ const SubscriptionItemAction: React.FC<SubscriptionItemActionProps> = ({
   preSelectedPlan,
   onRefreshItems,
 }) => {
-  const [items, setItems] = useState<SubscriptionItem[]>([]);
-  const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<SubscriptionItem | null>(null);
   const [errors, setErrors] = useState<
@@ -44,26 +37,6 @@ const SubscriptionItemAction: React.FC<SubscriptionItemActionProps> = ({
 
   const { data: plansData } = useApi(() => planService.get({}));
   const plans = plansData?.data?.items || [];
-
-  useEffect(() => {
-    fetchItems();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subscriptionId]);
-
-  const fetchItems = async () => {
-    try {
-      setLoading(true);
-      const response = await subscriptionItemService.get({
-        subscription_id: subscriptionId,
-      });
-      setItems(response.data?.items || []);
-    } catch (error: any) {
-      console.error("Lỗi khi tải subscription items:", error);
-      Swal.fire("Lỗi", "Không thể tải danh sách subscription items", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const [formData, setFormData] = useState<SubscriptionItem>({
     subscription_id: subscriptionId,
@@ -158,7 +131,6 @@ const SubscriptionItemAction: React.FC<SubscriptionItemActionProps> = ({
         });
       }
 
-      fetchItems();
       // Gọi callback để refresh danh sách items ở parent
       onRefreshItems?.();
       // Nếu là external modal, gọi callback để clear state

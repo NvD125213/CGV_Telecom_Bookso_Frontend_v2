@@ -17,6 +17,8 @@ import PricingCard, {
 } from "../../components/pricing-card/pricing-card";
 import { useScrollPagination } from "../../hooks/useScrollPagination";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { useSelector } from "react-redux";
+import { RootState } from "../../store";
 
 interface RouteEntry {
   key: string;
@@ -137,6 +139,7 @@ export const OutboundDidForm = ({
     <div className="mt-6">
       <div className="grid grid-cols-2 gap-8">
         {/* Outbound DID Section */}
+
         <div>
           <Label>Cấu hình Outbound CID</Label>
           <div className="flex flex-col gap-3 mt-3">
@@ -248,6 +251,8 @@ export interface PlanForm {
 export const PlanActionPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+
+  const user = useSelector((state: RootState) => state.auth.user);
 
   const isUpdate = Boolean(id);
   const [form, setForm] = useState<PlanForm>({
@@ -484,6 +489,7 @@ export const PlanActionPage = () => {
               onChange={(e) => handleChange("name", e.target.value)}
               placeholder="Nhập tên gói"
             />
+
             {formErrors.name && (
               <p className="text-red-500 text-sm mt-1">{formErrors.name}</p>
             )}
@@ -570,18 +576,20 @@ export const PlanActionPage = () => {
         </div>
 
         {/* --- Outbound DID routes --- */}
-        <div className="mt-8">
-          <div className="grid grid-cols-1 gap-4 mt-2">
-            <OutboundDidForm
-              value={form.outbound_did_by_route}
-              onChange={(updated) =>
-                handleChange("outbound_did_by_route", updated)
-              }
-              meta={form.meta}
-              onMetaChange={(updated) => handleChange("meta", updated)}
-            />
+        {user.role == 1 && (
+          <div className="mt-8">
+            <div className="grid grid-cols-1 gap-4 mt-2">
+              <OutboundDidForm
+                value={form.outbound_did_by_route}
+                onChange={(updated) =>
+                  handleChange("outbound_did_by_route", updated)
+                }
+                meta={form.meta}
+                onMetaChange={(updated) => handleChange("meta", updated)}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Gói con */}
         {/* --- Danh sách gói con (nếu có) --- */}
@@ -659,16 +667,18 @@ export const PlanActionPage = () => {
             disabled={loading}>
             Trở lại
           </Button>
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="px-6 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 disabled:opacity-50">
-            {loading
-              ? "Đang lưu..."
-              : isUpdate
-              ? "Cập nhật gói cước"
-              : "Tạo gói cước"}
-          </button>
+          {user.role == 1 && (
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="px-6 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 disabled:opacity-50">
+              {loading
+                ? "Đang lưu..."
+                : isUpdate
+                ? "Cập nhật gói cước"
+                : "Tạo gói cước"}
+            </button>
+          )}
         </div>
       </ComponentCard>
     </>

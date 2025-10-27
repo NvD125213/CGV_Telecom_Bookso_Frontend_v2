@@ -66,7 +66,7 @@ const navItems: NavItem[] = [
     icon: <RiBaseStationLine />,
   },
   {
-    name: "Gói số",
+    name: "Gói phút gọi",
     path: "/plans",
     icon: <LuPackagePlus />,
   },
