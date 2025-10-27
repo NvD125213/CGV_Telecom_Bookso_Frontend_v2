@@ -84,7 +84,6 @@ const CustomSubscriptionTable = ({
   isLoading,
   onEdit,
   onDelete,
-  role,
 }: {
   data: any[];
   isLoading: boolean;
@@ -101,7 +100,6 @@ const CustomSubscriptionTable = ({
     { key: "username", label: "Sale" },
     { key: "root_plan_id", label: "Gói chính" },
     { key: "total_price", label: "Tổng giá" },
-    { key: "auto_renew", label: "Renew" },
     { key: "status", label: "Trạng thái" },
   ];
 

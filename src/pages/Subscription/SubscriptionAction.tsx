@@ -795,13 +795,22 @@ export const SubcriptionActionPage = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
 
-  const paginatedData =
-    comboDetailData.cids_data
-      ?.slice(startIndex, endIndex)
-      .map((item, index) => ({
-        ...item,
-        id: startIndex + index + 1,
-      })) || [];
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Lọc dữ liệu theo từ khóa tìm kiếm (ví dụ tìm theo cid, name, hoặc bất kỳ trường nào)
+  const filteredData =
+    comboDetailData.cids_data?.filter((item) =>
+      Object.values(item)
+        .join(" ") // nối tất cả giá trị thành chuỗi
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase())
+    ) || [];
+
+  // Sau đó phân trang dữ liệu filteredData thay vì comboDetailData.cids_data
+  const paginatedData = filteredData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <>
@@ -851,7 +860,11 @@ export const SubcriptionActionPage = () => {
       )}
 
       <ComponentCard>
-        <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+        <div
+          className={`grid gap-6 ${
+            isUpdate ? "md:grid-cols-2 grid-cols-1" : "grid-cols-1"
+          }`}>
+          {" "}
           <div>
             <Label>Tên khách hàng</Label>
             <Input
@@ -867,7 +880,6 @@ export const SubcriptionActionPage = () => {
               </p>
             )}
           </div>
-
           <div>
             <Label>Mã số thuế</Label>
             <Input
@@ -878,7 +890,6 @@ export const SubcriptionActionPage = () => {
               disabled={loading}
             />
           </div>
-
           <div>
             <Label>Mã hợp đồng</Label>
             <Input
@@ -889,7 +900,6 @@ export const SubcriptionActionPage = () => {
               disabled={loading}
             />
           </div>
-
           {/* <div>
             <Label>Tự động gia hạn</Label>
             <Select
@@ -907,7 +917,6 @@ export const SubcriptionActionPage = () => {
               onChange={(val) => handleChange("auto_renew", val === "True")}
             />
           </div> */}
-
           {isUpdate && (
             <>
               <div>
@@ -1129,26 +1138,70 @@ export const SubcriptionActionPage = () => {
                 <p className="mt-2 text-gray-600">Đang tải dữ liệu...</p>
               </div>
             )}
+            {/* Biểu đồ Quota */}
+            {comboDetailData.quota_data?.length > 0 && (
+              <div>
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-md font-semibold text-gray-700 dark:text-gray-300">
+                    Biểu đồ sử dụng (call_out)
+                  </h4>
+                  <div className="flex gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-gray-600 dark:text-gray-400">
+                        Tổng:
+                      </span>
+                      <span className="text-indigo-600 dark:text-indigo-400 font-bold">
+                        {comboDetailData.total_call_out.toLocaleString("vi-VN")}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                  <Chart
+                    options={getQuotaChartOptions()}
+                    series={getQuotaChartSeries()}
+                    type="line"
+                    height={350}
+                  />
+                </div>
+              </div>
+            )}
 
             {!comboLoading && selectedMonth && selectedYear && monthYear && (
               <>
                 {/* Bảng CIDs */}
                 {comboDetailData.cids_data?.length > 0 && (
                   <div className="mb-6">
-                    <h4 className="text-md font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                      Thông tin CID ({totalItems} mục)
-                    </h4>
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-3 gap-3">
+                      <h4 className="text-md font-semibold text-gray-700 dark:text-gray-300">
+                        Thông tin CID ({totalItems} mục)
+                      </h4>
 
-                    <div
-                      className="overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg"
-                      style={{ maxHeight: "500px" }}>
+                      {/* Thanh tìm kiếm */}
+                      <input
+                        type="text"
+                        placeholder="Tìm kiếm CID..."
+                        value={searchTerm}
+                        onChange={(e) => {
+                          setSearchTerm(e.target.value);
+                          setCurrentPage(1); // reset về trang đầu khi tìm kiếm
+                        }}
+                        className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-gray-200"
+                      />
+                    </div>
+
+                    {/* Chỉ overflow ở đây */}
+                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-y-auto">
                       <ReusableTable
                         title=""
-                        data={paginatedData}
+                        data={paginatedData.map((item, index) => ({
+                          ...item,
+                          id: index + 1 + (currentPage - 1) * itemsPerPage, // đảm bảo id duy nhất theo trang
+                        }))}
                         columns={cidsColumns}
                         isLoading={false}
                         error=""
-                        classname="overflow-y-none"
+                        classname="!overflow-visible"
                         disabled={true}
                         disabledReset={true}
                         showId={false}
@@ -1183,37 +1236,6 @@ export const SubcriptionActionPage = () => {
                         </button>
                       </div>
                     )}
-                  </div>
-                )}
-
-                {/* Biểu đồ Quota */}
-                {comboDetailData.quota_data?.length > 0 && (
-                  <div>
-                    <div className="flex justify-between items-center mb-3">
-                      <h4 className="text-md font-semibold text-gray-700 dark:text-gray-300">
-                        Biểu đồ sử dụng (call_out)
-                      </h4>
-                      <div className="flex gap-4 text-sm">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-gray-600 dark:text-gray-400">
-                            Tổng:
-                          </span>
-                          <span className="text-indigo-600 dark:text-indigo-400 font-bold">
-                            {comboDetailData.total_call_out.toLocaleString(
-                              "vi-VN"
-                            )}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                      <Chart
-                        options={getQuotaChartOptions()}
-                        series={getQuotaChartSeries()}
-                        type="line"
-                        height={350}
-                      />
-                    </div>
                   </div>
                 )}
 
