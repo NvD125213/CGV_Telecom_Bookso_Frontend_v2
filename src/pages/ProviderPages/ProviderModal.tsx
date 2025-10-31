@@ -4,6 +4,7 @@ import { IProvider } from "../../types";
 import { newProvider } from "../../services/provider";
 import { users } from "../../constants/user";
 import ModalCustomProvider from "../../components/common/ModalProvider";
+import { formatNumber } from "../../helper/formatCurrencyVND";
 import Swal from "sweetalert2";
 
 interface ProviderModalProps {
@@ -99,6 +100,13 @@ const ModalProvider: React.FC<ProviderModalProps> = ({
         "Hạn mức cảnh báo không được để trống !";
     }
 
+    if (!provider.installation_fee) {
+      newErrors.installation_fee = "Phí khởi tạo không được để trống !";
+    }
+    if (!provider.maintenance_fee) {
+      newErrors.maintenance_fee = "Phí duy không được để trống !";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -108,11 +116,25 @@ const ModalProvider: React.FC<ProviderModalProps> = ({
       if (!validateForm()) return;
       const normalizeString = (str: string) => str.trim().replace(/\s+/g, " ");
       const trimProvider: IProvider = Object.fromEntries(
-        Object.entries(provider).map(([key, value]) => [
-          key,
-          typeof value === "string" ? normalizeString(value) : value,
-        ])
+        Object.entries(provider).map(([key, value]) => {
+          if (
+            [
+              "installation_fee",
+              "maintenance_fee",
+              "phone_number_limit_alert",
+            ].includes(key)
+          ) {
+            const num = Number(String(value).replace(/\./g, ""));
+            return [key, isNaN(num) ? 0 : num];
+          }
+          if (typeof value === "string") {
+            return [key, normalizeString(value)];
+          }
+
+          return [key, value];
+        })
       ) as IProvider;
+
       trimProvider.users = {
         rule:
           selectedUsers.length > 0
@@ -201,14 +223,37 @@ const ModalProvider: React.FC<ProviderModalProps> = ({
           {
             name: "phone_number_limit_alert",
             label: "Hạn mức cảnh báo",
-            type: "number",
-            value: provider.phone_number_limit_alert,
+            type: "text",
+            value: provider.phone_number_limit_alert
+              ? formatNumber(provider.phone_number_limit_alert.toString())
+              : "",
             onChange: (value) =>
               setValue("phone_number_limit_alert", value as number),
-            placeholder: "Nhập hạn mức cảnh báo",
+            placeholder: "Nhập phí khởi tạo",
             error: errors.phone_number_limit_alert,
           },
-
+          {
+            name: "installation_fee",
+            label: "Phí khởi tạo",
+            type: "text",
+            value: provider.installation_fee
+              ? formatNumber(provider.installation_fee.toString())
+              : "",
+            onChange: (value) => setValue("installation_fee", value as number),
+            placeholder: "Nhập phí khởi tạo",
+            error: errors.installation_fee,
+          },
+          {
+            name: "maintenance_fee",
+            label: "Phí khởi tạo",
+            type: "text",
+            value: provider.installation_fee
+              ? formatNumber(provider.maintenance_fee.toString())
+              : "",
+            onChange: (value) => setValue("maintenance_fee", value as number),
+            placeholder: "Nhập phí duy trì",
+            error: errors.maintenance_fee,
+          },
           {
             name: "description",
             label: "Mô tả",

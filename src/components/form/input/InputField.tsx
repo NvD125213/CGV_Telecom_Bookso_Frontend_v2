@@ -14,6 +14,7 @@ interface InputProps {
   max?: string | number;
   step?: number;
   disabled?: boolean;
+  disabledWhite?: boolean;
   success?: boolean;
   error?: string;
   hint?: string;
@@ -32,6 +33,7 @@ const Input: FC<InputProps> = ({
   max,
   step,
   disabled = false,
+  disabledWhite = false,
   success = false,
   error = false,
   hint,
@@ -41,7 +43,11 @@ const Input: FC<InputProps> = ({
   focus:outline-hidden focus:ring-3 
   dark:bg-gray-900 dark:text-white/90 ${className}`;
 
-  if (disabled) {
+  if (disabledWhite) {
+    // ✅ Trường hợp đặc biệt: disable nhưng vẫn trắng sáng
+    inputClasses += ` bg-white text-gray-700 border-gray-300 cursor-not-allowed dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700`;
+  } else if (disabled) {
+    // 🩶 Trường hợp disable thông thường: nền xám mờ
     inputClasses += ` text-gray-500 border-gray-300 opacity-40 bg-gray-100 cursor-not-allowed dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700`;
   } else if (error) {
     inputClasses += ` border-error-500 focus:border-error-300 focus:ring-error-500/20 dark:text-error-400 dark:border-error-500 dark:focus:border-error-800`;
@@ -64,7 +70,7 @@ const Input: FC<InputProps> = ({
         min={min}
         max={max}
         step={step}
-        disabled={disabled}
+        disabled={disabled || disabledWhite}
         className={inputClasses}
       />
 

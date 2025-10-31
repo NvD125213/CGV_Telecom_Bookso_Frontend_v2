@@ -34,7 +34,7 @@ export interface PlanQuery {
 }
 
 export const PlanList = () => {
-  const user = useSelector((state: RootState) => state.auth.user);
+  const user = useSelector((state: RootState) => state.auth?.user);
   const navigate = useNavigate();
   const [query, setQuery] = useQuerySync<PlanQuery>({
     page: 1,
@@ -235,7 +235,7 @@ export const PlanList = () => {
                   { label: "Tên gói", value: "name" },
                   { label: "Giá tiền", value: "price_vnd" },
                   { label: "Số phút", value: "minutes" },
-                  { label: "Số DID", value: "did_count" },
+                  { label: "Số CID", value: "did_count" },
                   { label: "Trạng thái", value: "status" },
                   { label: "Thời gian hết hạn", value: "expiration_time" },
                 ]}
