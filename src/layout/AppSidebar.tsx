@@ -23,6 +23,7 @@ import { BsPhone } from "react-icons/bs";
 import { useSelector } from "react-redux";
 import { RootState } from "../store";
 import SidebarWidget from "./SidebarWidget";
+import { CiBoxes } from "react-icons/ci";
 
 // import SidebarWidget from "./SidebarWidget";
 
@@ -66,15 +67,22 @@ const navItems: NavItem[] = [
     icon: <RiBaseStationLine />,
   },
   {
-    name: "Gói phút gọi",
-    path: "/plans",
-    icon: <LuPackagePlus />,
+    name: "Combo",
+    icon: <CiBoxes />,
+    subItems: [
+      {
+        name: "Gói phút gọi",
+        path: "/plans",
+        icon: <LuPackagePlus />,
+      },
+      {
+        name: "Đơn đặt gói",
+        path: "/subscriptions",
+        icon: <PiUserList />,
+      },
+    ],
   },
-  {
-    name: "Đơn đặt gói",
-    path: "/subscriptions",
-    icon: <PiUserList />,
-  },
+
   {
     name: "Số điện thoại",
     icon: <TableIcon />,
