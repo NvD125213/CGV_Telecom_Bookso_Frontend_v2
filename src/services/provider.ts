@@ -1,5 +1,6 @@
 import axiosInstance from "../config/apiToken";
 import { IProvider } from "../types";
+import { instanceStatic } from "../config/apiStatic";
 import Swal from "sweetalert2";
 
 export const newProvider = {
@@ -7,6 +8,8 @@ export const newProvider = {
   name: "",
   description: "",
   phone_number_limit_alert: 0,
+  installation_fee: 0,
+  maintenance_fee: 0,
   is_public: false,
   users: { rule: [] },
 };

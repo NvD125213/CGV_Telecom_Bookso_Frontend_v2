@@ -30,6 +30,7 @@ import {
 import CustomModal from "../../components/common/CustomModal";
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
+import DualProgress from "../../components/progress-bar/DualProgress";
 
 export interface PhoneNumber {
   phone_number: string;
@@ -697,7 +698,6 @@ export const SubcriptionActionPage = () => {
         }
       } catch (error: any) {
         console.error("Lỗi khi tải combo detail:", error);
-        Swal.fire("Lỗi", "Không thể tải chi tiết combo", "error");
       } finally {
         setComboLoading(false);
       }
@@ -792,9 +792,6 @@ export const SubcriptionActionPage = () => {
   const totalItems = comboDetailData.cids_data?.length || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-
   const [searchTerm, setSearchTerm] = useState("");
 
   // Lọc dữ liệu theo từ khóa tìm kiếm (ví dụ tìm theo cid, name, hoặc bất kỳ trường nào)
@@ -837,7 +834,7 @@ export const SubcriptionActionPage = () => {
                     Số phút
                   </th>
                   <th className="px-4 py-2 font-medium text-blue-700">
-                    Số DID
+                    Số CID
                   </th>
                 </tr>
               </thead>
@@ -900,23 +897,6 @@ export const SubcriptionActionPage = () => {
               disabled={loading}
             />
           </div>
-          {/* <div>
-            <Label>Tự động gia hạn</Label>
-            <Select
-              value={form.auto_renew ? "True" : "False"}
-              options={[
-                {
-                  label: "Có",
-                  value: "True",
-                },
-                {
-                  label: "Không",
-                  value: "False",
-                },
-              ]}
-              onChange={(val) => handleChange("auto_renew", val === "True")}
-            />
-          </div> */}
           {isUpdate && (
             <>
               <div>
@@ -934,7 +914,7 @@ export const SubcriptionActionPage = () => {
               </div>
 
               <div>
-                <Label>Tổng số DID</Label>
+                <Label>Tổng số CID</Label>
                 <Input
                   type="number"
                   value={form.total_did}
@@ -979,6 +959,13 @@ export const SubcriptionActionPage = () => {
             </>
           )}
         </div>
+
+        {isUpdate && (
+          <DualProgress
+            total={planData?.minutes}
+            current={form.total_minutes}
+          />
+        )}
 
         {/* --- Submit --- */}
         <div className="flex justify-end gap-3 mt-8">

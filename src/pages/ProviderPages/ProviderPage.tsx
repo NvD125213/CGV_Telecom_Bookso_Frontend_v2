@@ -26,6 +26,14 @@ const columns: { key: keyof IProvider; label: string }[] = [
     label: "Hạn mức cảnh báo",
   },
   {
+    key: "installation_fee",
+    label: "Phí khởi tạo (đ)",
+  },
+  {
+    key: "maintenance_fee",
+    label: "Phí triển khai (đ)",
+  },
+  {
     key: "is_public",
     label: "Trạng thái",
   },
@@ -62,7 +70,9 @@ const ProviderPage = () => {
     try {
       const res = await getProviders();
       const sortedProvider = sortByPriority(res, priorityList);
-
+      const formatVND = (num: any) => {
+        return num?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") || "0";
+      };
       const mappedProviders: IProvider[] = sortedProvider.map((item) => {
         const rules = Array.isArray(item?.users?.rule)
           ? (item.users.rule as string[]).filter((u) => !!u && u.trim() !== "")
@@ -73,6 +83,8 @@ const ProviderPage = () => {
           description: item.description,
           phone_number_limit_alert: item.phone_number_limit_alert || 0,
           is_public: item.is_public ? "public" : "private",
+          installation_fee: formatVND(item.installation_fee),
+          maintenance_fee: formatVND(item.maintenance_fee),
           // Lưu dưới dạng chuỗi hiển thị, nhưng KHÔNG chèn placeholder vào dữ liệu
           users: rules.join(", "),
         };
@@ -212,6 +224,7 @@ const ProviderPage = () => {
           ) : (
             <ComponentCard>
               <ReusableTable
+                showId={false}
                 error={errorData}
                 role={user.role}
                 disabledReset={true}

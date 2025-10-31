@@ -64,7 +64,7 @@ axiosInstance.interceptors.request.use(
   (err) => Promise.reject(err)
 );
 
-// ✅ Response Interceptor
+// Response Interceptor
 axiosInstance.interceptors.response.use(
   (res) => res,
   async (err) => {
@@ -101,9 +101,6 @@ axiosInstance.interceptors.response.use(
           sameSite: "None",
           secure: true,
         });
-
-        // Đợi 1 giây trước khi retry request với token mới
-        await new Promise((resolve) => setTimeout(resolve, 1000));
 
         // Cập nhật token vào header trước khi retry
         originalRequest.headers = originalRequest.headers || {};

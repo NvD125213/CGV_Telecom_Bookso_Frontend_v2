@@ -148,6 +148,35 @@ const SubscriptionItemAction: React.FC<SubscriptionItemActionProps> = ({
       });
     }
   };
+  // Format số sang dạng VND
+  const formatCurrency = (value: number | string) => {
+    if (!value && value !== 0) return "";
+    return new Intl.NumberFormat("vi-VN").format(Number(value));
+  };
+
+  // Xử lý giá tiền
+  // Thêm state cho hiển thị dạng currency
+  const [priceDisplay, setPriceDisplay] = useState<string>(
+    formData.price_override_vnd
+      ? formatCurrency(formData.price_override_vnd)
+      : ""
+  );
+
+  // Khi người dùng nhập, chuyển về số và lưu vào formData, hiển thị dạng currency
+  const handlePriceChange = (value: string | number | boolean | any[]) => {
+    // chỉ xử lý string | number
+    if (typeof value === "string" || typeof value === "number") {
+      const rawValue = String(value).replace(/[^0-9]/g, ""); // giữ số
+      const numberValue = rawValue ? Number(rawValue) : 0;
+
+      setFormData((prev) => ({
+        ...prev,
+        price_override_vnd: numberValue,
+      }));
+
+      setPriceDisplay(rawValue ? formatCurrency(rawValue) : "");
+    }
+  };
 
   return (
     <>
@@ -183,20 +212,21 @@ const SubscriptionItemAction: React.FC<SubscriptionItemActionProps> = ({
                 onChange: (value) => setValue("plan_id", Number(value)),
                 error: errors.plan_id,
               },
-          {
-            name: "quantity",
-            label: "Số lượng",
-            type: "number",
-            value: formData.quantity,
-            onChange: (value) => setValue("quantity", Number(value)),
-            error: errors.quantity,
-          },
+          // {
+          //   name: "quantity",
+          //   label: "Số lượng",
+          //   type: "number",
+          //   value: formData.quantity,
+          //   onChange: (value) => setValue("quantity", Number(value)),
+          //   error: errors.quantity,
+          // },
           {
             name: "price_override_vnd",
             label: "Giá thay đổi (VND)",
-            type: "number",
-            value: formData.price_override_vnd,
-            onChange: (value) => setValue("price_override_vnd", Number(value)),
+            type: "text",
+            value: priceDisplay,
+            placeholder: "Nhập giá khác",
+            onChange: handlePriceChange, // <--- sử dụng handler currency
             error: errors.price_override_vnd,
           },
           {

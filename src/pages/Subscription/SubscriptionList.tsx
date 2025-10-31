@@ -463,7 +463,17 @@ const SubsciptionList = () => {
       <ComponentCard>
         <div className="max-w-7xl mx-auto">
           {/* --- Bộ lọc query --- */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8 p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 mb-8 p-4">
+            <div className="w-full">
+              <Label>Tìm kiếm</Label>
+              <Input
+                type="text"
+                placeholder="Tìm theo tên khách hàng, mst..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="w-full border border-gray-300 px-3 py-2 rounded-md"
+              />
+            </div>
             {/* Ngày hết hạn từ */}
             <div className="w-full col-span-1 sm:col-span-3">
               <div className="grid grid-cols-2 gap-6">
@@ -497,16 +507,6 @@ const SubsciptionList = () => {
               </div>
             </div>
             {/* Tìm kiếm */}
-            <div className="w-full">
-              <Label>Tìm kiếm</Label>
-              <Input
-                type="text"
-                placeholder="Tìm theo tên khách hàng, mã số thuế..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="w-full border border-gray-300 px-3 py-2 rounded-md"
-              />
-            </div>
 
             {/* Trạng thái */}
             <div className="w-full">

@@ -1,5 +1,6 @@
 import axiosInstance from "../config/apiToken";
 import { IPhoneNumber, IReportDate } from "../types";
+import { instanceStatic } from "../config/apiStatic";
 
 export const initialPhoneNumber: IPhoneNumber = {
   id: 0,
@@ -42,7 +43,7 @@ export const uploadFile = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await axiosInstance.post(
+  const res = await instanceStatic.post(
     "/api/v1/phone/upload-phone-number",
     formData,
     {
@@ -58,7 +59,7 @@ export const uploadFileV2 = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await axiosInstance.post(
+  const res = await instanceStatic.post(
     "/api/v1/phone/upload-phone-number-v2",
     formData,
     {

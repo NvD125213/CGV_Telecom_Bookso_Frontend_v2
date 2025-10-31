@@ -19,6 +19,9 @@ import { useScrollPagination } from "../../hooks/useScrollPagination";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
+import AutoCompleteSwitch from "../../components/autoCompleteSwitch/AutoCompleteSwitch";
+import { users } from "../../constants/user";
+import { Option } from "../../components/ui/autocomplete/auto-complete";
 
 interface RouteEntry {
   key: string;
@@ -136,7 +139,7 @@ export const OutboundDidForm = ({
     );
   }, [meta]);
   return (
-    <div className="mt-6">
+    <div>
       <div className="grid grid-cols-2 gap-8">
         {/* Outbound DID Section */}
 
@@ -244,6 +247,10 @@ export interface PlanForm {
   meta: Record<any, any>;
   is_active: boolean;
   status: number;
+  is_public: boolean;
+  users: {
+    rule: string[];
+  };
   expiration_time: string;
   expiration_time_package: number;
 }
@@ -266,6 +273,10 @@ export const PlanActionPage = () => {
     meta: {},
     is_active: true,
     status: 1,
+    is_public: true,
+    users: {
+      rule: [],
+    },
     expiration_time: new Date().toISOString(),
     expiration_time_package: 3,
   });
@@ -284,6 +295,10 @@ export const PlanActionPage = () => {
         meta: {},
         is_active: true,
         status: 1,
+        is_public: true,
+        users: {
+          rule: [],
+        },
         expiration_time: new Date().toISOString(),
         expiration_time_package: 3,
       });
@@ -326,6 +341,21 @@ export const PlanActionPage = () => {
   const handleChange = (field: string, value: any) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
+  // Xử lý thêm trường is_public và autocomplete
+  const handleToggle = (enabled: boolean) => {
+    setForm((prev) => ({ ...prev, is_public: enabled }));
+  };
+
+  const handleSelectUserChange = (values: Option[]) => {
+    const selectedValues = values.map((v) => v.value);
+    setForm((prev) => ({
+      ...prev,
+      users: {
+        ...prev.users,
+        rule: selectedValues,
+      },
+    }));
+  };
 
   /** --- Submit --- */
   const handleSubmit = async () => {
@@ -333,6 +363,21 @@ export const PlanActionPage = () => {
       setLoading(true);
 
       const newErrors = validateForm(form);
+      const totalOutbound = Object.values(form.outbound_did_by_route).reduce(
+        (sum, v) => sum + Number(v),
+        0
+      );
+
+      if (totalOutbound > form.did_count) {
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: `Tổng số outbound (${totalOutbound}) không được vượt quá tổng DID (${form.did_count})`,
+        });
+        setLoading(false);
+        return;
+      }
+
       if (Object.keys(newErrors).length > 0) {
         const errorMessage = Object.entries(newErrors)
           .map(([_field, message]) => ` ${message}`)
@@ -359,12 +404,12 @@ export const PlanActionPage = () => {
         const errors: string[] = [];
 
         if (!form.name?.trim()) errors.push("Tên gói không được để trống");
-
-        const result = await planService.create(form as any);
-        if (result.status == 200) {
-          Swal.fire("Thành công", "Tạo gói thành công", "success");
-          navigate("/plans");
-        }
+        console.log(">>>", form);
+        // const result = await planService.create(form as any);
+        // if (result.status == 200) {
+        //   Swal.fire("Thành công", "Tạo gói thành công", "success");
+        //   navigate("/plans");
+        // }
       }
     } catch (error: any) {
       if (error) {
@@ -474,10 +519,76 @@ export const PlanActionPage = () => {
     }
   };
 
+  // Xử lý hiển thị tên
+  const handleViewNamePage = (role: number) => {
+    const namePage = "Cập nhật gói cước";
+    if (role !== 1) {
+      const namePageNew = "Chi tiết gói cước";
+      return namePageNew;
+    }
+
+    return namePage;
+  };
+
+  const [currencyFields, setCurrencyFields] = useState<{
+    [key: string]: string;
+  }>({
+    price_vnd: "",
+    minutes: "",
+    did_count: "",
+    total_users: "",
+  });
+
+  // Hàm format số sang currency
+  const formatCurrency = (value: number | string) => {
+    if (!value) return "";
+    return new Intl.NumberFormat("vi-VN").format(Number(value));
+  };
+
+  // Hàm xử lý input currency chung
+  const handleCurrencyChange = <K extends keyof PlanForm>(
+    field: K,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const rawValue = e.target.value.replace(/[^0-9]/g, ""); // chỉ giữ số
+    setCurrencyFields((prev) => ({
+      ...prev,
+      [field]: rawValue
+        ? new Intl.NumberFormat("vi-VN").format(Number(rawValue))
+        : "",
+    }));
+    handleChange(field, Number(rawValue) as PlanForm[K]); // ép kiểu cho TS
+  };
+
+  useEffect(() => {
+    const fieldsToFormat: (keyof PlanForm)[] = [
+      "price_vnd",
+      "minutes",
+      "did_count",
+      "total_users",
+    ];
+
+    fieldsToFormat.forEach((field) => {
+      const value = form[field];
+      if (
+        value !== null &&
+        value !== undefined &&
+        (typeof value === "number" || typeof value === "string")
+      ) {
+        setCurrencyFields((prev) => ({
+          ...prev,
+          [field]: formatCurrency(value),
+        }));
+      }
+    });
+  }, [form]);
+
   return (
     <>
       <PageBreadcrumb
-        pageTitle={isUpdate ? "Cập nhật gói cước" : "Thêm gói cước mới"}
+        pageTitle={
+          isUpdate ? handleViewNamePage(user.role) : "Thêm gói cước mới"
+        }
       />
 
       <ComponentCard>
@@ -488,6 +599,7 @@ export const PlanActionPage = () => {
               value={form.name}
               onChange={(e) => handleChange("name", e.target.value)}
               placeholder="Nhập tên gói"
+              disabledWhite={user.role !== 1 ? true : false}
             />
 
             {formErrors.name && (
@@ -496,19 +608,22 @@ export const PlanActionPage = () => {
           </div>
 
           <div>
-            <Label>Chọn gói chính (Bỏ trống nếu bạn định thêm gói chính)</Label>
+            <Label>Chọn gói chính</Label>
             <Select
               options={
                 isLoadingPlans
                   ? [{ label: "Đang tải...", value: null }]
                   : [
                       { label: "Gói chính", value: "null" },
-                      ...(dataPlans?.data?.items?.map((item: any) => ({
-                        label: item.name,
-                        value: item.id,
-                      })) ?? []),
+                      ...(dataPlans?.data?.items
+                        ?.filter((item: any) => item.status == 1)
+                        .map((item: any) => ({
+                          label: item.name,
+                          value: item.id,
+                        })) ?? []),
                     ]
               }
+              disabledWhite={user.role !== 1 ? true : false}
               onChange={(val) => handleChange("parent_id", val)}
               value={String(form.parent_id)}
             />
@@ -517,20 +632,22 @@ export const PlanActionPage = () => {
           <div>
             <Label>Số phút</Label>
             <Input
-              type="number"
-              value={form.minutes}
-              onChange={(e) => handleChange("minutes", Number(e.target.value))}
+              type="text"
+              value={currencyFields.minutes}
+              disabledWhite={user.role !== 1}
+              placeholder="Nhập số phút gọi"
+              onChange={(e) => handleCurrencyChange("minutes", e)}
             />
           </div>
 
           <div>
             <Label>Số CID</Label>
             <Input
-              type="number"
-              value={form.did_count}
-              onChange={(e) =>
-                handleChange("did_count", Number(e.target.value))
-              }
+              type="text"
+              value={currencyFields.did_count}
+              disabledWhite={user.role !== 1}
+              placeholder="Nhập số CID"
+              onChange={(e) => handleCurrencyChange("did_count", e)}
             />
           </div>
 
@@ -539,6 +656,8 @@ export const PlanActionPage = () => {
             <Input
               type="text"
               value={currency}
+              disabledWhite={user.role !== 1 ? true : false}
+              placeholder="Nhập giá"
               onChange={(e) => handleCurrency(e)}
             />
           </div>
@@ -546,11 +665,11 @@ export const PlanActionPage = () => {
           <div>
             <Label>Số người dùng</Label>
             <Input
-              type="number"
-              value={form.total_users}
-              onChange={(e) =>
-                handleChange("total_users", Number(e.target.value))
-              }
+              type="text"
+              value={currencyFields.total_users}
+              disabledWhite={user.role !== 1}
+              placeholder="Nhập số người dùng"
+              onChange={(e) => handleCurrencyChange("total_users", e)}
             />
           </div>
 
@@ -559,15 +678,17 @@ export const PlanActionPage = () => {
             <Input
               type="datetime-local"
               value={form.expiration_time?.slice(0, 16) || ""}
+              disabledWhite={user.role !== 1 ? true : false}
               onChange={(e) => handleChange("expiration_time", e.target.value)}
             />
           </div>
 
           <div>
-            <Label>Thời hạn chờ xác nhận</Label>
+            <Label>Thời hạn chờ xác nhận (ngày)</Label>
             <Input
               type="number"
               value={form.expiration_time_package}
+              disabledWhite={user.role !== 1 ? true : false}
               onChange={(e) =>
                 handleChange("expiration_time_package", Number(e.target.value))
               }
@@ -577,7 +698,7 @@ export const PlanActionPage = () => {
 
         {/* --- Outbound DID routes --- */}
         {user.role == 1 && (
-          <div className="mt-8">
+          <div>
             <div className="grid grid-cols-1 gap-4 mt-2">
               <OutboundDidForm
                 value={form.outbound_did_by_route}
@@ -590,9 +711,22 @@ export const PlanActionPage = () => {
             </div>
           </div>
         )}
+        {user.role == 1 && (
+          <div className="h-32">
+            <AutoCompleteSwitch
+              label="Chọn trạng thái"
+              value={(form.users?.rule || []).map((r) => r.toUpperCase())}
+              enabled={form.is_public}
+              onToggle={handleToggle}
+              onChange={handleSelectUserChange}
+              options={users.map((item) => ({
+                label: item.toUpperCase(),
+                value: item,
+              }))}
+            />
+          </div>
+        )}
 
-        {/* Gói con */}
-        {/* --- Danh sách gói con (nếu có) --- */}
         {isUpdate && (
           <div className="mt-10">
             <h3 className="text-lg font-semibold mb-4">Các gói con</h3>
