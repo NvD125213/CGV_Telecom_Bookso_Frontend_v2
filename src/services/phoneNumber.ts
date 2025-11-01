@@ -43,7 +43,7 @@ export const uploadFile = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await instanceStatic.post(
+  const res = await axiosInstance.post(
     "/api/v1/phone/upload-phone-number",
     formData,
     {
@@ -59,7 +59,7 @@ export const uploadFileV2 = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await instanceStatic.post(
+  const res = await axiosInstance.post(
     "/api/v1/phone/upload-phone-number-v2",
     formData,
     {
