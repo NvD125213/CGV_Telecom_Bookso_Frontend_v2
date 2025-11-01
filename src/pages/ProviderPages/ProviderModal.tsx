@@ -245,9 +245,9 @@ const ModalProvider: React.FC<ProviderModalProps> = ({
           },
           {
             name: "maintenance_fee",
-            label: "Phí khởi tạo",
+            label: "Phí duy trì",
             type: "text",
-            value: provider.installation_fee
+            value: provider.maintenance_fee
               ? formatNumber(provider.maintenance_fee.toString())
               : "",
             onChange: (value) => setValue("maintenance_fee", value as number),
