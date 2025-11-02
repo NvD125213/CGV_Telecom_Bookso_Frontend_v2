@@ -404,12 +404,11 @@ export const PlanActionPage = () => {
         const errors: string[] = [];
 
         if (!form.name?.trim()) errors.push("Tên gói không được để trống");
-        console.log(">>>", form);
-        // const result = await planService.create(form as any);
-        // if (result.status == 200) {
-        //   Swal.fire("Thành công", "Tạo gói thành công", "success");
-        //   navigate("/plans");
-        // }
+        const result = await planService.create(form as any);
+        if (result.status == 200) {
+          Swal.fire("Thành công", "Tạo gói thành công", "success");
+          navigate("/plans");
+        }
       }
     } catch (error: any) {
       if (error) {
