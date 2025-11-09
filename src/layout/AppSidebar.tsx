@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { FaListAlt } from "react-icons/fa";
+import { CiDatabase } from "react-icons/ci";
 import {
   // CalenderIcon,
   ChevronDownIcon,
@@ -13,7 +14,6 @@ import { GrChannel } from "react-icons/gr";
 import { MdOutlineMiscellaneousServices } from "react-icons/md";
 import { LuPackagePlus } from "react-icons/lu";
 import { PiUserList } from "react-icons/pi";
-
 import { useSidebar } from "../context/SidebarContext";
 import { FaCloudUploadAlt } from "react-icons/fa";
 import { FaCalendarCheck } from "react-icons/fa";
@@ -24,8 +24,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "../store";
 import SidebarWidget from "./SidebarWidget";
 import { CiBoxes } from "react-icons/ci";
-
-// import SidebarWidget from "./SidebarWidget";
+import { MdOutlineStarBorder } from "react-icons/md";
 
 type NavItem = {
   name: string;
@@ -82,7 +81,11 @@ const navItems: NavItem[] = [
       },
     ],
   },
-
+  // {
+  //   name: "Order",
+  //   icon: <MdOutlineStarBorder />,
+  //   path: "/order",
+  // },
   {
     name: "Số điện thoại",
     icon: <TableIcon />,
@@ -113,6 +116,11 @@ const navItems: NavItem[] = [
       },
     ],
   },
+  // {
+  //   name: "Logs",
+  //   path: "/logs",
+  //   icon: <CiDatabase />,
+  // },
 ];
 
 const othersItems: NavItem[] = [
@@ -153,7 +161,8 @@ const AppSidebar: React.FC = () => {
         user?.role !== 1 &&
         (item.path === "/providers" ||
           item.path === "/type-numbers" ||
-          item.path == "/time-online")
+          item.path == "/time-online" ||
+          item.path == "/logs")
       );
     });
 

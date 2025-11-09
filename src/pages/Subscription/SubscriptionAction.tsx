@@ -31,6 +31,8 @@ import CustomModal from "../../components/common/CustomModal";
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
 import DualProgress from "../../components/progress-bar/DualProgress";
+import { useSelector } from "react-redux";
+import { RootState } from "../../store";
 
 export interface PhoneNumber {
   phone_number: string;
@@ -156,8 +158,20 @@ export const SubcriptionActionPage = () => {
 
   const location = useLocation();
   const plan = location.state as PlanData | null;
+  const user = useSelector((state: RootState) => state.auth.user);
 
-  const isUpdate = Boolean(id);
+  // Các mode
+  const isEdit = location.pathname.includes(`/subscriptions/edit/${id}`)
+    ? true
+    : false;
+  const isDetail = location.pathname.includes(`/subscriptions/detail/${id}`)
+    ? true
+    : false;
+  const isCreate = location.pathname.includes(`/subscriptions/create`)
+    ? true
+    : false;
+
+  const isHavingID = Boolean(id);
   const [planData, setPlanData] = useState<PlanData | null>(null);
   const [form, setForm] = useState<SubcriptionData>({
     id: 0,
@@ -179,7 +193,7 @@ export const SubcriptionActionPage = () => {
   });
 
   useEffect(() => {
-    if (!isUpdate) {
+    if (!isHavingID) {
       // Kiểm tra nếu không có plan data và đang tạo mới
       if (!plan) {
         Swal.fire({
@@ -213,7 +227,7 @@ export const SubcriptionActionPage = () => {
         items: [],
       });
     }
-  }, [isUpdate, plan, navigate]);
+  }, [isHavingID, plan, navigate]);
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -224,7 +238,7 @@ export const SubcriptionActionPage = () => {
   const [itemsLoading, setItemsLoading] = useState(false);
 
   // State cho tab active
-  const [activeTab, setActiveTab] = useState<"phones" | "items">("phones");
+  const [activeTab, setActiveTab] = useState<"phones" | "items">("items");
 
   // State cho phân trang của phones
   const [phonePagination, setPhonePagination] = useState({
@@ -336,18 +350,13 @@ export const SubcriptionActionPage = () => {
       }
     };
 
-    if (!isUpdate) return;
+    if (!isHavingID) return;
     fetchSubscription();
-  }, [id, isUpdate]);
+  }, [id, isHavingID]);
 
   /** --- Load subscription items --- */
   useEffect(() => {
-    // Chỉ fetch khi:
-    // 1. Đang ở chế độ update
-    // 2. Có id từ URL
-    // 3. form.id hợp lệ và > 0
-    // 4. form đã được load xong (loading = false)
-    if (!isUpdate || !id || !form.id || form.id === 0 || loading) return;
+    if (!isHavingID || !id || !form.id || form.id === 0 || loading) return;
 
     const fetchItems = async () => {
       try {
@@ -365,12 +374,12 @@ export const SubcriptionActionPage = () => {
     };
 
     fetchItems();
-  }, [isUpdate, id, form.id, loading]); // Thêm các dependency để kiểm soát tốt hơn
+  }, [isHavingID, id, form.id, loading]); // Thêm các dependency để kiểm soát tốt hơn
 
   // Set tháng/năm mặc định là tháng hiện tại
   useEffect(() => {
     if (
-      isUpdate &&
+      isHavingID &&
       form.slide_users &&
       (form.slide_users as string[]).length > 0
     ) {
@@ -381,7 +390,7 @@ export const SubcriptionActionPage = () => {
       setSelectedMonth(currentMonth);
       setSelectedYear(currentYear);
     }
-  }, [isUpdate, form.slide_users]);
+  }, [isHavingID, form.slide_users]);
 
   // Cập nhật tổng số trang cho phones khi phone_numbers thay đổi
   useEffect(() => {
@@ -420,7 +429,7 @@ export const SubcriptionActionPage = () => {
       setFormErrors({}); // clear lỗi cũ nếu hợp lệ
       setLoading(true);
 
-      if (isUpdate) {
+      if (isHavingID) {
         await subscriptionService.update(Number(id), form as any);
         Swal.fire("Thành công", "Cập nhật hợp đồng thành công!", "success");
         navigate("/subscriptions");
@@ -664,27 +673,26 @@ export const SubcriptionActionPage = () => {
 
   // Fetch combo detail
   useEffect(() => {
-    const fetchComboDetail = async () => {
-      if (
-        !isUpdate ||
-        !selectedMonth ||
-        !selectedYear ||
-        !form.slide_users ||
-        (form.slide_users as string[]).length === 0
-      ) {
-        return;
-      }
+    if (
+      !isHavingID ||
+      !selectedMonth ||
+      !selectedYear ||
+      !form.slide_users ||
+      (form.slide_users as string[]).length === 0
+    ) {
+      return;
+    }
 
+    const handler = setTimeout(async () => {
       try {
         setComboLoading(true);
 
-        // Chuyển slide_users thành JSON array string
         const list_account = JSON.stringify(form.slide_users);
-
         const monthYearValue = `${selectedYear}-${selectedMonth.padStart(
           2,
           "0"
         )}`;
+
         const response = await getDetailCombo(list_account, monthYearValue);
         if (response?.data) {
           setComboDetailData({
@@ -701,10 +709,10 @@ export const SubcriptionActionPage = () => {
       } finally {
         setComboLoading(false);
       }
-    };
+    }, 500);
 
-    fetchComboDetail();
-  }, [isUpdate, selectedMonth, selectedYear, form.slide_users]);
+    return () => clearTimeout(handler);
+  }, [isHavingID, selectedMonth, selectedYear, form.slide_users]);
 
   // Tạo chart options cho quota data
   const getQuotaChartOptions = (): ApexOptions => {
@@ -720,7 +728,7 @@ export const SubcriptionActionPage = () => {
         toolbar: {
           show: true,
         },
-        fontFamily: "'Inter', 'Segoe UI', 'Roboto', 'Arial', sans-serif", // ✅ font hỗ trợ tiếng Việt
+        fontFamily: "'Roboto', 'Arial', sans-serif", // font hỗ trợ tiếng Việt
       },
 
       stroke: {
@@ -730,13 +738,20 @@ export const SubcriptionActionPage = () => {
       colors: ["#465FFF"],
       xaxis: {
         categories: dates,
+
         title: {
           text: "Thời gian",
+          style: {
+            fontSize: "14px",
+          },
         },
       },
       yaxis: {
         title: {
-          text: "Gọi ra (Call_out)",
+          text: "Gọi ra",
+          style: {
+            fontSize: "14px",
+          },
         },
       },
       dataLabels: {
@@ -813,12 +828,12 @@ export const SubcriptionActionPage = () => {
     <>
       <PageBreadcrumb
         pageTitle={
-          isUpdate ? "Chỉnh sửa thông tin book gói" : "Thông tin book gói"
+          isEdit ? "Chỉnh sửa thông tin book gói" : "Thông tin book gói"
         }
       />
 
       {/* Hiển thị thông tin gói cước đã chọn */}
-      {((!isUpdate && plan) || (isUpdate && planData)) && (
+      {((!isHavingID && plan) || (isHavingID && planData)) && (
         <ComponentCard className="mb-6">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h3 className="text-lg font-semibold text-blue-800 mb-2">
@@ -859,7 +874,7 @@ export const SubcriptionActionPage = () => {
       <ComponentCard>
         <div
           className={`grid gap-6 ${
-            isUpdate ? "md:grid-cols-2 grid-cols-1" : "grid-cols-1"
+            isHavingID ? "md:grid-cols-2 grid-cols-1" : "grid-cols-1"
           }`}>
           {" "}
           <div>
@@ -867,9 +882,9 @@ export const SubcriptionActionPage = () => {
             <Input
               type="text"
               value={form.customer_name}
+              disabledWhite={isDetail}
               onChange={(e) => handleChange("customer_name", e.target.value)}
               placeholder="Nhập tên khách hàng"
-              disabled={loading}
             />
             {formErrors.customer_name && (
               <p className="text-red-500 text-sm mt-1">
@@ -878,10 +893,19 @@ export const SubcriptionActionPage = () => {
             )}
           </div>
           <div>
+            <Label>Gói cước đã chọn</Label>
+            <Input
+              type="text"
+              value={(plan || planData)?.name}
+              disabledWhite={isDetail || isEdit || isCreate}
+            />
+          </div>
+          <div>
             <Label>Mã số thuế</Label>
             <Input
               type="text"
               value={form.tax_code}
+              disabledWhite={isDetail}
               onChange={(e) => handleChange("tax_code", e.target.value)}
               placeholder="Nhập mã số thuế"
               disabled={loading}
@@ -892,12 +916,13 @@ export const SubcriptionActionPage = () => {
             <Input
               type="text"
               value={form.contract_code}
+              disabledWhite={isDetail}
               onChange={(e) => handleChange("contract_code", e.target.value)}
               placeholder="Nhập mã hợp đồng"
               disabled={loading}
             />
           </div>
-          {isUpdate && (
+          {isHavingID && (
             <>
               <div>
                 <Label>Tổng số phút</Label>
@@ -908,8 +933,7 @@ export const SubcriptionActionPage = () => {
                     handleChange("total_minutes", Number(e.target.value))
                   }
                   className="text-gray-900 bg-gray-200 cursor-not-allowed border border-gray-300"
-                  placeholder="0"
-                  disabled
+                  disabledWhite={isDetail}
                 />
               </div>
 
@@ -921,9 +945,9 @@ export const SubcriptionActionPage = () => {
                   onChange={(e) =>
                     handleChange("total_did", Number(e.target.value))
                   }
+                  disabledWhite={isDetail}
                   className="text-gray-900 bg-gray-200 cursor-not-allowed border border-gray-300"
                   placeholder="0"
-                  disabled
                 />
               </div>
 
@@ -933,7 +957,7 @@ export const SubcriptionActionPage = () => {
                   type="text"
                   value={formatDate(form.created_at)}
                   placeholder="Ngày tạo"
-                  disabled
+                  disabledWhite={isDetail || isEdit}
                   className="text-gray-900 bg-gray-200 cursor-not-allowed border border-gray-300"
                 />
               </div>
@@ -944,27 +968,30 @@ export const SubcriptionActionPage = () => {
                   type="text"
                   value={formatDate(form.expired)}
                   placeholder="Ngày hết hạn"
-                  disabled
+                  disabledWhite={isDetail || isEdit}
                   className="text-gray-900 bg-gray-200 cursor-not-allowed border border-gray-300"
                 />
               </div>
-
-              <div>
-                <Label>Cấu hình mã trượt</Label>
-                <SlideForm
-                  value={form.slide_users as string[]}
-                  onChange={(updated) => handleChange("slide_users", updated)}
-                />
-              </div>
+              {user.role == 1 && isEdit && (
+                <div>
+                  <Label>Cấu hình mã trượt</Label>
+                  <SlideForm
+                    value={form.slide_users as string[]}
+                    onChange={(updated) => handleChange("slide_users", updated)}
+                  />
+                </div>
+              )}
             </>
           )}
         </div>
-
-        {isUpdate && (
-          <DualProgress
-            total={planData?.minutes}
-            current={form.total_minutes}
-          />
+        {isHavingID && form.slide_users.length > 0 && (
+          <div>
+            <DualProgress
+              total={planData?.minutes}
+              current={comboDetailData.total_call_out}
+              label="Số phút gọi"
+            />
+          </div>
         )}
 
         {/* --- Submit --- */}
@@ -976,36 +1003,28 @@ export const SubcriptionActionPage = () => {
             disabled={loading}>
             Trở lại
           </Button>
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="px-6 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 disabled:opacity-50">
-            {loading
-              ? "Đang lưu..."
-              : isUpdate
-              ? "Xác nhận thông tin"
-              : "Xác nhận thông tin"}
-          </button>
+          {(isCreate || isEdit) && (
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="px-6 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 disabled:opacity-50 font-semibold text-base">
+              {loading
+                ? "Đang lưu..."
+                : isHavingID
+                ? "Xác nhận thông tin"
+                : "Xác nhận thông tin"}
+            </button>
+          )}
         </div>
       </ComponentCard>
 
-      {/* Hiển thị danh sách số điện thoại và items với tab khi ở chế độ cập nhật */}
-      {isUpdate &&
+      {isHavingID &&
         ((form.phone_numbers && form.phone_numbers.length > 0) ||
           (items && items.length > 0)) && (
           <ComponentCard className="mt-6">
             {/* Tab Navigation */}
             <div className="border-b border-gray-200 dark:border-gray-700 mb-4">
               <nav className="-mb-px flex space-x-8">
-                <button
-                  onClick={() => setActiveTab("phones")}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                    activeTab === "phones"
-                      ? "border-indigo-500 text-indigo-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                  }`}>
-                  Số điện thoại ({form.phone_numbers?.length || 0})
-                </button>
                 <button
                   onClick={() => setActiveTab("items")}
                   className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
@@ -1015,10 +1034,18 @@ export const SubcriptionActionPage = () => {
                   }`}>
                   Gói bổ sung ({items.length})
                 </button>
+                <button
+                  onClick={() => setActiveTab("phones")}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                    activeTab === "phones"
+                      ? "border-indigo-500 text-indigo-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                  }`}>
+                  Số điện thoại ({form.phone_numbers?.length || 0})
+                </button>
               </nav>
             </div>
 
-            {/* Tab Content */}
             {activeTab === "phones" &&
               form.phone_numbers &&
               form.phone_numbers.length > 0 && (
@@ -1058,11 +1085,14 @@ export const SubcriptionActionPage = () => {
                   ...item,
                   id: item.id || 0,
                   plan_id: mapPlanIdToName(item.plan_id), // Map plan_id thành tên plan
+                  price_override_vnd:
+                    item.price_override_vnd?.toLocaleString("vi-VN"),
+                  quantity: item.quantity?.toLocaleString("vi-VN"),
                 }))}
                 columns={itemColumns}
                 isLoading={itemsLoading}
                 error=""
-                disabled={false}
+                disabled={true}
                 disabledReset={true}
                 role={1}
                 onEdit={(item) => {
@@ -1090,7 +1120,7 @@ export const SubcriptionActionPage = () => {
         )}
 
       {/* Hiển thị combo detail */}
-      {isUpdate &&
+      {isHavingID &&
         form.slide_users &&
         (form.slide_users as string[]).length > 0 && (
           <ComponentCard className="mt-6">
@@ -1239,7 +1269,7 @@ export const SubcriptionActionPage = () => {
         )}
 
       {/* Hiển thị danh sách plans để thêm vào subscription */}
-      {isUpdate && (
+      {isHavingID && (
         <ComponentCard className="mt-6">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
             Chọn gói bổ sung
@@ -1324,6 +1354,7 @@ export const SubcriptionActionPage = () => {
           )}
           <SubscriptionItemAction
             subscriptionId={form.id}
+            plan={plan}
             externalModalState={modal}
             onExternalModalClose={() => {
               setModal(false);

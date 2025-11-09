@@ -16,15 +16,15 @@ import { subscriptionService } from "../../services/subcription";
 import { useApi } from "../../hooks/useApi";
 import { useQuerySync } from "../../hooks/useQueryAsync";
 import { planService } from "../../services/plan";
-import { PencilIcon } from "../../icons";
-import { RiDeleteBinLine } from "react-icons/ri";
 import Select from "../../components/form/Select";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
 import { Pagination } from "../../components/common/Pagination";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import DualProgress from "../../components/progress-bar/DualProgress";
 import { formatCurrency } from "../../helper/formatCurrency";
+import ActionMenu from "./ActionMenu";
 
 interface SubcriptionData {
   id: number;
@@ -78,179 +78,215 @@ const StatusBadge = ({ status }: { status: number }) => {
   return <span className={statusDisplay.classname}>{statusDisplay.text}</span>;
 };
 
-// Component table tùy chỉnh để hiển thị status với màu sắc
 const CustomSubscriptionTable = ({
   data,
   isLoading,
   onEdit,
   onDelete,
+  onDetail,
+  onConfirm,
+  role,
+  totalProgress,
+  currentProgress,
+  totalPriceAll,
 }: {
   data: any[];
   isLoading: boolean;
   onEdit?: (item: any) => void;
   onDelete?: (id: string | number) => void;
+  onDetail?: (item: any) => void;
+  onConfirm?: (id: string | number) => void;
   role?: number;
+  totalProgress: number;
+  currentProgress: number;
+  totalPriceAll: number;
 }) => {
   const columns = [
-    { key: "customer_name", label: "Tên khách hàng" },
-    { key: "tax_code", label: "Mã số thuế" },
-    { key: "contract_code", label: "Mã hợp đồng" },
-    { key: "total_did", label: "Tổng CID" },
-    { key: "total_minutes", label: "Tổng phút gọi" },
-    { key: "username", label: "Sale" },
-    { key: "root_plan_id", label: "Gói chính" },
-    { key: "total_price", label: "Tổng giá" },
-    { key: "status", label: "Trạng thái" },
+    {
+      key: "customer_name",
+      label: "Tên khách hàng",
+      minWidth: "min-w-[200px]",
+    },
+    { key: "total_did", label: "Tổng CID", minWidth: "min-w-[100px]" },
+    { key: "total_minutes", label: "Phút gọi", minWidth: "min-w-[100px]" },
+    { key: "username", label: "Sale", minWidth: "min-w-[100px]" },
+    { key: "root_plan_id", label: "Gói", minWidth: "min-w-[100px]" },
+    { key: "total_price", label: "Tổng giá", minWidth: "min-w-[100px]" },
+    { key: "status", label: "Trạng thái", minWidth: "min-w-[50px]" },
   ];
 
   const hasActionColumn = onEdit || onDelete;
-  const totalColumnCount = columns.length + 1 + (hasActionColumn ? 1 : 0); // +1 for ID column, +1 for actions
+  const totalColumnCount = columns.length + 1 + (hasActionColumn ? 1 : 0);
   const isManyColumns = totalColumnCount > 8;
+  const formatNumberVN = (value: number) => {
+    if (value == null) return "";
+    return value.toLocaleString("vi-VN");
+  };
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-black">
-      <div className="w-full overflow-x-auto">
-        <div className="min-w-[1000px]">
-          <div className="max-h-[800px] overflow-y-auto dark:bg-black min-w-[900px]">
-            <Table className="dark:text-white">
-              {/* Table Header */}
-              <TableHeader>
-                <TableRow>
-                  <TableCell
-                    isHeader
-                    className="px-5 py-3 text-base font-semibold text-gray-500 dark:text-gray-300 text-start">
-                    ID
-                  </TableCell>
-                  {columns.map((col, idx) => (
-                    <TableCell
-                      key={`${col.key}-${idx}`}
-                      isHeader
-                      className={`px-5 ${
-                        isManyColumns ? "text-[13px]" : "text-sm"
-                      } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start`}>
-                      {col.label}
-                    </TableCell>
-                  ))}
-                  {hasActionColumn && (
-                    <TableCell
-                      isHeader
-                      className={`px-5 ${
-                        isManyColumns ? "text-[13px]" : "text-sm"
-                      } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start`}>
-                      Hành động
-                    </TableCell>
-                  )}
-                </TableRow>
-              </TableHeader>
+    <div className="space-y-4">
+      {/* Total Price Display - Top Right */}
+      {/* <div className="flex items-center justify-end gap-3 text-white">
+        <div className="flex items-center gap-2  px-4 py-2 rounded-xl shadow-md bg-gradient-to-r from-blue-500 to-indigo-600 ">
+          <span className="text-sm font-semibold">TỔNG DOANH THU:</span>
+          <span className="text-lg font-bold">
+            {formatCurrency(totalPriceAll)}
+          </span>
+        </div>
+      </div> */}
 
-              {/* Table Body */}
-              <TableBody>
-                {isLoading ? (
-                  Array.from({ length: 5 }).map((_, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="px-5 py-3">
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+      {/* Table */}
+      <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-black">
+        <div className="w-full overflow-x-auto">
+          <div className="min-w-[1000px]">
+            <div className="max-h-[800px] overflow-y-auto dark:bg-black min-w-[900px]">
+              <Table className="dark:text-white">
+                {/* Table Header */}
+                <TableHeader>
+                  <TableRow>
+                    {columns.map((col, idx) => (
+                      <TableCell
+                        key={`${col.key}-${idx}`}
+                        isHeader
+                        className={`px-5 ${col.minWidth || ""} ${
+                          isManyColumns ? "text-[13px]" : "text-sm"
+                        } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start`}>
+                        {col.label}
                       </TableCell>
-                      {columns.map((col) => (
-                        <TableCell
-                          key={col.key}
-                          className={`px-5 py-3 text-sm text-gray-500 dark:text-gray-300 ${
-                            isManyColumns ? "text-[13px]" : "text-sm"
-                          }`}>
+                    ))}
+                    {/* <TableCell
+                      isHeader
+                      className={`px-5 flex justify-center min-w-[150px] ${
+                        isManyColumns ? "text-[13px]" : "text-sm"
+                      } dark:text-gray-300 py-5 text-base font-semibold text-gray-500 text-start`}>
+                      Lưu lượng
+                    </TableCell> */}
+                    {hasActionColumn && (
+                      <TableCell
+                        isHeader
+                        className={`px-5 min-w-[100px] ${
+                          isManyColumns ? "text-[13px]" : "text-sm"
+                        } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-center`}>
+                        Hành động
+                      </TableCell>
+                    )}
+                  </TableRow>
+                </TableHeader>
+
+                {/* Table Body */}
+                <TableBody>
+                  {isLoading ? (
+                    Array.from({ length: 5 }).map((_, index) => (
+                      <TableRow key={index}>
+                        {columns.map((col) => (
+                          <TableCell
+                            key={col.key}
+                            className={`px-5 py-3 ${
+                              col.minWidth || ""
+                            } text-sm text-gray-500 dark:text-gray-300 ${
+                              isManyColumns ? "text-[13px]" : "text-sm"
+                            }`}>
+                            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                          </TableCell>
+                        ))}
+                        <TableCell className="px-5 py-3 min-w-[200px]">
                           <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
                         </TableCell>
-                      ))}
-                      {hasActionColumn && (
-                        <TableCell
-                          className={`flex gap-2 px-5 py-3 ${
-                            isManyColumns ? "text-[13px]" : "text-sm"
-                          }`}>
-                          <div className="h-6 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                          <div className="h-6 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))
-                ) : data.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={totalColumnCount}
-                      className="py-12 text-center">
-                      <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
-                        <svg
-                          className="w-16 h-16 mb-4 text-gray-300 dark:text-gray-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1}
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
-                        </svg>
-                        <p className="text-lg font-medium mb-2">
-                          Không có dữ liệu
-                        </p>
-                        <p className="text-sm">
-                          Không tìm thấy subscription nào phù hợp với bộ lọc
-                          hiện tại
-                        </p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  data.map((item) => (
-                    <TableRow key={item.id}>
+                        {hasActionColumn && (
+                          <TableCell
+                            className={`px-5 py-3 min-w-[120px] ${
+                              isManyColumns ? "text-[13px]" : "text-sm"
+                            }`}>
+                            <div className="flex gap-2 justify-center">
+                              <div className="h-6 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                              <div className="h-6 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                            </div>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))
+                  ) : data.length === 0 ? (
+                    <TableRow>
                       <TableCell
-                        className={`px-5 dark:text-gray-300 py-3 ${
-                          isManyColumns ? "text-[13px]" : "text-sm"
-                        }`}>
-                        {item.id}
+                        colSpan={totalColumnCount}
+                        className="py-12 text-center">
+                        <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
+                          <svg
+                            className="w-16 h-16 mb-4 text-gray-300 dark:text-gray-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={1}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                          <p className="text-lg font-medium mb-2">
+                            Không có dữ liệu
+                          </p>
+                          <p className="text-sm">
+                            Không tìm thấy subscription nào phù hợp với bộ lọc
+                            hiện tại
+                          </p>
+                        </div>
                       </TableCell>
-                      {columns.map((col) => (
-                        <TableCell
-                          key={col.key}
-                          className={`px-5 py-3 text-sm text-gray-500 dark:text-gray-300 ${
-                            isManyColumns ? "text-[13px]" : "text-sm"
-                          }`}>
-                          {col.key === "status" ? (
-                            <StatusBadge status={item.status} />
-                          ) : col.key === "total_price" ? (
-                            formatCurrency(item[col.key])
-                          ) : (
-                            item[col.key] || "-"
-                          )}
-                        </TableCell>
-                      ))}
-                      {hasActionColumn && (
-                        <TableCell
-                          className={`px-5 py-3 ${
-                            isManyColumns ? "text-[13px]" : "text-sm"
-                          }`}>
-                          <div className="flex items-center justify-center gap-2">
-                            {onEdit && (
-                              <button
-                                onClick={() => onEdit(item)}
-                                className="bg-yellow-400 text-white px-3 py-2 rounded-full text-xs hover:brightness-110 transition-all duration-200 flex items-center gap-1">
-                                <PencilIcon />
-                              </button>
-                            )}
-                            {onDelete && (
-                              <button
-                                onClick={() => onDelete(item.id)}
-                                className="bg-red-400 text-white px-3 py-2 rounded-full text-xs hover:brightness-110 transition-all duration-200 flex items-center gap-1">
-                                <RiDeleteBinLine />
-                              </button>
-                            )}
-                          </div>
-                        </TableCell>
-                      )}
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    data.map((item) => (
+                      <TableRow key={item.id}>
+                        {columns.map((col) => (
+                          <TableCell
+                            key={col.key}
+                            className={`px-5 py-3 ${
+                              col.minWidth || ""
+                            } text-sm text-gray-500 dark:text-gray-300 ${
+                              isManyColumns ? "text-[13px]" : "text-sm"
+                            }`}>
+                            {col.key === "status" ? (
+                              <StatusBadge status={item.status} />
+                            ) : col.key === "total_price" ? (
+                              formatCurrency(item[col.key])
+                            ) : col.key === "total_minutes" ? (
+                              formatNumberVN(item[col.key])
+                            ) : (
+                              item[col.key] || "-"
+                            )}
+                          </TableCell>
+                        ))}
+                        {/* <TableCell
+                          className={`px-5 dark:text-gray-300 py-3 min-w-[200px] ${
+                            isManyColumns ? "text-[13px]" : "text-sm"
+                          }`}>
+                          <DualProgress
+                            barClassName="h-4"
+                            labelClassName="text-xs"
+                            total={totalProgress}
+                            current={currentProgress}
+                          />
+                        </TableCell> */}
+                        {hasActionColumn && (
+                          <TableCell
+                            className={`px-5 py-3 min-w-[120px] ${
+                              isManyColumns ? "text-[13px]" : "text-sm"
+                            }`}>
+                            <ActionMenu
+                              item={item}
+                              role={role}
+                              onEdit={onEdit}
+                              onDetail={onDetail}
+                              onDelete={(id) => onDelete?.(id)}
+                              onConfirm={(id) => onConfirm?.(id)}
+                            />
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </div>
       </div>
@@ -287,11 +323,24 @@ const SubsciptionList = () => {
   const [expiredFrom, setExpiredFrom] = useState<string>("");
   const [expiredTo, setExpiredTo] = useState<string>("");
 
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    0,
+    23,
+    59,
+    59
+  );
+
   const [query, setQuery] = useQuerySync<SubscriptionQuery>({
     page: 1,
     size: 10,
     order_by: "created_at",
     order_dir: "desc",
+    expired_from: startOfMonth.toISOString(),
+    expired_to: endOfMonth.toISOString(),
   });
 
   const [pagination, setPagination] = useState({
@@ -385,7 +434,7 @@ const SubsciptionList = () => {
   // Xử lý dữ liệu để hiển thị đúng format
   const processedData =
     subsciptions?.map((item: SubcriptionData) => {
-      // Tính total_price
+      // Tính total_price cả gói con
       const planPrice = item.root_plan_id
         ? planPriceMap[item.root_plan_id] || 0
         : 0;
@@ -544,25 +593,6 @@ const SubsciptionList = () => {
               />
             </div>
 
-            {/* Auto Renew */}
-            {/* <div className="w-full">
-              <Label>Tự động gia hạn</Label>
-              <Select
-                options={[
-                  { label: "Tất cả", value: "" },
-                  { label: "Có", value: "true" },
-                  { label: "Không", value: "false" },
-                ]}
-                onChange={(value) =>
-                  setQuery({
-                    ...query,
-                    auto_renew: value ? value === "true" : undefined,
-                  })
-                }
-                placeholder="Tự động gia hạn"
-              />
-            </div> */}
-
             {/* Thứ tự */}
             <div className="w-full">
               <Label>Thứ tự</Label>
@@ -584,8 +614,6 @@ const SubsciptionList = () => {
                   { label: "Ngày tạo", value: "created_at" },
                   { label: "Ngày cập nhật", value: "updated_at" },
                   { label: "Tên khách hàng", value: "customer_name" },
-                  { label: "Mã số thuế", value: "tax_code" },
-                  { label: "Mã hợp đồng", value: "contract_code" },
                   { label: "Trạng thái", value: "status" },
                   { label: "Ngày hết hạn", value: "expired" },
                 ]}
@@ -607,9 +635,16 @@ const SubsciptionList = () => {
               <CustomSubscriptionTable
                 data={processedData}
                 isLoading={loading || isLoadingPlans}
+                role={user.role}
                 onEdit={(item) => {
                   navigate(`/subscriptions/edit/${item.id}`);
                 }}
+                totalProgress={100}
+                currentProgress={20}
+                totalPriceAll={23000000}
+                onDetail={(item) =>
+                  navigate(`/subscriptions/detail/${item.id}`)
+                }
                 onDelete={(id) => handleDelete(id)}
               />
               <Pagination data={pagination} onChange={handlePaginationChange} />

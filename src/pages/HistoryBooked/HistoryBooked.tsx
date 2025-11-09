@@ -350,29 +350,27 @@ const HistoryBooked = () => {
       {isMobile ? null : <PageBreadcrumb pageTitle="Lịch sử đặt số" />}{" "}
       <ResponsiveFilterWrapper drawerTitle="Bộ lọc" pageTitle="Lịch sử đặt số">
         <div
-          className={`w-full gap-3 mb-4 ${
-            isMobile
-              ? "block space-y-3"
-              : "flex flex-wrap items-end justify-start"
+          className={`w-full gap-3 mb-4 flex ${
+            isMobile ? "block space-y-3" : ""
           }`}>
-          <Label>Bộ lọc thời gian</Label>
-          <SwitchablePicker
-            value={selectedDate}
-            onChange={handleDateChange}
-            onTypeChange={handlePickerTypeChange}
-          />
-
           <div>
-            <Label>Trạng thái</Label>
-            <Select
-              options={[
-                { label: "Đã book", value: "booked" },
-                { label: "Triển khai", value: "released" },
-              ]}
-              className="border rounded-md px-3 py-3 w-full md:w-auto dark:bg-black dark:text-white"
-              onChange={(value) => handleStatusChange(value as StatusType)}
-              placeholder="Chọn trạng thái"
-            />
+            <Label>Thông tin lọc</Label>
+            <div className="flex gap-2">
+              <SwitchablePicker
+                value={selectedDate}
+                onChange={handleDateChange}
+                onTypeChange={handlePickerTypeChange}
+              />
+              <Select
+                options={[
+                  { label: "Đã book", value: "booked" },
+                  { label: "Triển khai", value: "released" },
+                ]}
+                className="border rounded-md px-3 py-3 w-full md:w-auto dark:bg-black dark:text-white"
+                onChange={(value) => handleStatusChange(value as StatusType)}
+                placeholder="Chọn trạng thái"
+              />
+            </div>
           </div>
         </div>
       </ResponsiveFilterWrapper>
@@ -427,49 +425,77 @@ const HistoryBooked = () => {
           />
         ) : (
           <>
-            <ReusableTable
-              error={errors}
-              title="Bảng lịch sử chi tiết"
-              data={data ?? []}
-              columns={getColumns(status)}
-              isLoading={loading}
-              pagination={{
-                currentPage: offset,
-                pageSize: limit,
-              }}
-              disabledReset={status !== "booked"}
-              disabled={status !== "booked"}
-              onCheck={(
-                selectedIds: (string | number)[],
-                selectedRows: IHistoryBooked[]
-              ) => {
-                setSelectedIds(selectedIds.map((id) => Number(id)));
-                setSelectedRows(selectedRows);
-              }}
-            />
-            <Pagination
-              limit={limit}
-              offset={offset}
-              totalPages={totalPages}
-              onPageChange={(newLimit, newOffset) => {
-                setLimit(newLimit);
-                setOffset(newOffset);
-                setSearchParams({
-                  limit: newLimit.toString(),
-                  offset: newOffset.toString(),
-                  option: status,
-                });
-              }}
-              onLimitChange={(newLimit) => {
-                setLimit(newLimit);
-                setOffset(0);
-                setSearchParams({
-                  limit: newLimit.toString(),
-                  offset: "0",
-                  option: status,
-                });
-              }}
-            />
+            {!loading && (!data || data.length === 0) ? (
+              // Empty State
+              <div className="bg-white rounded-lg shadow p-8">
+                <div className="text-center py-12">
+                  <svg
+                    className="w-20 h-20 text-gray-300 mx-auto mb-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                    Không có dữ liệu
+                  </h3>
+                </div>
+              </div>
+            ) : (
+              <>
+                <ReusableTable
+                  error={errors}
+                  title="Bảng lịch sử chi tiết"
+                  data={data ?? []}
+                  columns={getColumns(status)}
+                  isLoading={loading}
+                  pagination={{
+                    currentPage: offset,
+                    pageSize: limit,
+                  }}
+                  disabledReset={status !== "booked"}
+                  disabled={status !== "booked"}
+                  onCheck={(
+                    selectedIds: (string | number)[],
+                    selectedRows: IHistoryBooked[]
+                  ) => {
+                    setSelectedIds(selectedIds.map((id) => Number(id)));
+                    setSelectedRows(selectedRows);
+                  }}
+                />
+
+                {data && data.length > 0 && (
+                  <Pagination
+                    limit={limit}
+                    offset={offset}
+                    totalPages={totalPages}
+                    onPageChange={(newLimit, newOffset) => {
+                      setLimit(newLimit);
+                      setOffset(newOffset);
+                      setSearchParams({
+                        limit: newLimit.toString(),
+                        offset: newOffset.toString(),
+                        option: status,
+                      });
+                    }}
+                    onLimitChange={(newLimit) => {
+                      setLimit(newLimit);
+                      setOffset(0);
+                      setSearchParams({
+                        limit: newLimit.toString(),
+                        offset: "0",
+                        option: status,
+                      });
+                    }}
+                  />
+                )}
+              </>
+            )}
           </>
         )}
       </div>

@@ -23,10 +23,10 @@ import AutoCompleteSwitch from "../../components/autoCompleteSwitch/AutoComplete
 import { users } from "../../constants/user";
 import { Option } from "../../components/ui/autocomplete/auto-complete";
 
-interface RouteEntry {
+type RouteEntry = {
   key: string;
-  value: number;
-}
+  value: string | number;
+};
 
 interface MetaEntry {
   key: string;
@@ -39,6 +39,17 @@ interface OutboundDidFormProps {
   onChange: (value: Record<string, number>) => void;
   onMetaChange: (meta: Record<string, string>) => void;
 }
+
+const formatNumberWithCommas = (value: string) => {
+  // Xóa các ký tự không phải số
+  const numericValue = value.replace(/\D/g, "");
+  // Thêm dấu phẩy phân cách hàng nghìn
+  return numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+};
+
+const parseNumberFromFormatted = (value: string) => {
+  return Number(value.replace(/,/g, ""));
+};
 
 export const OutboundDidForm = ({
   value,
@@ -67,7 +78,9 @@ export const OutboundDidForm = ({
       })) ?? [];
 
   const updateParent = (list: RouteEntry[]) => {
-    const obj = Object.fromEntries(list.map((r) => [r.key, r.value]));
+    const obj = Object.fromEntries(
+      list.map((r) => [r.key, parseNumberFromFormatted(r.value as any)])
+    );
     onChange(obj);
   };
 
@@ -78,7 +91,7 @@ export const OutboundDidForm = ({
 
   // Outbound handlers
   const handleAdd = () => {
-    const newRoutes = [...routes, { key: "", value: 0 }];
+    const newRoutes = [...routes, { key: "", value: "" }];
     setRoutes(newRoutes);
   };
 
@@ -90,10 +103,15 @@ export const OutboundDidForm = ({
 
   const handleChange = (index: number, field: "key" | "value", val: any) => {
     const newRoutes = [...routes];
-    newRoutes[index] = {
-      ...newRoutes[index],
-      [field]: field === "value" ? Number(val) : val,
-    };
+
+    if (field === "value") {
+      // Chỉ cho phép nhập số, có phẩy
+      const formatted = formatNumberWithCommas(val);
+      newRoutes[index] = { ...newRoutes[index], value: formatted as any };
+    } else {
+      newRoutes[index] = { ...newRoutes[index], key: val };
+    }
+
     setRoutes(newRoutes);
     updateParent(newRoutes);
   };
@@ -128,7 +146,10 @@ export const OutboundDidForm = ({
   useEffect(() => {
     setRoutes(
       Object.keys(value).length > 0
-        ? Object.entries(value).map(([key, val]) => ({ key, value: val }))
+        ? Object.entries(value).map(([key, val]) => ({
+            key,
+            value: formatNumberWithCommas(val.toString()),
+          }))
         : []
     );
   }, [value]);
@@ -142,7 +163,6 @@ export const OutboundDidForm = ({
     <div>
       <div className="grid grid-cols-2 gap-8">
         {/* Outbound DID Section */}
-
         <div>
           <Label>Cấu hình Outbound CID</Label>
           <div className="flex flex-col gap-3 mt-3">
@@ -165,11 +185,12 @@ export const OutboundDidForm = ({
 
                 <div className="w-24 flex-shrink-0">
                   <Input
-                    type="number"
+                    type="text"
                     value={route.value}
                     onChange={(e) =>
                       handleChange(index, "value", e.target.value)
                     }
+                    placeholder="0"
                   />
                 </div>
               </div>
@@ -205,7 +226,7 @@ export const OutboundDidForm = ({
                     onChange={(val) =>
                       handleMetaChange(index, "key", val.target.value)
                     }
-                    placeholder="Nhập giá trị key"
+                    placeholder="Nhập key"
                   />
                 </div>
 
@@ -216,7 +237,7 @@ export const OutboundDidForm = ({
                     onChange={(e) =>
                       handleMetaChange(index, "value", e.target.value)
                     }
-                    placeholder="Nhập giá trị value"
+                    placeholder="Nhập value"
                   />
                 </div>
               </div>
@@ -372,7 +393,7 @@ export const PlanActionPage = () => {
         Swal.fire({
           icon: "error",
           title: "Lỗi",
-          text: `Tổng số outbound (${totalOutbound}) không được vượt quá tổng DID (${form.did_count})`,
+          text: `Tổng số outbound (${totalOutbound}) không được vượt quá tổng CID (${form.did_count})`,
         });
         setLoading(false);
         return;
@@ -404,6 +425,7 @@ export const PlanActionPage = () => {
         const errors: string[] = [];
 
         if (!form.name?.trim()) errors.push("Tên gói không được để trống");
+
         const result = await planService.create(form as any);
         if (result.status == 200) {
           Swal.fire("Thành công", "Tạo gói thành công", "success");
@@ -441,7 +463,7 @@ export const PlanActionPage = () => {
 
   // Cập nhật tiền về string khi vào
   useEffect(() => {
-    if (isUpdate && form.price_vnd) {
+    if (isUpdate && form.price_vnd !== null && form.price_vnd !== undefined) {
       const formattedValue = new Intl.NumberFormat("vi-VN").format(
         Number(form.price_vnd)
       );
