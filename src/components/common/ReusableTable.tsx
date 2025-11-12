@@ -21,6 +21,8 @@ import {
   setSelectedIds,
 } from "../../store/selectedPhoneSlice";
 import { IoEyeOutline } from "react-icons/io5";
+import { MdConfirmationNumber } from "react-icons/md";
+import { GiConfirmed } from "react-icons/gi";
 
 interface Action<T> {
   icon?: React.ReactNode;
@@ -42,6 +44,7 @@ interface Props<T> {
   onEdit?: (item: T) => void;
   onDelete?: (id: string | number) => void;
   onDetail?: (item: T) => void;
+  onConfirm?: (id: any) => void;
   actions?: Action<T>[];
   onCheck?: (selectedIds: (string | number)[], selectedRows: T[]) => void;
   selectedIds?: (string | number)[];
@@ -65,6 +68,7 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
   onEdit,
   onDelete,
   onDetail,
+  onConfirm,
   actions = [],
   onCheck,
   isLoading = false,
@@ -356,6 +360,13 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
                                   onClick={() => onDelete(item.id)}
                                   className="bg-red-400 text-white px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2">
                                   <RiDeleteBinLine />
+                                </button>
+                              )}
+                              {onConfirm && (
+                                <button
+                                  onClick={() => onConfirm(item.id)}
+                                  className="bg-blue-400 text-white px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2">
+                                  <GiConfirmed />
                                 </button>
                               )}
                               {actions.length > 0 && (

@@ -24,6 +24,7 @@ import Pagination from "../../components/pagination/pagination";
 import Swal from "sweetalert2";
 import { formatCurrency } from "../../helper/formatCurrency";
 import { IoIosAdd } from "react-icons/io";
+import ActionMenu from "./ActionMenu";
 
 interface OrderData {
   id: number;
@@ -83,11 +84,14 @@ const CustomOrderTable = ({
   isLoading,
   onEdit,
   onDelete,
+  onDetail,
+  role,
   hideId,
 }: {
   data: any[];
   isLoading: boolean;
   onEdit?: (item: any) => void;
+  onDetail?: (item: any) => void;
   onDelete?: (id: string | number) => void;
   role?: number;
   hideId?: boolean;
@@ -117,7 +121,7 @@ const CustomOrderTable = ({
               {/* Table Header */}
               <TableHeader>
                 <TableRow>
-                  {hideId == true && (
+                  {hideId == false && (
                     <TableCell
                       isHeader
                       className="px-5 py-3 text-base font-semibold text-gray-500 dark:text-gray-300 text-start">
@@ -152,7 +156,7 @@ const CustomOrderTable = ({
                 {isLoading ? (
                   Array.from({ length: 5 }).map((_, index) => (
                     <TableRow key={index}>
-                      {hideId == true && (
+                      {hideId == false && (
                         <TableCell className="px-5 py-3">
                           <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
                         </TableCell>
@@ -208,12 +212,14 @@ const CustomOrderTable = ({
                 ) : (
                   data.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell
-                        className={`px-5 dark:text-gray-300 py-3 ${
-                          isManyColumns ? "text-[13px]" : "text-sm"
-                        }`}>
-                        {item.id}
-                      </TableCell>
+                      {hideId == false && (
+                        <TableCell
+                          className={`px-5 dark:text-gray-300 py-3 ${
+                            isManyColumns ? "text-[13px]" : "text-sm"
+                          }`}>
+                          {item.id}
+                        </TableCell>
+                      )}
                       {columns.map((col) => (
                         <TableCell
                           key={col.key}
@@ -231,25 +237,16 @@ const CustomOrderTable = ({
                       ))}
                       {hasActionColumn && (
                         <TableCell
-                          className={`px-5 py-3 ${
+                          className={`px-5 py-3 min-w-[120px] ${
                             isManyColumns ? "text-[13px]" : "text-sm"
-                          }`}>
-                          <div className="flex items-center justify-center gap-2">
-                            {onEdit && (
-                              <button
-                                onClick={() => onEdit(item)}
-                                className="bg-yellow-400 text-white px-3 py-2 rounded-full text-xs hover:brightness-110 transition-all duration-200 flex items-center gap-1">
-                                <PencilIcon />
-                              </button>
-                            )}
-                            {onDelete && (
-                              <button
-                                onClick={() => onDelete(item.id)}
-                                className="bg-red-400 text-white px-3 py-2 rounded-full text-xs hover:brightness-110 transition-all duration-200 flex items-center gap-1">
-                                <RiDeleteBinLine />
-                              </button>
-                            )}
-                          </div>
+                          } sticky right-0 bg-white dark:bg-black z-10 shadow-[-2px_0_4px_rgba(0,0,0,0.05)]`}>
+                          <ActionMenu
+                            item={item}
+                            role={role}
+                            onEdit={onEdit}
+                            onDetail={onDetail}
+                            onDelete={(id) => onDelete?.(id)}
+                          />
                         </TableCell>
                       )}
                     </TableRow>
@@ -281,7 +278,7 @@ const OrderList = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading] = useState(false);
-  // const user = useSelector((state: RootState) => state.auth.user);
+  const user = useSelector((state: RootState) => state.auth.user);
 
   const [expiredFrom, setExpiredFrom] = useState<string>("");
   const [expiredTo, setExpiredTo] = useState<string>("");
@@ -476,10 +473,12 @@ const OrderList = () => {
             <CustomOrderTable
               data={processedData}
               isLoading={loading}
+              role={user.role}
               hideId={true}
               onEdit={(item) => {
                 navigate(`/order/edit/${item.id}`);
               }}
+              onDetail={(item) => navigate(`/order/detail/${item.id}`)}
               onDelete={(id) => console.log(id)}
             />
             <div className="mt-6">

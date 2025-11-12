@@ -604,6 +604,8 @@ export const PlanActionPage = () => {
     });
   }, [form]);
 
+  console.log(">>>", children);
+
   return (
     <>
       <PageBreadcrumb
@@ -733,7 +735,7 @@ export const PlanActionPage = () => {
           </div>
         )}
         {user.role == 1 && (
-          <div className="h-32">
+          <div>
             <AutoCompleteSwitch
               label="Chọn trạng thái"
               value={(form.users?.rule || []).map((r) => r.toUpperCase())}

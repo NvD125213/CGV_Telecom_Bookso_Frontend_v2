@@ -12,7 +12,7 @@ import {
 } from "../../components/ui/table";
 // import TableMobile from "../../mobiles/TableMobile";
 import { useIsMobile } from "../../hooks/useScreenSize";
-import { subscriptionService } from "../../services/subcription";
+import { subscriptionService, getQuota } from "../../services/subcription";
 import { useApi } from "../../hooks/useApi";
 import { useQuerySync } from "../../hooks/useQueryAsync";
 import { planService } from "../../services/plan";
@@ -25,6 +25,9 @@ import Swal from "sweetalert2";
 import DualProgress from "../../components/progress-bar/DualProgress";
 import { formatCurrency } from "../../helper/formatCurrency";
 import ActionMenu from "./ActionMenu";
+import { min } from "lodash";
+import { CheckCircle } from "@mui/icons-material";
+import { BsXCircle } from "react-icons/bs";
 
 interface SubcriptionData {
   id: number;
@@ -40,6 +43,7 @@ interface SubcriptionData {
   total_did: number;
   total_minutes: number;
   total_price?: number;
+  is_payment?: boolean;
   items?: any[];
 }
 
@@ -86,9 +90,6 @@ const CustomSubscriptionTable = ({
   onDetail,
   onConfirm,
   role,
-  totalProgress,
-  currentProgress,
-  totalPriceAll,
 }: {
   data: any[];
   isLoading: boolean;
@@ -97,43 +98,54 @@ const CustomSubscriptionTable = ({
   onDetail?: (item: any) => void;
   onConfirm?: (id: string | number) => void;
   role?: number;
-  totalProgress: number;
-  currentProgress: number;
-  totalPriceAll: number;
 }) => {
   const columns = [
     {
       key: "customer_name",
       label: "Tên khách hàng",
-      minWidth: "min-w-[200px]",
+      minWidth: "min-w-[180px]",
     },
-    { key: "total_did", label: "Tổng CID", minWidth: "min-w-[100px]" },
-    { key: "total_minutes", label: "Phút gọi", minWidth: "min-w-[100px]" },
-    { key: "username", label: "Sale", minWidth: "min-w-[100px]" },
-    { key: "root_plan_id", label: "Gói", minWidth: "min-w-[100px]" },
-    { key: "total_price", label: "Tổng giá", minWidth: "min-w-[100px]" },
-    { key: "status", label: "Trạng thái", minWidth: "min-w-[50px]" },
+    { key: "total_did", label: "Tổng CID" },
+    { key: "total_minutes", label: "Phút gọi" },
+    { key: "username", label: "Sale" },
+    { key: "root_plan_id", label: "Gói" },
+    { key: "total_price", label: "Tổng giá" },
+    {
+      key: "is_payment",
+      label: "Thanh toán",
+    },
+    { key: "status", label: "Trạng thái" },
   ];
 
   const hasActionColumn = onEdit || onDelete;
   const totalColumnCount = columns.length + 1 + (hasActionColumn ? 1 : 0);
   const isManyColumns = totalColumnCount > 8;
+
   const formatNumberVN = (value: number) => {
     if (value == null) return "";
     return value.toLocaleString("vi-VN");
   };
 
+  // Lấy danh sách tổng giá
+  const { data: dataTotalPrice, isLoading: isLoadingTotalPrice } = useApi(() =>
+    subscriptionService.getTotalPrice()
+  );
+
   return (
     <div className="space-y-4">
       {/* Total Price Display - Top Right */}
-      {/* <div className="flex items-center justify-end gap-3 text-white">
-        <div className="flex items-center gap-2  px-4 py-2 rounded-xl shadow-md bg-gradient-to-r from-blue-500 to-indigo-600 ">
-          <span className="text-sm font-semibold">TỔNG DOANH THU:</span>
-          <span className="text-lg font-bold">
-            {formatCurrency(totalPriceAll)}
+      <div className="flex items-center justify-end">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-sm border border-gray-200 bg-white/50 backdrop-blur-sm dark:bg-transparent">
+          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            TỔNG DOANH THU:
+          </span>
+          <span className="text-base font-bold text-blue-600">
+            {isLoadingTotalPrice
+              ? "..."
+              : formatCurrency(dataTotalPrice?.data.total_price) ?? "0 đ"}
           </span>
         </div>
-      </div> */}
+      </div>
 
       {/* Table */}
       <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-black">
@@ -154,19 +166,20 @@ const CustomSubscriptionTable = ({
                         {col.label}
                       </TableCell>
                     ))}
-                    {/* <TableCell
+                    <TableCell
                       isHeader
                       className={`px-5 flex justify-center min-w-[150px] ${
                         isManyColumns ? "text-[13px]" : "text-sm"
                       } dark:text-gray-300 py-5 text-base font-semibold text-gray-500 text-start`}>
                       Lưu lượng
-                    </TableCell> */}
+                    </TableCell>
                     {hasActionColumn && (
                       <TableCell
                         isHeader
-                        className={`px-5 min-w-[100px] ${
+                        className={`px-5 min-w-[120px] ${
                           isManyColumns ? "text-[13px]" : "text-sm"
-                        } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-center`}>
+                        } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-center
+                        bg-white dark:bg-black`}>
                         Hành động
                       </TableCell>
                     )}
@@ -196,7 +209,7 @@ const CustomSubscriptionTable = ({
                           <TableCell
                             className={`px-5 py-3 min-w-[120px] ${
                               isManyColumns ? "text-[13px]" : "text-sm"
-                            }`}>
+                            } sticky right-0 bg-white dark:bg-black z-10`}>
                             <div className="flex gap-2 justify-center">
                               <div className="h-6 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
                               <div className="h-6 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
@@ -246,6 +259,18 @@ const CustomSubscriptionTable = ({
                             }`}>
                             {col.key === "status" ? (
                               <StatusBadge status={item.status} />
+                            ) : col.key === "is_payment" ? (
+                              <div className="flex items-center px-1">
+                                {item[col.key] ? (
+                                  <>
+                                    <CheckCircle className="w-5 h-5 text-green-500 dark:text-green-400" />
+                                  </>
+                                ) : (
+                                  <>
+                                    <BsXCircle className="w-5 h-5 text-red-500 dark:text-red-400" />
+                                  </>
+                                )}
+                              </div>
                             ) : col.key === "total_price" ? (
                               formatCurrency(item[col.key])
                             ) : col.key === "total_minutes" ? (
@@ -255,22 +280,28 @@ const CustomSubscriptionTable = ({
                             )}
                           </TableCell>
                         ))}
-                        {/* <TableCell
+                        <TableCell
                           className={`px-5 dark:text-gray-300 py-3 min-w-[200px] ${
                             isManyColumns ? "text-[13px]" : "text-sm"
                           }`}>
-                          <DualProgress
-                            barClassName="h-4"
-                            labelClassName="text-xs"
-                            total={totalProgress}
-                            current={currentProgress}
-                          />
-                        </TableCell> */}
+                          {item.currentProgress > 0 ? (
+                            <DualProgress
+                              barClassName="h-4"
+                              labelClassName="text-xs"
+                              total={item.totalProgress}
+                              current={item.currentProgress}
+                            />
+                          ) : (
+                            <span className="text-gray-400 flex justify-center dark:text-gray-500 text-xs">
+                              Chưa thêm mã trượt
+                            </span>
+                          )}
+                        </TableCell>
                         {hasActionColumn && (
                           <TableCell
                             className={`px-5 py-3 min-w-[120px] ${
                               isManyColumns ? "text-[13px]" : "text-sm"
-                            }`}>
+                            }  bg-white dark:bg-black`}>
                             <ActionMenu
                               item={item}
                               role={role}
@@ -309,11 +340,12 @@ export interface SubscriptionQuery {
   tax_code?: string;
   contract_code?: string;
   username?: string;
+  is_payment?: boolean;
 }
 
 const SubsciptionList = () => {
   const navigate = useNavigate();
-  const [subsciptions, setSubsciptions] = useState<SubcriptionData[]>([]);
+  const [subscriptions, setsubscriptions] = useState<SubcriptionData[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -334,14 +366,25 @@ const SubsciptionList = () => {
     59
   );
 
+  function toLocalISOString(date: Date) {
+    const tzOffset = date.getTimezoneOffset() * 60000;
+    const localTime = new Date(date.getTime() - tzOffset);
+    return localTime.toISOString().slice(0, 16);
+  }
+
   const [query, setQuery] = useQuerySync<SubscriptionQuery>({
     page: 1,
     size: 10,
     order_by: "created_at",
     order_dir: "desc",
-    expired_from: startOfMonth.toISOString(),
-    expired_to: endOfMonth.toISOString(),
+    expired_from: toLocalISOString(startOfMonth),
+    expired_to: toLocalISOString(endOfMonth),
   });
+
+  useEffect(() => {
+    if (query.expired_from) setExpiredFrom(query.expired_from);
+    if (query.expired_to) setExpiredTo(query.expired_to);
+  }, [query.expired_from, query.expired_to]);
 
   const [pagination, setPagination] = useState({
     page: query.page,
@@ -363,13 +406,14 @@ const SubsciptionList = () => {
     return () => clearTimeout(handler);
   }, [searchInput, query, setQuery]);
 
-  // Tạo một query string ổn định để so sánh
   const queryKey = useMemo(() => {
     return `${query.page}_${query.size}_${query.order_by}_${query.order_dir}_${
       query.search || ""
     }_${query.status || ""}_${query.root_plan_id || ""}_${
       query.expired_from || ""
-    }_${query.expired_to || ""}_${query.auto_renew ?? ""}`;
+    }_${query.expired_to || ""}_${query.auto_renew ?? ""}_${
+      query.is_payment ?? ""
+    }`;
   }, [
     query.page,
     query.size,
@@ -381,13 +425,29 @@ const SubsciptionList = () => {
     query.expired_from,
     query.expired_to,
     query.auto_renew,
+    query.is_payment, // ✅ thêm dòng này
   ]);
+
+  // ✅ FIX: Dùng state thay vì ref để trigger useEffect
+  const [quotaBody, setQuotaBody] = useState<any[]>([]);
 
   const fetchSubscriptions = async () => {
     setLoading(true);
     try {
       const result = await subscriptionService.get(query);
-      setSubsciptions(result.data?.items || []);
+      setsubscriptions(result.data?.items || []);
+
+      const listAccount =
+        result.data?.items
+          ?.filter((sub: any) => (sub.slide_users?.length || 0) > 0)
+          ?.map((item: any) => ({
+            sub_Id: item.id,
+            list_account: item.slide_users || [],
+          })) || [];
+
+      // ✅ FIX: Set vào state để trigger useEffect quota
+      setQuotaBody(listAccount);
+
       setPagination(
         result.data?.meta || { page: 1, size: 10, total: 0, pages: 1 }
       );
@@ -402,7 +462,6 @@ const SubsciptionList = () => {
   const prevQueryKeyRef = useRef<string>("");
 
   useEffect(() => {
-    // Chỉ fetch khi query key thay đổi
     if (prevQueryKeyRef.current === queryKey) {
       return;
     }
@@ -412,68 +471,68 @@ const SubsciptionList = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryKey]);
 
-  // Lấy danh sách tất cả plans để map với root_plan_id
+  // Lấy danh sách plans
   const { data: plansData, isLoading: isLoadingPlans } = useApi(() =>
     planService.get({})
   );
 
-  // Tạo map để tra cứu plan name từ plan id
+  // Map plan name
   const planMap =
     plansData?.data?.items?.reduce((acc: Record<number, string>, plan: any) => {
       acc[plan.id] = plan.name;
       return acc;
     }, {}) || {};
 
-  // Tạo map để tra cứu plan price từ plan id
+  // Map plan price
   const planPriceMap =
     plansData?.data?.items?.reduce((acc: Record<number, number>, plan: any) => {
       acc[plan.id] = plan.price_vnd || 0;
       return acc;
     }, {}) || {};
 
-  // Xử lý dữ liệu để hiển thị đúng format
-  const processedData =
-    subsciptions?.map((item: SubcriptionData) => {
-      // Tính total_price cả gói con
-      const planPrice = item.root_plan_id
-        ? planPriceMap[item.root_plan_id] || 0
-        : 0;
-      const items = item.items || [];
-      const itemsTotal = items.reduce((sum: number, item: any) => {
-        const price = item.price_override_vnd || 0;
-        return sum + price;
-      }, 0);
-      const totalPrice = planPrice + itemsTotal;
+  // ✅ FIX: useMemo để tránh tạo object mới mỗi lần render
+  const processedData = useMemo(() => {
+    return (
+      subscriptions?.map((item: SubcriptionData) => {
+        const planPrice = item.root_plan_id
+          ? planPriceMap[item.root_plan_id] || 0
+          : 0;
+        const items = item.items || [];
+        const itemsTotal = items.reduce((sum: number, item: any) => {
+          const price = item.price_override_vnd || 0;
+          return sum + price;
+        }, 0);
+        const totalPrice = planPrice + itemsTotal;
 
-      return {
-        ...item,
-        customer_name: item.customer_name || "-",
-        tax_code: item.tax_code || "-",
-        contract_code: item.contract_code || "-",
-        username: item.username || "-",
-        slide_users:
-          item.slide_users && typeof item.slide_users === "object"
-            ? Object.values(item.slide_users).join(", ") || "-"
+        return {
+          ...item,
+          customer_name: item.customer_name || "-",
+          tax_code: item.tax_code || "-",
+          contract_code: item.contract_code || "-",
+          username: item.username || "-",
+          slide_users:
+            item.slide_users && typeof item.slide_users === "object"
+              ? Object.values(item.slide_users).join(", ") || "-"
+              : "-",
+          root_plan_id: item.root_plan_id
+            ? planMap[item.root_plan_id] || `ID: ${item.root_plan_id}`
             : "-",
-        root_plan_id: item.root_plan_id
-          ? planMap[item.root_plan_id] || `ID: ${item.root_plan_id}`
-          : "-",
-        total_price: totalPrice,
-        auto_renew: item.auto_renew ? "Có" : "Không",
-        status: item.status, // Giữ nguyên giá trị số để StatusBadge xử lý
-        total_did: item.total_did || "-",
-        total_minutes: item.total_minutes || "-",
-      };
-    }) || [];
+          total_price: totalPrice,
+          auto_renew: item.auto_renew ? "Có" : "Không",
+          status: item.status,
+          total_did: item.total_did || "-",
+          total_minutes: item.total_minutes || "-",
+        };
+      }) || []
+    );
+  }, [subscriptions, planMap, planPriceMap]);
 
   const handleDelete = async (id: string | number) => {
-    // Tìm item chính để lấy thông tin hiển thị
-    const data = subsciptions.find((item) => item.id === id);
-    const contractCode = data?.contract_code || id;
+    const data = subscriptions.find((item) => item.id === id);
 
     const result = await Swal.fire({
       title: "Xác nhận xóa",
-      text: `Bạn có chắc chắn muốn xóa mã hợp đồng "${contractCode}" không?`,
+      text: `Bạn có chắc chắn muốn xóa hợp đồng book gói của khách hàng "${data?.customer_name}" không?`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
@@ -484,13 +543,9 @@ const SubsciptionList = () => {
 
     if (result.isConfirmed) {
       try {
-        const res = await subscriptionService.delete(Number(id)); // gọi API xóa
+        const res = await subscriptionService.delete(Number(id));
         if (res.status === 200) {
-          Swal.fire(
-            "Đã xóa!",
-            `Mã hợp đồng "${contractCode}" đã được xóa.`,
-            "success"
-          );
+          Swal.fire("Đã xóa!", `Hợp đồng book gói đã được xóa.`, "success");
           fetchSubscriptions();
         } else {
           Swal.fire("Lỗi", "Không thể xóa gói này.", "error");
@@ -504,6 +559,88 @@ const SubsciptionList = () => {
       }
     }
   };
+
+  const handleConfirmPayment = async (id: any) => {
+    Swal.fire({
+      title: "Xác nhận thanh toán",
+      text: `Bạn có chắc chắn muốn xác nhận thanh toán cho hợp đồng book gói này không?`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Xác nhận",
+      cancelButtonText: "Hủy",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const res = await subscriptionService.update(id, {
+            is_payment: true,
+          });
+          if (res.status === 200) {
+            Swal.fire(
+              "Đã xác nhận!",
+              `Thanh toán thành công cho hợp đồng book gói.`,
+              "success"
+            );
+            navigate("/subscriptions");
+          } else {
+            Swal.fire("Lỗi", "Không thể xác nhận thanh toán.", "error");
+          }
+        } catch (error: any) {
+          Swal.fire(
+            "Lỗi",
+            error?.response?.data?.detail || "Xảy ra lỗi",
+            "error"
+          );
+        }
+      }
+    });
+  };
+
+  const currentMonth = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, "0");
+    return `${year}-${month}`;
+  }, []);
+
+  const [quotaData, setQuotaData] = useState<any[]>([]);
+
+  // ✅ FIX: Giờ quotaBody đã là state nên useEffect sẽ chạy đúng
+  useEffect(() => {
+    const fetchQuota = async () => {
+      if (!quotaBody || quotaBody.length === 0) return;
+      try {
+        const data = await getQuota(quotaBody, currentMonth);
+        const filtered = (data.data || []).filter(
+          (q: any) =>
+            (q.total_call_out || 0) > 0 ||
+            (q.total_call_in || 0) > 0 ||
+            (q.total_sms || 0) > 0
+        );
+        setQuotaData(filtered);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchQuota();
+  }, [quotaBody, currentMonth]);
+
+  // ✅ FIX: useMemo để tránh tạo array mới mỗi lần render
+  const mapData = useMemo(() => {
+    if (!subscriptions.length) return [];
+
+    return processedData.map((sub: any) => {
+      const quota = quotaData?.find((q: any) => q.sub_Id === sub.id);
+
+      return {
+        ...sub,
+        totalProgress: sub.total_minutes || 0,
+        currentProgress: quota?.total_call_out || 0,
+        total_price: sub.total_price || 0,
+      };
+    });
+  }, [processedData, quotaData, subscriptions.length]);
 
   return (
     <>
@@ -523,37 +660,50 @@ const SubsciptionList = () => {
                 className="w-full border border-gray-300 px-3 py-2 rounded-md"
               />
             </div>
-            {/* Ngày hết hạn từ */}
-            <div className="w-full col-span-1 sm:col-span-3">
-              <div className="grid grid-cols-2 gap-6">
-                {/* Ngày hết hạn từ */}
-                <div>
-                  <Label>Ngày hết hạn từ</Label>
-                  <Input
-                    type="datetime-local"
-                    value={expiredFrom}
-                    onChange={(e) => {
-                      setExpiredFrom(e.target.value);
-                      setQuery({ ...query, expired_from: e.target.value });
-                    }}
-                    className="w-full border border-gray-300 px-3 py-2 rounded-md"
-                  />
-                </div>
+            {/* Trạng thái thanh toán */}
+            <div className="w-full">
+              <Label>Trạng thái thanh toán</Label>
+              <Select
+                options={[
+                  { label: "Tất cả", value: "" },
+                  { label: "Đã thanh toán", value: "true" },
+                  { label: "Chưa thanh toán", value: "false" },
+                ]}
+                onChange={(value) =>
+                  setQuery({
+                    ...query,
+                    is_payment: value === "" ? undefined : value === "true",
+                  })
+                }
+                placeholder="Trạng thái thanh toán"
+              />
+            </div>
 
-                {/* Ngày hết hạn đến */}
-                <div>
-                  <Label>Ngày hết hạn đến</Label>
-                  <Input
-                    type="datetime-local"
-                    value={expiredTo}
-                    onChange={(e) => {
-                      setExpiredTo(e.target.value);
-                      setQuery({ ...query, expired_to: e.target.value });
-                    }}
-                    className="w-full border border-gray-300 px-3 py-2 rounded-md"
-                  />
-                </div>
-              </div>
+            <div>
+              <Label>Ngày hết hạn từ</Label>
+              <Input
+                type="datetime-local"
+                value={expiredFrom}
+                onChange={(e) => {
+                  setExpiredFrom(e.target.value);
+                  setQuery({ ...query, expired_from: e.target.value });
+                }}
+                className="w-full border border-gray-300 px-3 py-2 rounded-md"
+              />
+            </div>
+
+            {/* Ngày hết hạn đến */}
+            <div>
+              <Label>Ngày hết hạn đến</Label>
+              <Input
+                type="datetime-local"
+                value={expiredTo}
+                onChange={(e) => {
+                  setExpiredTo(e.target.value);
+                  setQuery({ ...query, expired_to: e.target.value });
+                }}
+                className="w-full border border-gray-300 px-3 py-2 rounded-md"
+              />
             </div>
             {/* Tìm kiếm */}
 
@@ -633,15 +783,13 @@ const SubsciptionList = () => {
           ) : (
             <>
               <CustomSubscriptionTable
-                data={processedData}
+                data={mapData}
                 isLoading={loading || isLoadingPlans}
                 role={user.role}
                 onEdit={(item) => {
                   navigate(`/subscriptions/edit/${item.id}`);
                 }}
-                totalProgress={100}
-                currentProgress={20}
-                totalPriceAll={23000000}
+                onConfirm={(item) => handleConfirmPayment(item)}
                 onDetail={(item) =>
                   navigate(`/subscriptions/detail/${item.id}`)
                 }

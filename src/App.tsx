@@ -73,6 +73,7 @@ function AppWithInactivityHandler() {
           <Route path="/plans/edit/:id" element={<PlanActionPage />} />{" "}
           <Route path="/order" element={<OrderList />} />
           <Route path="/order/edit/:id" element={<OrderActionPage />} />
+          <Route path="/order/detail/:id" element={<OrderActionPage />} />
           <Route path="/order/create" element={<OrderActionPage />} />
           <Route path="/subscriptions" element={<SubscriptionList />} />
           <Route

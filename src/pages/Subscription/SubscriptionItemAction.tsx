@@ -12,6 +12,7 @@ export interface SubscriptionItem {
   quantity: number;
   price_override_vnd: number;
   note: string;
+  is_payment?: boolean;
 }
 
 interface SubscriptionItemActionProps {
@@ -137,7 +138,7 @@ const SubscriptionItemAction: React.FC<SubscriptionItemActionProps> = ({
         Swal.fire({
           icon: "success",
           title: "Thành công",
-          text: "Thêm subscription item thành công!",
+          text: "Thêm gói phụ thành công!",
         });
       }
 
@@ -222,14 +223,6 @@ const SubscriptionItemAction: React.FC<SubscriptionItemActionProps> = ({
                 onChange: (value) => setValue("plan_id", Number(value)),
                 error: errors.plan_id,
               },
-          // {
-          //   name: "quantity",
-          //   label: "Số lượng",
-          //   type: "number",
-          //   value: formData.quantity,
-          //   onChange: (value) => setValue("quantity", Number(value)),
-          //   error: errors.quantity,
-          // },
           {
             name: "price_override_vnd",
             label: "Giá thay đổi (VND)",

@@ -10,9 +10,6 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import EditIcon from "@mui/icons-material/Edit";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeleteIcon from "@mui/icons-material/Delete";
-import CheckIcon from "@mui/icons-material/Check";
-import { useSelector } from "react-redux";
-import { RootState } from "../../store";
 
 interface ActionMenuProps {
   item: any;
@@ -29,7 +26,6 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
   onEdit,
   onDetail,
   onDelete,
-  onConfirm,
 }) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -41,9 +37,6 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
   const handleClose = () => {
     setAnchorEl(null);
   };
-
-  // Ẩn onConfirm nếu role không phải là 1 (admin)
-  const user = useSelector((state: RootState) => state.auth.user);
 
   return (
     <div className="flex items-center justify-start mx-4">
@@ -69,7 +62,7 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
           vertical: "top",
           horizontal: "right",
         }}>
-        {onEdit && role === 1 && (
+        {onEdit && role == 1 && (
           <MenuItem
             onClick={() => {
               handleClose();
@@ -105,18 +98,6 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
               <DeleteIcon fontSize="small" color="error" />
             </ListItemIcon>
             <ListItemText primary="Xóa" />
-          </MenuItem>
-        )}
-        {onConfirm && (user.sub === "VANLTT" || user.sub === "HUYLQ") && (
-          <MenuItem
-            onClick={() => {
-              handleClose();
-              onConfirm(item.id);
-            }}>
-            <ListItemIcon>
-              <CheckIcon fontSize="small" color="error" />
-            </ListItemIcon>
-            <ListItemText primary="Xác nhận" />
           </MenuItem>
         )}
       </Menu>

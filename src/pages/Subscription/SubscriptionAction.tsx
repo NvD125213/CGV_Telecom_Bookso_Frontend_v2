@@ -58,6 +58,7 @@ export interface SubcriptionData {
   updated_at: string;
   expired: string;
   phone_numbers: PhoneNumber[];
+  is_payment?: boolean;
   items: SubscriptionItem[];
 }
 
@@ -608,13 +609,14 @@ export const SubcriptionActionPage = () => {
 
   // Subscription items columns for ReusableTable
   const itemColumns: {
-    key: keyof SubscriptionItem;
+    key: keyof SubscriptionItem | "is_payment";
     label: string;
   }[] = [
     { key: "plan_id", label: "Gói bổ sung" },
     { key: "quantity", label: "Số lượng" },
     { key: "price_override_vnd", label: "Giá (VND)" },
     { key: "note", label: "Ghi chú" },
+    { key: "is_payment", label: "Thanh toán" }, // ✅ thêm cột mới
   ];
 
   // Helper function để map plan_id thành tên plan
@@ -823,6 +825,44 @@ export const SubcriptionActionPage = () => {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  // Xử lý xác nhận số
+  const handleConfirmPayment = async (id: any) => {
+    Swal.fire({
+      title: "Xác nhận thanh toán",
+      text: `Bạn có chắc chắn muốn xác nhận thanh toán cho hợp đồng book gói này không?`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Xác nhận",
+      cancelButtonText: "Hủy",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const res = await subscriptionItemService.update(id, {
+            is_payment: true,
+          });
+          if (res.status === 200) {
+            Swal.fire(
+              "Đã xác nhận!",
+              `Thanh toán thành công cho hợp đồng book gói.`,
+              "success"
+            );
+            navigate("/subscriptions");
+          } else {
+            Swal.fire("Lỗi", "Không thể xác nhận thanh toán.", "error");
+          }
+        } catch (error: any) {
+          Swal.fire(
+            "Lỗi",
+            error?.response?.data?.detail || "Xảy ra lỗi",
+            "error"
+          );
+        }
+      }
+    });
+  };
 
   return (
     <>
@@ -1088,15 +1128,18 @@ export const SubcriptionActionPage = () => {
                   price_override_vnd:
                     item.price_override_vnd?.toLocaleString("vi-VN"),
                   quantity: item.quantity?.toLocaleString("vi-VN"),
+                  is_payment: item.is_payment
+                    ? "Đã thanh toán"
+                    : "Chưa thanh toán",
                 }))}
                 columns={itemColumns}
                 isLoading={itemsLoading}
                 error=""
                 disabled={true}
                 disabledReset={true}
+                onConfirm={(id) => handleConfirmPayment(id)}
                 role={1}
                 onEdit={(item) => {
-                  // Khi edit, cần tìm lại item chính với plan_id là number
                   const originalItem = items.find(
                     (i) => i.id === (item as any).id
                   );

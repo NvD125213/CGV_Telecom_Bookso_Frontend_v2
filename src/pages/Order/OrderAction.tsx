@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import Input from "../../components/form/input/InputField";
 import Select from "../../components/form/Select";
 import Label from "../../components/form/Label";
@@ -15,6 +15,8 @@ import { RootState } from "../../store";
 import { orderServices } from "../../services/order";
 import { useCurrencyFields } from "../../hooks/useCurrencyField";
 import { getPriceForRange, PriceOrderConfig } from "./PriceConfig";
+import { FormControlLabel, Switch } from "@mui/material";
+import StatusSwitch from "../../components/autoCompleteSwitch/SwitchLabel";
 
 type RouteEntry = {
   key: string;
@@ -29,6 +31,7 @@ interface MetaEntry {
 interface OutboundDidFormProps {
   value: Record<string, number>;
   meta: Record<string, string>;
+  isDetail?: boolean;
   onChange: (value: Record<string, number>) => void;
   onMetaChange: (meta: Record<string, string>) => void;
 }
@@ -49,6 +52,7 @@ export const OutboundDidForm = ({
   onChange,
   meta,
   onMetaChange,
+  isDetail,
 }: OutboundDidFormProps) => {
   const { data: dataProviders, isLoading, error } = useApi(getProviders);
 
@@ -152,6 +156,7 @@ export const OutboundDidForm = ({
       Object.entries(meta).map(([key, val]) => ({ key, value: val }))
     );
   }, [meta]);
+
   return (
     <div>
       <div className="grid grid-cols-1 gap-8">
@@ -164,6 +169,7 @@ export const OutboundDidForm = ({
                 <button
                   type="button"
                   onClick={() => handleRemove(index)}
+                  disabled={isDetail}
                   className="p-2 rounded-full bg-red-100 hover:bg-red-200 text-red-600 flex-shrink-0">
                   <IoIosRemove size={20} />
                 </button>
@@ -172,6 +178,7 @@ export const OutboundDidForm = ({
                   <Select
                     options={routeOptions}
                     value={route.key}
+                    disabledWhite={isDetail}
                     onChange={(val) => handleChange(index, "key", val)}
                   />
                 </div>
@@ -180,6 +187,7 @@ export const OutboundDidForm = ({
                   <Input
                     type="text"
                     value={route.value}
+                    disabledWhite={isDetail}
                     onChange={(e) =>
                       handleChange(index, "value", e.target.value)
                     }
@@ -188,63 +196,17 @@ export const OutboundDidForm = ({
                 </div>
               </div>
             ))}
-
-            <button
-              type="button"
-              onClick={handleAdd}
-              className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium mt-2">
-              <IoIosAdd size={20} />
-              Thêm tuyến Outbound
-            </button>
+            {!isDetail && (
+              <button
+                type="button"
+                onClick={handleAdd}
+                className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium mt-2">
+                <IoIosAdd size={20} />
+                Thêm tuyến Outbound
+              </button>
+            )}
           </div>
         </div>
-
-        {/* Meta Section */}
-        {/* <div>
-          <Label>Cấu hình Meta</Label>
-          <div className="flex flex-col gap-3 mt-3">
-            {metaRoutes.map((route, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleMetaRemove(index)}
-                  className="p-2 rounded-full bg-red-100 hover:bg-red-200 text-red-600 flex-shrink-0">
-                  <IoIosRemove size={20} />
-                </button>
-
-                <div className="flex-1 min-w-0">
-                  <Input
-                    type="text"
-                    value={route.key}
-                    onChange={(val) =>
-                      handleMetaChange(index, "key", val.target.value)
-                    }
-                    placeholder="Nhập key"
-                  />
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <Input
-                    type="text"
-                    value={route.value}
-                    onChange={(e) =>
-                      handleMetaChange(index, "value", e.target.value)
-                    }
-                    placeholder="Nhập value"
-                  />
-                </div>
-              </div>
-            ))}
-
-            <button
-              type="button"
-              onClick={handleMetaAdd}
-              className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium mt-2">
-              <IoIosAdd size={20} />
-              Thêm tuyến Meta
-            </button>
-          </div>
-        </div> */}
       </div>
     </div>
   );
@@ -280,10 +242,12 @@ export const OrderActionPage = () => {
   const navigate = useNavigate();
   const user = useSelector((state: RootState) => state.auth?.user);
 
-  const isUpdate = Boolean(id);
+  const isHavingID = Boolean(id);
   const [form, setForm] = useState<OrderForm>(defaultForm);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+
+  // Xây dựng trạng thái route
 
   const handleChange = <K extends keyof OrderForm>(
     field: K,
@@ -301,13 +265,13 @@ export const OrderActionPage = () => {
   // Lấy dữ liệu chi tiết đơn hàng (nếu có id)
   const { data: dataOrderDetail, isLoading: isDetailLoading } =
     useApi(async () => {
-      if (!isUpdate || !id) return null;
+      if (!isHavingID || !id) return null;
       return await orderServices.getByID(Number(id));
-    }, [id, isUpdate]);
+    }, [id, isHavingID]);
 
   // Khi có dữ liệu detail (trường hợp update)
   useEffect(() => {
-    if (isUpdate && dataOrderDetail) {
+    if (isHavingID && dataOrderDetail) {
       setForm({
         ...defaultForm,
         ...dataOrderDetail.data,
@@ -315,20 +279,21 @@ export const OrderActionPage = () => {
       handleCurrencyChange("total_minute", dataOrderDetail.data?.total_minute);
       handleCurrencyChange("total_users", dataOrderDetail.data?.total_users);
       handleCurrencyChange("total_price", dataOrderDetail.data?.total_price);
-    } else if (!isUpdate) {
+    } else if (!isHavingID) {
       // Reset form khi không phải update
       setForm(defaultForm);
     }
-  }, [isUpdate, dataOrderDetail]);
+  }, [isHavingID, dataOrderDetail]);
 
   const [totalPrice, setTotalPrice] = useState(0);
+  // console.log("outbound_did_by_route", form.outbound_did_by_route);
 
+  // Thêm useEffect để validate giá ngay lập tức
   useEffect(() => {
-    const objValues = Object.values(form.outbound_did_by_route);
-
-    const total_cid = objValues.reduce((a, b) => {
-      return a + b;
-    }, 0);
+    const total_cid = Object.values(form.outbound_did_by_route).reduce(
+      (acc, val) => acc + (Number(val) || 0),
+      0
+    );
 
     const minutePrice = getPriceForRange(
       form.total_minute,
@@ -336,6 +301,7 @@ export const OrderActionPage = () => {
     );
     const userPrice = getPriceForRange(form.total_users, PriceOrderConfig.user);
     const cidPrice = getPriceForRange(total_cid, PriceOrderConfig.cid);
+
     const total =
       (form.total_minute * minutePrice +
         form.total_users * userPrice +
@@ -343,12 +309,31 @@ export const OrderActionPage = () => {
       form.quantity;
 
     setTotalPrice(total);
-    setForm((prev) => ({ ...prev, total_price: total })); // gắn vào form để gửi API
+
+    // ✅ THÊM: Kiểm tra và cảnh báo ngay
+    if (form.total_price && form.total_price < total) {
+      setFormErrors((prev) => ({
+        ...prev,
+        total_price: `Giá không được thấp hơn ${new Intl.NumberFormat(
+          "vi-VN"
+        ).format(total)}₫`,
+      }));
+    } else {
+      // Xóa lỗi nếu hợp lệ
+      setFormErrors((prev) => {
+        const { total_price, ...rest } = prev;
+        return rest;
+      });
+    }
+
+    // Không tự động ghi đè giá user đã nhập
+    // setForm((prev) => ({ ...prev, total_price: total })); // ❌ XÓA DÒNG NÀY
   }, [
     form.quantity,
     form.total_minute,
     form.total_users,
     form.outbound_did_by_route,
+    form.total_price, // ✅ THÊM dependency này
   ]);
 
   const handleSubmit = async () => {
@@ -367,14 +352,23 @@ export const OrderActionPage = () => {
         errors.outbound_did_by_route = "Lựa chọn 1 nhà cung cấp để đặt số";
       }
 
+      // ✅ THÊM: Validate giá trước khi submit
+      const finalPrice = form.total_price || totalPrice;
+      if (finalPrice < totalPrice) {
+        errors.total_price = `Giá không được thấp hơn ${new Intl.NumberFormat(
+          "vi-VN"
+        ).format(totalPrice)}₫`;
+        Swal.fire("Lỗi", errors.total_price, "error");
+      }
+
       // --- Nếu có lỗi thì dừng lại ---
       if (Object.keys(errors).length > 0) {
         setFormErrors(errors);
         setLoading(false);
-        return;
+        return; // ✅ DỪNG NGAY, KHÔNG CHO SUBMIT
       }
 
-      // --- Nếu hợp lệ ---
+      // Nếu hợp lệ
       setFormErrors({});
 
       const newForm = { ...form };
@@ -384,19 +378,43 @@ export const OrderActionPage = () => {
         newForm.total_price = totalPrice;
       }
 
-      if (form.total_price < totalPrice) {
-        Swal.fire(
-          "Cảnh báo",
-          "Mức giá bạn nhập vào nhỏ hơn mức giá được gợi ý ban đầu!",
-          "warning"
-        );
-        setLoading(false);
-        return;
-      }
+      // ❌ XÓA phần cảnh báo này vì đã validate ở trên
+      // if (form.total_price < totalPrice) {
+      //   Swal.fire("Cảnh báo", "...", "warning");
+      //   setLoading(false);
+      //   return;
+      // }
 
-      if (isUpdate) {
-        await orderServices.update(Number(id), newForm as any);
-        Swal.fire("Thành công", "Cập nhật order thành công!", "success");
+      if (isHavingID && isEdit) {
+        if (form.status == 1) {
+          const result = await Swal.fire({
+            title: "Xác nhận",
+            text: `Bạn có muốn triển khai order cho ${form.customer_name} không?`,
+            icon: "info",
+            showCancelButton: true,
+            confirmButtonText: "Triển khai",
+            cancelButtonText: "Hủy",
+          });
+
+          // Nếu người dùng bấm "Có"
+          if (result.isConfirmed) {
+            const res = await orderServices.update(Number(id), newForm as any);
+            if (res.status == 200) {
+              Swal.fire(
+                "Thành công",
+                "Triển khai order thành công!",
+                "success"
+              );
+            }
+          }
+          return;
+        }
+
+        // Nếu form.status != 1
+        const res = await orderServices.update(Number(id), newForm as any);
+        if (res.status == 200) {
+          Swal.fire("Thành công", "Cập nhật order thành công!", "success");
+        }
       } else {
         const result = await orderServices.create(newForm as any);
         if (result.status === 201) {
@@ -414,45 +432,15 @@ export const OrderActionPage = () => {
     }
   };
 
-  // Xử lý xác nhận triển khai
-  const handleReleased = (item: any) => {
-    Swal.fire({
-      title: "Xác nhận triển khai?",
-      text: `Order của ${item.user_name} với khách hàng ${item.customer_name}`,
-      icon: "info",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Triển khai",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          const updatedForm = { ...item, status: 1 };
-          const result = await orderServices.update(item.id, updatedForm);
-          if (result.status == 200) {
-            Swal.fire(
-              "Thành công",
-              "Cập nhật trạng thái order thành công!",
-              "success"
-            );
-            navigate("/order");
-          }
-        } catch (error: any) {
-          if (error?.response?.data?.detail) {
-            Swal.fire("Lỗi", error?.response?.data?.detail, "error");
-          } else {
-            Swal.fire("Lỗi", "Không thể cập nhật trạng thái!", "error");
-            console.error(error);
-          }
-        }
-      }
-    });
-  };
+  // Trạng thái
+  const isEdit = location.pathname.includes(`/order/edit/${id}`);
+  const isDetail = location.pathname.includes(`/order/detail/${id}`);
+  const isCreate = location.pathname.includes("/order/create");
 
   return (
     <>
       <PageBreadcrumb
-        pageTitle={isUpdate ? "Cập nhật thông tin order" : "Order mới"}
+        pageTitle={isHavingID ? "Cập nhật thông tin order" : "Order mới"}
       />
 
       <ComponentCard>
@@ -463,6 +451,7 @@ export const OrderActionPage = () => {
               value={form.customer_name}
               onChange={(e) => handleChange("customer_name", e.target.value)}
               placeholder="Nhập tên khách hàng"
+              disabledWhite={isDetail}
             />
 
             {formErrors.customer_name && (
@@ -477,6 +466,7 @@ export const OrderActionPage = () => {
               value={form.tax_code}
               onChange={(e) => handleChange("tax_code", e.target.value)}
               placeholder="Nhập mã số thuế"
+              disabledWhite={isDetail}
             />
 
             {formErrors.tax_code && (
@@ -489,6 +479,7 @@ export const OrderActionPage = () => {
               value={form.contract_code}
               onChange={(e) => handleChange("contract_code", e.target.value)}
               placeholder="Nhập mã hợp đồng"
+              disabledWhite={isDetail}
             />
 
             {formErrors.contract_code && (
@@ -513,6 +504,7 @@ export const OrderActionPage = () => {
               type="text"
               value={currencyFields.total_minute}
               placeholder="Nhập số phút gọi"
+              disabledWhite={isDetail}
               onChange={(e) => handleCurrencyChange("total_minute", e)}
             />
             {formErrors.total_minute && (
@@ -529,6 +521,7 @@ export const OrderActionPage = () => {
               value={currencyFields.total_users}
               placeholder="Nhập số user"
               onChange={(e) => handleCurrencyChange("total_users", e)}
+              disabledWhite={isDetail}
             />
           </div>
 
@@ -544,6 +537,7 @@ export const OrderActionPage = () => {
               type="text"
               value={currencyFields.total_price}
               placeholder="Nhập tổng giá tiền"
+              disabledWhite={isDetail}
               onChange={(e) => handleCurrencyChange("total_price", e)}
             />
             {/* <div className="mt-2">
@@ -554,49 +548,64 @@ export const OrderActionPage = () => {
               </p>
             </div> */}
           </div>
+          {user.role == 1 && isEdit && (
+            <div>
+              <Label>Trạng thái</Label>
+
+              <Select
+                className="mt-1"
+                value={String(form.status)}
+                disabledWhite={isDetail}
+                options={[
+                  { label: "Đang chờ", value: "2" },
+                  { label: "Triển khai", value: "1" },
+                ]}
+                onChange={(value) => handleChange("status", Number(value))}
+              />
+            </div>
+          )}
+          <OutboundDidForm
+            value={form.outbound_did_by_route}
+            onChange={(updated) =>
+              handleChange("outbound_did_by_route", updated)
+            }
+            isDetail={isDetail}
+            meta={form.meta}
+            onMetaChange={(updated) => handleChange("meta", updated)}
+          />
+          {formErrors.outbound_did_by_route && (
+            <p className="text-red-500 text-sm mt-1">
+              {formErrors.outbound_did_by_route}
+            </p>
+          )}
         </div>
 
         {/* --- Outbound DID routes --- */}
-        <div>
-          <div className="grid grid-cols-1 gap-4 mt-2">
-            <OutboundDidForm
-              value={form.outbound_did_by_route}
-              onChange={(updated) =>
-                handleChange("outbound_did_by_route", updated)
-              }
-              meta={form.meta}
-              onMetaChange={(updated) => handleChange("meta", updated)}
-            />
-            {formErrors.outbound_did_by_route && (
-              <p className="text-red-500 text-sm mt-1">
-                {formErrors.outbound_did_by_route}
-              </p>
-            )}
-          </div>
-        </div>
 
         {/* --- Submit --- */}
-        <div className="flex justify-end gap-3 mt-8 ">
+        <div className="flex justify-end gap-2 mt-8">
           <Button
             variant="outline"
             onClick={() => navigate("/order")}
+            className="w-28"
             disabled={loading}>
             Trở lại
           </Button>
-          {user.role == 1 && (
+
+          {!isDetail && (
             <Button
-              variant="primary"
-              onClick={() => handleReleased(form)}
-              disabled={loading}>
-              Xác nhận triển khai
+              onClick={handleSubmit}
+              disabled={loading} // isDetail bỏ ra để vẫn nhấn được
+              className="bg-indigo-600 text-white shadow hover:bg-indigo-700 disabled:opacity-50 w-28">
+              {loading
+                ? "Đang lưu..."
+                : isCreate
+                ? "Tạo"
+                : isEdit
+                ? "Cập nhật"
+                : "Lưu"}
             </Button>
           )}
-          <Button
-            onClick={handleSubmit}
-            disabled={loading}
-            className=" bg-indigo-600 text-white shadow hover:bg-indigo-700 disabled:opacity-50">
-            {loading ? "Đang lưu..." : isUpdate ? "Cập nhật" : "Tạo"}
-          </Button>
         </div>
       </ComponentCard>
     </>
