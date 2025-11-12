@@ -30,6 +30,9 @@ import { PlanList } from "./pages/Plan/PlanList";
 import { PlanActionPage } from "./pages/Plan/PlanAction";
 import { SubcriptionActionPage } from "./pages/Subscription/SubscriptionAction";
 import SubscriptionList from "./pages/Subscription/SubscriptionList";
+import LogList from "./pages/Logs/LogList";
+import OrderList from "./pages/Order/OrderList";
+import { OrderActionPage } from "./pages/Order/OrderAction";
 
 function AppWithInactivityHandler() {
   const { resetInactivityTimer } = useAuth();
@@ -68,13 +71,17 @@ function AppWithInactivityHandler() {
           <Route path="/plans" element={<PlanList />} />
           <Route path="/plans/create" element={<PlanActionPage />} />
           <Route path="/plans/edit/:id" element={<PlanActionPage />} />{" "}
+          <Route path="/order" element={<OrderList />} />
+          <Route path="/order/edit/:id" element={<OrderActionPage />} />
+          <Route path="/order/detail/:id" element={<OrderActionPage />} />
+          <Route path="/order/create" element={<OrderActionPage />} />
           <Route path="/subscriptions" element={<SubscriptionList />} />
           <Route
             path="/subscriptions/create"
             element={<SubcriptionActionPage />}
           />
           <Route
-            path="/subscriptions/edit/:id"
+            path="/subscriptions/detail/:id"
             element={<SubcriptionActionPage />}
           />
         </Route>
@@ -86,6 +93,11 @@ function AppWithInactivityHandler() {
           <Route path="/type-numbers" element={<TypeNumber />} />
           <Route path="/limit-booking" element={<LimitBooking />} />
           <Route path="/time-online" element={<SessionPage />} />
+          <Route path="/logs" element={<LogList />} />
+          <Route
+            path="/subscriptions/edit/:id"
+            element={<SubcriptionActionPage />}
+          />
         </Route>
       </Route>
       <Route path="*" element={<NotFound />} />

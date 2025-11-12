@@ -2,6 +2,7 @@ import { instanceStatic } from "../config/apiStatic";
 import axiosInstance from "../config/apiToken";
 import axios from "axios";
 import { cleanQuery } from "../helper/cleanQuery";
+import { is } from "date-fns/locale";
 
 export interface SubcriptionData {
   customer_name: string;
@@ -16,6 +17,7 @@ export interface SubcriptionData {
   status: number;
   created_at: Date;
   expired: Date;
+  is_payment?: boolean;
   updated_at: Date;
 }
 
@@ -34,6 +36,9 @@ export const subscriptionService = {
       params: cleanedParams,
     });
   },
+  getTotalPrice: async () => {
+    return await axiosInstance.get("/api/v3/subscription/get-total-price");
+  },
   getById: async (id: number) => {
     return await axiosInstance.get(`/api/v3/subscription/${id}`);
   },
@@ -41,7 +46,7 @@ export const subscriptionService = {
   create: async (data: SubcriptionData) => {
     return await axiosInstance.post("/api/v3/subscription", data);
   },
-  update: async (id: number, data: SubcriptionData) => {
+  update: async (id: number, data: Partial<SubcriptionData>) => {
     return await axiosInstance.put(`/api/v3/subscription/${id}`, data);
   },
   delete: async (id: number) => {
@@ -56,13 +61,14 @@ export const subscriptionItemService = {
       params: cleanedParams,
     });
   },
+
   getById: async (id: number) => {
     return await axiosInstance.get(`/api/v3/subscription-items/${id}`);
   },
   create: async (data: SubscriptionItem) => {
     return await axiosInstance.post("/api/v3/subscription-items", data);
   },
-  update: async (id: number, data: SubscriptionItem) => {
+  update: async (id: number, data: Partial<SubscriptionItem>) => {
     return await axiosInstance.put(`/api/v3/subscription-items/${id}`, data);
   },
   delete: async (id: number) => {
@@ -87,6 +93,28 @@ export const getDetailCombo = async (
     return response.data;
   } catch (error: any) {
     console.error("❌ Lỗi khi gọi combo detail:", error);
+    throw error;
+  }
+};
+
+export const getQuota = async (
+  list_account: { sub_Id: number; list_account: string[] }[],
+  month_year: string
+) => {
+  try {
+    const response = await axiosInstance.post(
+      "/api/v3/combo/quota",
+      list_account, // body JSON
+      {
+        headers: {
+          "Content-Type": "application/json",
+          month_year,
+        },
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ Lỗi khi gọi combo quota:", error);
     throw error;
   }
 };

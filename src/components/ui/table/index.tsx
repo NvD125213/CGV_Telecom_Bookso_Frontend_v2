@@ -24,15 +24,14 @@ interface TableRowProps {
   className?: string;
 }
 
-// Props for TableCell
 interface TableCellProps {
   children: ReactNode;
   isHeader?: boolean;
   className?: string;
-  colSpan?: number; // <-- thêm colSpan
-  rowSpan?: number; // <-- thêm rowSpan
+  colSpan?: number;
+  rowSpan?: number;
+  align?: "left" | "center" | "right"; // 👈 thêm prop align
 }
-
 // Table Component
 const Table: React.FC<TableProps> = ({ children, className }) => {
   return <table className={`min-w-full z-0 ${className}`}>{children}</table>;
@@ -57,16 +56,28 @@ const TableRow: React.FC<TableRowProps> = ({ children, className }) => {
 const TableCell: React.FC<TableCellProps> = ({
   children,
   isHeader = false,
-  className,
+  className = "",
   colSpan,
   rowSpan,
+  align = "left", // 👈 mặc định là left
 }) => {
   const CellTag = isHeader ? "th" : "td";
+
+  // Tạo class căn giữa
+  const alignClass =
+    align === "center"
+      ? "text-center"
+      : align === "right"
+      ? "text-right"
+      : "text-left";
+
   return (
-    <CellTag className={className} colSpan={colSpan} rowSpan={rowSpan}>
+    <CellTag
+      className={`${alignClass} ${className}`}
+      colSpan={colSpan}
+      rowSpan={rowSpan}>
       {children}
     </CellTag>
   );
 };
-
 export { Table, TableHeader, TableBody, TableRow, TableCell };

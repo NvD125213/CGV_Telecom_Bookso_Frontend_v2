@@ -1,6 +1,5 @@
 import axiosInstance from "../config/apiToken";
 import { cleanQuery } from "../helper/cleanQuery";
-import { instanceStatic } from "../config/apiStatic";
 
 interface PlanData {
   name: string;

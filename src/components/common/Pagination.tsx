@@ -14,12 +14,13 @@ interface PaginationProps {
 }
 
 export const Pagination = ({ data, onChange }: PaginationProps) => {
-  const [currentPage, setCurrentPage] = useState(data.page);
-  const [currentSize, setCurrentSize] = useState(data.size);
+  const [currentPage, setCurrentPage] = useState<number>(data.page || 1);
+  const [currentSize, setCurrentSize] = useState<number>(data.size || 10);
 
+  // Luôn đảm bảo hiển thị page = 1 nếu chưa có data.page
   useEffect(() => {
-    setCurrentPage(data.page);
-    setCurrentSize(data.size);
+    setCurrentPage(data.page || 1);
+    setCurrentSize(data.size || 10);
   }, [data.page, data.size]);
 
   const handlePageChange = (value: string | number) => {
@@ -31,17 +32,22 @@ export const Pagination = ({ data, onChange }: PaginationProps) => {
   const handleSizeChange = (value: string | number) => {
     const size = Number(value);
     setCurrentSize(size);
-    onChange(1, size); // khi thay đổi size, quay về page 1
+    onChange(1, size); // Khi thay đổi size, quay về page 1
+    setCurrentPage(1);
   };
 
   return (
     <div className="flex items-center justify-end gap-2 text-sm mt-5">
       <div className="w-20">
         <Select
-          options={Array.from({ length: data.pages }, (_, i) => ({
-            label: (i + 1).toString(),
-            value: (i + 1).toString(),
-          }))}
+          placeholder=""
+          options={Array.from(
+            { length: data.pages > 0 ? data.pages : 1 },
+            (_, i) => ({
+              label: (i + 1).toString(),
+              value: (i + 1).toString(),
+            })
+          )}
           value={String(currentPage)}
           onChange={handlePageChange}
         />
@@ -51,6 +57,7 @@ export const Pagination = ({ data, onChange }: PaginationProps) => {
 
       <div className="w-20">
         <Select
+          placeholder=""
           options={[10, 20, 50].map((n) => ({
             label: n.toString(),
             value: n.toString(),

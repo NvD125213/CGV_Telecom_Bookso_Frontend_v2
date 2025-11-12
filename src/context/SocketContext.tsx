@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const dispatch = useDispatch();
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const INACTIVITY_LIMIT = 10 * 60 * 1000;
+  const INACTIVITY_LIMIT = 20 * 60 * 1000;
 
   const sendMessage = (message: string) => {
     if (socket && isConnected) {
@@ -71,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const startInactivityTimer = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
-      toast("Bạn đã không hoạt động trong 5 phút. Vui lòng đăng nhập lại.", {
+      toast("Bạn đã không hoạt động trong 10 phút. Vui lòng đăng nhập lại.", {
         icon: "⚠️",
         style: {
           background: "#fef3c7",

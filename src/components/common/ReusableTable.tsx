@@ -20,6 +20,9 @@ import {
   resetSelectedIds,
   setSelectedIds,
 } from "../../store/selectedPhoneSlice";
+import { IoEyeOutline } from "react-icons/io5";
+import { MdConfirmationNumber } from "react-icons/md";
+import { GiConfirmed } from "react-icons/gi";
 
 interface Action<T> {
   icon?: React.ReactNode;
@@ -40,6 +43,8 @@ interface Props<T> {
   }[];
   onEdit?: (item: T) => void;
   onDelete?: (id: string | number) => void;
+  onDetail?: (item: T) => void;
+  onConfirm?: (id: any) => void;
   actions?: Action<T>[];
   onCheck?: (selectedIds: (string | number)[], selectedRows: T[]) => void;
   selectedIds?: (string | number)[];
@@ -62,11 +67,12 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
   columns,
   onEdit,
   onDelete,
+  onDetail,
+  onConfirm,
   actions = [],
   onCheck,
   isLoading = false,
   error = "",
-  role,
   showId = true,
   disabled = false, // Default to false
   disabledReset = false,
@@ -79,7 +85,7 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
   const [dropdownOpenId, setDropdownOpenId] = useState<string | number | null>(
     null
   );
-  const hasActionColumn = onEdit || onDelete || actions.length > 0;
+  const hasActionColumn = onEdit || onDelete || onDetail || actions.length > 0;
 
   const handleSelectAll = () => {
     if (disabled) return; // Simply return if disabled
@@ -152,23 +158,24 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
               {/* Table Header */}
               <TableHeader>
                 <TableRow>
-                  <TableCell
-                    isHeader
-                    className="px-5 py-3 text-base font-semibold text-gray-500 dark:text-gray-300 text-start">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        className={`w-[18px] h-[18px] ${
-                          disabled ? "opacity-50 cursor-not-allowed" : ""
-                        }`}
-                        checked={
-                          selectedIds?.length === data.length && data.length > 0
-                        }
-                        onChange={handleSelectAll}
-                        disabled={disabled}
-                      />
-                    </div>
-                  </TableCell>
+                  {!disabled && (
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 text-base font-semibold text-gray-500 dark:text-gray-300 text-start">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          className="w-[18px] h-[18px]"
+                          checked={
+                            selectedIds?.length === data.length &&
+                            data.length > 0
+                          }
+                          onChange={handleSelectAll}
+                        />
+                      </div>
+                    </TableCell>
+                  )}
+
                   {showId && (
                     <TableCell
                       isHeader
@@ -191,7 +198,7 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
                   {hasActionColumn && (
                     <TableCell
                       isHeader
-                      className={`px-5 ${
+                      className={`px-5 flex justify-center ${
                         isManyColumns ? "text-[13px]" : "text-sm"
                       } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start`}>
                       Hành động
@@ -272,20 +279,23 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
                     ))
                   : data.map((item) => (
                       <TableRow key={item.id}>
-                        <TableCell
-                          className={`px-5 dark:text-gray-300 py-3 ${
-                            isManyColumns ? "text-[13px]" : "text-sm"
-                          }`}>
-                          <input
-                            type="checkbox"
-                            className={`w-[18px] h-[18px] ${
-                              disabled ? "opacity-50 cursor-not-allowed" : ""
-                            }`}
-                            checked={selectedIds?.includes(item.id)}
-                            onChange={() => handleSelectRow(item.id)}
-                            disabled={disabled}
-                          />
-                        </TableCell>
+                        {!disabled && (
+                          <TableCell
+                            className={`px-5 dark:text-gray-300 py-3 ${
+                              isManyColumns ? "text-[13px]" : "text-sm"
+                            }`}>
+                            <input
+                              type="checkbox"
+                              className={`w-[18px] h-[18px] ${
+                                disabled ? "opacity-50 cursor-not-allowed" : ""
+                              }`}
+                              checked={selectedIds?.includes(item.id)}
+                              onChange={() => handleSelectRow(item.id)}
+                              disabled={disabled}
+                            />
+                          </TableCell>
+                        )}
+
                         {showId && (
                           <TableCell
                             className={`px-5 dark:text-gray-300 py-3 ${
@@ -325,61 +335,79 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
                         })}
                         {hasActionColumn && (
                           <TableCell
-                            className={`flex gap-2 px-5 py-3 items-center ${
+                            align="center"
+                            className={`px-5 py-3 items-center justify-center ${
                               isManyColumns ? "text-[13px]" : "text-sm"
                             }`}>
-                            {onEdit && (
-                              <button
-                                onClick={() => onEdit(item)}
-                                className="bg-yellow-400 text-white px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2">
-                                <PencilIcon />
-                              </button>
-                            )}
-                            {onDelete && (
-                              <button
-                                onClick={() => onDelete(item.id)}
-                                className="bg-red-400 text-white px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2">
-                                <RiDeleteBinLine />
-                              </button>
-                            )}
-                            {actions.length > 0 && (
-                              <div className="">
+                            <div className="flex items-center justify-center gap-2">
+                              {onEdit && (
                                 <button
-                                  onClick={() => toggleDropdown(item.id)}
-                                  className="bg-gray-200 dark:bg-gray-800 dark:text-white text-gray-700 px-4 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 dropdown-toggle">
-                                  <HiDotsVertical />
+                                  onClick={() => onEdit(item)}
+                                  className="bg-yellow-400 text-white px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2">
+                                  <PencilIcon />
                                 </button>
-                                <Dropdown
-                                  isOpen={dropdownOpenId === item.id}
-                                  onClose={() => setDropdownOpenId(null)}
-                                  className="w-50">
-                                  <div className="py-1">
-                                    {actions
-                                      .filter((action) =>
-                                        action.condition
-                                          ? action.condition(item)
-                                          : true
-                                      )
-                                      .map((action, index) => (
-                                        <button
-                                          key={index}
-                                          onClick={() => {
-                                            action.onClick(item);
-                                            setDropdownOpenId(null);
-                                          }}
-                                          className={`w-full dark:text-white dark:hover:bg-black dark:hover:bg-opacity-20 text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 transition-all duration-200 ${
-                                            action.className || ""
-                                          }`}>
-                                          {action.icon}
-                                          <span>
-                                            {action.label || "Action"}
-                                          </span>
-                                        </button>
-                                      ))}
-                                  </div>
-                                </Dropdown>
-                              </div>
-                            )}
+                              )}
+                              {onDetail && (
+                                <button
+                                  onClick={() => onDetail(item)}
+                                  className="bg-blue-400 text-white px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2"
+                                  title="Xem chi tiết">
+                                  <IoEyeOutline className="w-3 h-3" />
+                                </button>
+                              )}
+                              {onDelete && (
+                                <button
+                                  onClick={() => onDelete(item.id)}
+                                  className="bg-red-400 text-white px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2">
+                                  <RiDeleteBinLine />
+                                </button>
+                              )}
+                              {onConfirm && (
+                                <button
+                                  onClick={() => onConfirm(item.id)}
+                                  className="bg-blue-400 text-white px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2">
+                                  <GiConfirmed />
+                                </button>
+                              )}
+                              {actions.length > 0 && (
+                                <div className="relative">
+                                  <button
+                                    onClick={() => toggleDropdown(item.id)}
+                                    className="bg-gray-200 dark:bg-gray-800 dark:text-white text-gray-700 px-4 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 dropdown-toggle">
+                                    <HiDotsVertical />
+                                  </button>
+                                  <Dropdown
+                                    isOpen={dropdownOpenId === item.id}
+                                    onClose={() => setDropdownOpenId(null)}
+                                    className="w-50">
+                                    <div className="py-1">
+                                      {actions
+                                        .filter((action) =>
+                                          action.condition
+                                            ? action.condition(item)
+                                            : true
+                                        )
+                                        .map((action, index) => (
+                                          <button
+                                            key={index}
+                                            onClick={() => {
+                                              action.onClick(item);
+                                              setDropdownOpenId(null);
+                                            }}
+                                            className={`w-full dark:text-white dark:hover:bg-black dark:hover:bg-opacity-20 text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 transition-all duration-200 ${
+                                              action.className || ""
+                                            }`}>
+                                            {action.icon}
+                                            <span>
+                                              {action.label || "Action"}
+                                            </span>
+                                          </button>
+                                        ))}
+                                    </div>
+                                  </Dropdown>
+                                </div>
+                              )}
+                            </div>
                           </TableCell>
                         )}
                       </TableRow>

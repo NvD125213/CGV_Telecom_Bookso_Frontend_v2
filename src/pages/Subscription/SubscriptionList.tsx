@@ -12,19 +12,22 @@ import {
 } from "../../components/ui/table";
 // import TableMobile from "../../mobiles/TableMobile";
 import { useIsMobile } from "../../hooks/useScreenSize";
-import { subscriptionService } from "../../services/subcription";
+import { subscriptionService, getQuota } from "../../services/subcription";
 import { useApi } from "../../hooks/useApi";
 import { useQuerySync } from "../../hooks/useQueryAsync";
 import { planService } from "../../services/plan";
-import { PencilIcon } from "../../icons";
-import { RiDeleteBinLine } from "react-icons/ri";
 import Select from "../../components/form/Select";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
 import { Pagination } from "../../components/common/Pagination";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import DualProgress from "../../components/progress-bar/DualProgress";
 import { formatCurrency } from "../../helper/formatCurrency";
+import ActionMenu from "./ActionMenu";
+import { min } from "lodash";
+import { CheckCircle } from "@mui/icons-material";
+import { BsXCircle } from "react-icons/bs";
 
 interface SubcriptionData {
   id: number;
@@ -40,6 +43,7 @@ interface SubcriptionData {
   total_did: number;
   total_minutes: number;
   total_price?: number;
+  is_payment?: boolean;
   items?: any[];
 }
 
@@ -78,179 +82,242 @@ const StatusBadge = ({ status }: { status: number }) => {
   return <span className={statusDisplay.classname}>{statusDisplay.text}</span>;
 };
 
-// Component table tùy chỉnh để hiển thị status với màu sắc
 const CustomSubscriptionTable = ({
   data,
   isLoading,
   onEdit,
   onDelete,
+  onDetail,
+  onConfirm,
+  role,
 }: {
   data: any[];
   isLoading: boolean;
   onEdit?: (item: any) => void;
   onDelete?: (id: string | number) => void;
+  onDetail?: (item: any) => void;
+  onConfirm?: (id: string | number) => void;
   role?: number;
 }) => {
   const columns = [
-    { key: "customer_name", label: "Tên khách hàng" },
-    { key: "tax_code", label: "Mã số thuế" },
-    { key: "contract_code", label: "Mã hợp đồng" },
+    {
+      key: "customer_name",
+      label: "Tên khách hàng",
+      minWidth: "min-w-[180px]",
+    },
     { key: "total_did", label: "Tổng CID" },
-    { key: "total_minutes", label: "Tổng phút gọi" },
+    { key: "total_minutes", label: "Phút gọi" },
     { key: "username", label: "Sale" },
-    { key: "root_plan_id", label: "Gói chính" },
+    { key: "root_plan_id", label: "Gói" },
     { key: "total_price", label: "Tổng giá" },
+    {
+      key: "is_payment",
+      label: "Thanh toán",
+    },
     { key: "status", label: "Trạng thái" },
   ];
 
   const hasActionColumn = onEdit || onDelete;
-  const totalColumnCount = columns.length + 1 + (hasActionColumn ? 1 : 0); // +1 for ID column, +1 for actions
+  const totalColumnCount = columns.length + 1 + (hasActionColumn ? 1 : 0);
   const isManyColumns = totalColumnCount > 8;
 
-  return (
-    <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-black">
-      <div className="w-full overflow-x-auto">
-        <div className="min-w-[1000px]">
-          <div className="max-h-[800px] overflow-y-auto dark:bg-black min-w-[900px]">
-            <Table className="dark:text-white">
-              {/* Table Header */}
-              <TableHeader>
-                <TableRow>
-                  <TableCell
-                    isHeader
-                    className="px-5 py-3 text-base font-semibold text-gray-500 dark:text-gray-300 text-start">
-                    ID
-                  </TableCell>
-                  {columns.map((col, idx) => (
-                    <TableCell
-                      key={`${col.key}-${idx}`}
-                      isHeader
-                      className={`px-5 ${
-                        isManyColumns ? "text-[13px]" : "text-sm"
-                      } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start`}>
-                      {col.label}
-                    </TableCell>
-                  ))}
-                  {hasActionColumn && (
-                    <TableCell
-                      isHeader
-                      className={`px-5 ${
-                        isManyColumns ? "text-[13px]" : "text-sm"
-                      } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start`}>
-                      Hành động
-                    </TableCell>
-                  )}
-                </TableRow>
-              </TableHeader>
+  const formatNumberVN = (value: number) => {
+    if (value == null) return "";
+    return value.toLocaleString("vi-VN");
+  };
 
-              {/* Table Body */}
-              <TableBody>
-                {isLoading ? (
-                  Array.from({ length: 5 }).map((_, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="px-5 py-3">
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+  // Lấy danh sách tổng giá
+  const { data: dataTotalPrice, isLoading: isLoadingTotalPrice } = useApi(() =>
+    subscriptionService.getTotalPrice()
+  );
+
+  return (
+    <div className="space-y-4">
+      {/* Total Price Display - Top Right */}
+      <div className="flex items-center justify-end">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-sm border border-gray-200 bg-white/50 backdrop-blur-sm dark:bg-transparent">
+          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            TỔNG DOANH THU:
+          </span>
+          <span className="text-base font-bold text-blue-600">
+            {isLoadingTotalPrice
+              ? "..."
+              : formatCurrency(dataTotalPrice?.data.total_price) ?? "0 đ"}
+          </span>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-black">
+        <div className="w-full overflow-x-auto">
+          <div className="min-w-[1000px]">
+            <div className="max-h-[800px] overflow-y-auto dark:bg-black min-w-[900px]">
+              <Table className="dark:text-white">
+                {/* Table Header */}
+                <TableHeader>
+                  <TableRow>
+                    {columns.map((col, idx) => (
+                      <TableCell
+                        key={`${col.key}-${idx}`}
+                        isHeader
+                        className={`px-5 ${col.minWidth || ""} ${
+                          isManyColumns ? "text-[13px]" : "text-sm"
+                        } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start`}>
+                        {col.label}
                       </TableCell>
-                      {columns.map((col) => (
-                        <TableCell
-                          key={col.key}
-                          className={`px-5 py-3 text-sm text-gray-500 dark:text-gray-300 ${
-                            isManyColumns ? "text-[13px]" : "text-sm"
-                          }`}>
+                    ))}
+                    <TableCell
+                      isHeader
+                      className={`px-5 flex justify-center min-w-[150px] ${
+                        isManyColumns ? "text-[13px]" : "text-sm"
+                      } dark:text-gray-300 py-5 text-base font-semibold text-gray-500 text-start`}>
+                      Lưu lượng
+                    </TableCell>
+                    {hasActionColumn && (
+                      <TableCell
+                        isHeader
+                        className={`px-5 min-w-[120px] ${
+                          isManyColumns ? "text-[13px]" : "text-sm"
+                        } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-center
+                        bg-white dark:bg-black`}>
+                        Hành động
+                      </TableCell>
+                    )}
+                  </TableRow>
+                </TableHeader>
+
+                {/* Table Body */}
+                <TableBody>
+                  {isLoading ? (
+                    Array.from({ length: 5 }).map((_, index) => (
+                      <TableRow key={index}>
+                        {columns.map((col) => (
+                          <TableCell
+                            key={col.key}
+                            className={`px-5 py-3 ${
+                              col.minWidth || ""
+                            } text-sm text-gray-500 dark:text-gray-300 ${
+                              isManyColumns ? "text-[13px]" : "text-sm"
+                            }`}>
+                            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                          </TableCell>
+                        ))}
+                        <TableCell className="px-5 py-3 min-w-[200px]">
                           <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
                         </TableCell>
-                      ))}
-                      {hasActionColumn && (
-                        <TableCell
-                          className={`flex gap-2 px-5 py-3 ${
-                            isManyColumns ? "text-[13px]" : "text-sm"
-                          }`}>
-                          <div className="h-6 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                          <div className="h-6 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))
-                ) : data.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={totalColumnCount}
-                      className="py-12 text-center">
-                      <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
-                        <svg
-                          className="w-16 h-16 mb-4 text-gray-300 dark:text-gray-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1}
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
-                        </svg>
-                        <p className="text-lg font-medium mb-2">
-                          Không có dữ liệu
-                        </p>
-                        <p className="text-sm">
-                          Không tìm thấy subscription nào phù hợp với bộ lọc
-                          hiện tại
-                        </p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  data.map((item) => (
-                    <TableRow key={item.id}>
+                        {hasActionColumn && (
+                          <TableCell
+                            className={`px-5 py-3 min-w-[120px] ${
+                              isManyColumns ? "text-[13px]" : "text-sm"
+                            } sticky right-0 bg-white dark:bg-black z-10`}>
+                            <div className="flex gap-2 justify-center">
+                              <div className="h-6 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                              <div className="h-6 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                            </div>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))
+                  ) : data.length === 0 ? (
+                    <TableRow>
                       <TableCell
-                        className={`px-5 dark:text-gray-300 py-3 ${
-                          isManyColumns ? "text-[13px]" : "text-sm"
-                        }`}>
-                        {item.id}
+                        colSpan={totalColumnCount}
+                        className="py-12 text-center">
+                        <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
+                          <svg
+                            className="w-16 h-16 mb-4 text-gray-300 dark:text-gray-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={1}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                          <p className="text-lg font-medium mb-2">
+                            Không có dữ liệu
+                          </p>
+                          <p className="text-sm">
+                            Không tìm thấy subscription nào phù hợp với bộ lọc
+                            hiện tại
+                          </p>
+                        </div>
                       </TableCell>
-                      {columns.map((col) => (
+                    </TableRow>
+                  ) : (
+                    data.map((item) => (
+                      <TableRow key={item.id}>
+                        {columns.map((col) => (
+                          <TableCell
+                            key={col.key}
+                            className={`px-5 py-3 ${
+                              col.minWidth || ""
+                            } text-sm text-gray-500 dark:text-gray-300 ${
+                              isManyColumns ? "text-[13px]" : "text-sm"
+                            }`}>
+                            {col.key === "status" ? (
+                              <StatusBadge status={item.status} />
+                            ) : col.key === "is_payment" ? (
+                              <div className="flex items-center px-1">
+                                {item[col.key] ? (
+                                  <>
+                                    <CheckCircle className="w-5 h-5 text-green-500 dark:text-green-400" />
+                                  </>
+                                ) : (
+                                  <>
+                                    <BsXCircle className="w-5 h-5 text-red-500 dark:text-red-400" />
+                                  </>
+                                )}
+                              </div>
+                            ) : col.key === "total_price" ? (
+                              formatCurrency(item[col.key])
+                            ) : col.key === "total_minutes" ? (
+                              formatNumberVN(item[col.key])
+                            ) : (
+                              item[col.key] || "-"
+                            )}
+                          </TableCell>
+                        ))}
                         <TableCell
-                          key={col.key}
-                          className={`px-5 py-3 text-sm text-gray-500 dark:text-gray-300 ${
+                          className={`px-5 dark:text-gray-300 py-3 min-w-[200px] ${
                             isManyColumns ? "text-[13px]" : "text-sm"
                           }`}>
-                          {col.key === "status" ? (
-                            <StatusBadge status={item.status} />
-                          ) : col.key === "total_price" ? (
-                            formatCurrency(item[col.key])
+                          {item.currentProgress > 0 ? (
+                            <DualProgress
+                              barClassName="h-4"
+                              labelClassName="text-xs"
+                              total={item.totalProgress}
+                              current={item.currentProgress}
+                            />
                           ) : (
-                            item[col.key] || "-"
+                            <span className="text-gray-400 flex justify-center dark:text-gray-500 text-xs">
+                              Chưa thêm mã trượt
+                            </span>
                           )}
                         </TableCell>
-                      ))}
-                      {hasActionColumn && (
-                        <TableCell
-                          className={`px-5 py-3 ${
-                            isManyColumns ? "text-[13px]" : "text-sm"
-                          }`}>
-                          <div className="flex items-center justify-center gap-2">
-                            {onEdit && (
-                              <button
-                                onClick={() => onEdit(item)}
-                                className="bg-yellow-400 text-white px-3 py-2 rounded-full text-xs hover:brightness-110 transition-all duration-200 flex items-center gap-1">
-                                <PencilIcon />
-                              </button>
-                            )}
-                            {onDelete && (
-                              <button
-                                onClick={() => onDelete(item.id)}
-                                className="bg-red-400 text-white px-3 py-2 rounded-full text-xs hover:brightness-110 transition-all duration-200 flex items-center gap-1">
-                                <RiDeleteBinLine />
-                              </button>
-                            )}
-                          </div>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                        {hasActionColumn && (
+                          <TableCell
+                            className={`px-5 py-3 min-w-[120px] ${
+                              isManyColumns ? "text-[13px]" : "text-sm"
+                            }  bg-white dark:bg-black`}>
+                            <ActionMenu
+                              item={item}
+                              role={role}
+                              onEdit={onEdit}
+                              onDetail={onDetail}
+                              onDelete={(id) => onDelete?.(id)}
+                              onConfirm={(id) => onConfirm?.(id)}
+                            />
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </div>
       </div>
@@ -273,11 +340,12 @@ export interface SubscriptionQuery {
   tax_code?: string;
   contract_code?: string;
   username?: string;
+  is_payment?: boolean;
 }
 
 const SubsciptionList = () => {
   const navigate = useNavigate();
-  const [subsciptions, setSubsciptions] = useState<SubcriptionData[]>([]);
+  const [subscriptions, setsubscriptions] = useState<SubcriptionData[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -287,12 +355,36 @@ const SubsciptionList = () => {
   const [expiredFrom, setExpiredFrom] = useState<string>("");
   const [expiredTo, setExpiredTo] = useState<string>("");
 
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    0,
+    23,
+    59,
+    59
+  );
+
+  function toLocalISOString(date: Date) {
+    const tzOffset = date.getTimezoneOffset() * 60000;
+    const localTime = new Date(date.getTime() - tzOffset);
+    return localTime.toISOString().slice(0, 16);
+  }
+
   const [query, setQuery] = useQuerySync<SubscriptionQuery>({
     page: 1,
     size: 10,
     order_by: "created_at",
     order_dir: "desc",
+    expired_from: toLocalISOString(startOfMonth),
+    expired_to: toLocalISOString(endOfMonth),
   });
+
+  useEffect(() => {
+    if (query.expired_from) setExpiredFrom(query.expired_from);
+    if (query.expired_to) setExpiredTo(query.expired_to);
+  }, [query.expired_from, query.expired_to]);
 
   const [pagination, setPagination] = useState({
     page: query.page,
@@ -314,13 +406,14 @@ const SubsciptionList = () => {
     return () => clearTimeout(handler);
   }, [searchInput, query, setQuery]);
 
-  // Tạo một query string ổn định để so sánh
   const queryKey = useMemo(() => {
     return `${query.page}_${query.size}_${query.order_by}_${query.order_dir}_${
       query.search || ""
     }_${query.status || ""}_${query.root_plan_id || ""}_${
       query.expired_from || ""
-    }_${query.expired_to || ""}_${query.auto_renew ?? ""}`;
+    }_${query.expired_to || ""}_${query.auto_renew ?? ""}_${
+      query.is_payment ?? ""
+    }`;
   }, [
     query.page,
     query.size,
@@ -332,13 +425,29 @@ const SubsciptionList = () => {
     query.expired_from,
     query.expired_to,
     query.auto_renew,
+    query.is_payment, // ✅ thêm dòng này
   ]);
+
+  // ✅ FIX: Dùng state thay vì ref để trigger useEffect
+  const [quotaBody, setQuotaBody] = useState<any[]>([]);
 
   const fetchSubscriptions = async () => {
     setLoading(true);
     try {
       const result = await subscriptionService.get(query);
-      setSubsciptions(result.data?.items || []);
+      setsubscriptions(result.data?.items || []);
+
+      const listAccount =
+        result.data?.items
+          ?.filter((sub: any) => (sub.slide_users?.length || 0) > 0)
+          ?.map((item: any) => ({
+            sub_Id: item.id,
+            list_account: item.slide_users || [],
+          })) || [];
+
+      // ✅ FIX: Set vào state để trigger useEffect quota
+      setQuotaBody(listAccount);
+
       setPagination(
         result.data?.meta || { page: 1, size: 10, total: 0, pages: 1 }
       );
@@ -353,7 +462,6 @@ const SubsciptionList = () => {
   const prevQueryKeyRef = useRef<string>("");
 
   useEffect(() => {
-    // Chỉ fetch khi query key thay đổi
     if (prevQueryKeyRef.current === queryKey) {
       return;
     }
@@ -363,68 +471,68 @@ const SubsciptionList = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryKey]);
 
-  // Lấy danh sách tất cả plans để map với root_plan_id
+  // Lấy danh sách plans
   const { data: plansData, isLoading: isLoadingPlans } = useApi(() =>
     planService.get({})
   );
 
-  // Tạo map để tra cứu plan name từ plan id
+  // Map plan name
   const planMap =
     plansData?.data?.items?.reduce((acc: Record<number, string>, plan: any) => {
       acc[plan.id] = plan.name;
       return acc;
     }, {}) || {};
 
-  // Tạo map để tra cứu plan price từ plan id
+  // Map plan price
   const planPriceMap =
     plansData?.data?.items?.reduce((acc: Record<number, number>, plan: any) => {
       acc[plan.id] = plan.price_vnd || 0;
       return acc;
     }, {}) || {};
 
-  // Xử lý dữ liệu để hiển thị đúng format
-  const processedData =
-    subsciptions?.map((item: SubcriptionData) => {
-      // Tính total_price
-      const planPrice = item.root_plan_id
-        ? planPriceMap[item.root_plan_id] || 0
-        : 0;
-      const items = item.items || [];
-      const itemsTotal = items.reduce((sum: number, item: any) => {
-        const price = item.price_override_vnd || 0;
-        return sum + price;
-      }, 0);
-      const totalPrice = planPrice + itemsTotal;
+  // ✅ FIX: useMemo để tránh tạo object mới mỗi lần render
+  const processedData = useMemo(() => {
+    return (
+      subscriptions?.map((item: SubcriptionData) => {
+        const planPrice = item.root_plan_id
+          ? planPriceMap[item.root_plan_id] || 0
+          : 0;
+        const items = item.items || [];
+        const itemsTotal = items.reduce((sum: number, item: any) => {
+          const price = item.price_override_vnd || 0;
+          return sum + price;
+        }, 0);
+        const totalPrice = planPrice + itemsTotal;
 
-      return {
-        ...item,
-        customer_name: item.customer_name || "-",
-        tax_code: item.tax_code || "-",
-        contract_code: item.contract_code || "-",
-        username: item.username || "-",
-        slide_users:
-          item.slide_users && typeof item.slide_users === "object"
-            ? Object.values(item.slide_users).join(", ") || "-"
+        return {
+          ...item,
+          customer_name: item.customer_name || "-",
+          tax_code: item.tax_code || "-",
+          contract_code: item.contract_code || "-",
+          username: item.username || "-",
+          slide_users:
+            item.slide_users && typeof item.slide_users === "object"
+              ? Object.values(item.slide_users).join(", ") || "-"
+              : "-",
+          root_plan_id: item.root_plan_id
+            ? planMap[item.root_plan_id] || `ID: ${item.root_plan_id}`
             : "-",
-        root_plan_id: item.root_plan_id
-          ? planMap[item.root_plan_id] || `ID: ${item.root_plan_id}`
-          : "-",
-        total_price: totalPrice,
-        auto_renew: item.auto_renew ? "Có" : "Không",
-        status: item.status, // Giữ nguyên giá trị số để StatusBadge xử lý
-        total_did: item.total_did || "-",
-        total_minutes: item.total_minutes || "-",
-      };
-    }) || [];
+          total_price: totalPrice,
+          auto_renew: item.auto_renew ? "Có" : "Không",
+          status: item.status,
+          total_did: item.total_did || "-",
+          total_minutes: item.total_minutes || "-",
+        };
+      }) || []
+    );
+  }, [subscriptions, planMap, planPriceMap]);
 
   const handleDelete = async (id: string | number) => {
-    // Tìm item chính để lấy thông tin hiển thị
-    const data = subsciptions.find((item) => item.id === id);
-    const contractCode = data?.contract_code || id;
+    const data = subscriptions.find((item) => item.id === id);
 
     const result = await Swal.fire({
       title: "Xác nhận xóa",
-      text: `Bạn có chắc chắn muốn xóa mã hợp đồng "${contractCode}" không?`,
+      text: `Bạn có chắc chắn muốn xóa hợp đồng book gói của khách hàng "${data?.customer_name}" không?`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
@@ -435,13 +543,9 @@ const SubsciptionList = () => {
 
     if (result.isConfirmed) {
       try {
-        const res = await subscriptionService.delete(Number(id)); // gọi API xóa
+        const res = await subscriptionService.delete(Number(id));
         if (res.status === 200) {
-          Swal.fire(
-            "Đã xóa!",
-            `Mã hợp đồng "${contractCode}" đã được xóa.`,
-            "success"
-          );
+          Swal.fire("Đã xóa!", `Hợp đồng book gói đã được xóa.`, "success");
           fetchSubscriptions();
         } else {
           Swal.fire("Lỗi", "Không thể xóa gói này.", "error");
@@ -455,6 +559,88 @@ const SubsciptionList = () => {
       }
     }
   };
+
+  const handleConfirmPayment = async (id: any) => {
+    Swal.fire({
+      title: "Xác nhận thanh toán",
+      text: `Bạn có chắc chắn muốn xác nhận thanh toán cho hợp đồng book gói này không?`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Xác nhận",
+      cancelButtonText: "Hủy",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const res = await subscriptionService.update(id, {
+            is_payment: true,
+          });
+          if (res.status === 200) {
+            Swal.fire(
+              "Đã xác nhận!",
+              `Thanh toán thành công cho hợp đồng book gói.`,
+              "success"
+            );
+            navigate("/subscriptions");
+          } else {
+            Swal.fire("Lỗi", "Không thể xác nhận thanh toán.", "error");
+          }
+        } catch (error: any) {
+          Swal.fire(
+            "Lỗi",
+            error?.response?.data?.detail || "Xảy ra lỗi",
+            "error"
+          );
+        }
+      }
+    });
+  };
+
+  const currentMonth = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, "0");
+    return `${year}-${month}`;
+  }, []);
+
+  const [quotaData, setQuotaData] = useState<any[]>([]);
+
+  // ✅ FIX: Giờ quotaBody đã là state nên useEffect sẽ chạy đúng
+  useEffect(() => {
+    const fetchQuota = async () => {
+      if (!quotaBody || quotaBody.length === 0) return;
+      try {
+        const data = await getQuota(quotaBody, currentMonth);
+        const filtered = (data.data || []).filter(
+          (q: any) =>
+            (q.total_call_out || 0) > 0 ||
+            (q.total_call_in || 0) > 0 ||
+            (q.total_sms || 0) > 0
+        );
+        setQuotaData(filtered);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchQuota();
+  }, [quotaBody, currentMonth]);
+
+  // ✅ FIX: useMemo để tránh tạo array mới mỗi lần render
+  const mapData = useMemo(() => {
+    if (!subscriptions.length) return [];
+
+    return processedData.map((sub: any) => {
+      const quota = quotaData?.find((q: any) => q.sub_Id === sub.id);
+
+      return {
+        ...sub,
+        totalProgress: sub.total_minutes || 0,
+        currentProgress: quota?.total_call_out || 0,
+        total_price: sub.total_price || 0,
+      };
+    });
+  }, [processedData, quotaData, subscriptions.length]);
 
   return (
     <>
@@ -474,37 +660,50 @@ const SubsciptionList = () => {
                 className="w-full border border-gray-300 px-3 py-2 rounded-md"
               />
             </div>
-            {/* Ngày hết hạn từ */}
-            <div className="w-full col-span-1 sm:col-span-3">
-              <div className="grid grid-cols-2 gap-6">
-                {/* Ngày hết hạn từ */}
-                <div>
-                  <Label>Ngày hết hạn từ</Label>
-                  <Input
-                    type="datetime-local"
-                    value={expiredFrom}
-                    onChange={(e) => {
-                      setExpiredFrom(e.target.value);
-                      setQuery({ ...query, expired_from: e.target.value });
-                    }}
-                    className="w-full border border-gray-300 px-3 py-2 rounded-md"
-                  />
-                </div>
+            {/* Trạng thái thanh toán */}
+            <div className="w-full">
+              <Label>Trạng thái thanh toán</Label>
+              <Select
+                options={[
+                  { label: "Tất cả", value: "" },
+                  { label: "Đã thanh toán", value: "true" },
+                  { label: "Chưa thanh toán", value: "false" },
+                ]}
+                onChange={(value) =>
+                  setQuery({
+                    ...query,
+                    is_payment: value === "" ? undefined : value === "true",
+                  })
+                }
+                placeholder="Trạng thái thanh toán"
+              />
+            </div>
 
-                {/* Ngày hết hạn đến */}
-                <div>
-                  <Label>Ngày hết hạn đến</Label>
-                  <Input
-                    type="datetime-local"
-                    value={expiredTo}
-                    onChange={(e) => {
-                      setExpiredTo(e.target.value);
-                      setQuery({ ...query, expired_to: e.target.value });
-                    }}
-                    className="w-full border border-gray-300 px-3 py-2 rounded-md"
-                  />
-                </div>
-              </div>
+            <div>
+              <Label>Ngày hết hạn từ</Label>
+              <Input
+                type="datetime-local"
+                value={expiredFrom}
+                onChange={(e) => {
+                  setExpiredFrom(e.target.value);
+                  setQuery({ ...query, expired_from: e.target.value });
+                }}
+                className="w-full border border-gray-300 px-3 py-2 rounded-md"
+              />
+            </div>
+
+            {/* Ngày hết hạn đến */}
+            <div>
+              <Label>Ngày hết hạn đến</Label>
+              <Input
+                type="datetime-local"
+                value={expiredTo}
+                onChange={(e) => {
+                  setExpiredTo(e.target.value);
+                  setQuery({ ...query, expired_to: e.target.value });
+                }}
+                className="w-full border border-gray-300 px-3 py-2 rounded-md"
+              />
             </div>
             {/* Tìm kiếm */}
 
@@ -544,25 +743,6 @@ const SubsciptionList = () => {
               />
             </div>
 
-            {/* Auto Renew */}
-            {/* <div className="w-full">
-              <Label>Tự động gia hạn</Label>
-              <Select
-                options={[
-                  { label: "Tất cả", value: "" },
-                  { label: "Có", value: "true" },
-                  { label: "Không", value: "false" },
-                ]}
-                onChange={(value) =>
-                  setQuery({
-                    ...query,
-                    auto_renew: value ? value === "true" : undefined,
-                  })
-                }
-                placeholder="Tự động gia hạn"
-              />
-            </div> */}
-
             {/* Thứ tự */}
             <div className="w-full">
               <Label>Thứ tự</Label>
@@ -584,8 +764,6 @@ const SubsciptionList = () => {
                   { label: "Ngày tạo", value: "created_at" },
                   { label: "Ngày cập nhật", value: "updated_at" },
                   { label: "Tên khách hàng", value: "customer_name" },
-                  { label: "Mã số thuế", value: "tax_code" },
-                  { label: "Mã hợp đồng", value: "contract_code" },
                   { label: "Trạng thái", value: "status" },
                   { label: "Ngày hết hạn", value: "expired" },
                 ]}
@@ -605,11 +783,16 @@ const SubsciptionList = () => {
           ) : (
             <>
               <CustomSubscriptionTable
-                data={processedData}
+                data={mapData}
                 isLoading={loading || isLoadingPlans}
+                role={user.role}
                 onEdit={(item) => {
                   navigate(`/subscriptions/edit/${item.id}`);
                 }}
+                onConfirm={(item) => handleConfirmPayment(item)}
+                onDetail={(item) =>
+                  navigate(`/subscriptions/detail/${item.id}`)
+                }
                 onDelete={(id) => handleDelete(id)}
               />
               <Pagination data={pagination} onChange={handlePaginationChange} />

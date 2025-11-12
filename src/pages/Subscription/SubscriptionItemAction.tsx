@@ -12,6 +12,7 @@ export interface SubscriptionItem {
   quantity: number;
   price_override_vnd: number;
   note: string;
+  is_payment?: boolean;
 }
 
 interface SubscriptionItemActionProps {
@@ -137,7 +138,7 @@ const SubscriptionItemAction: React.FC<SubscriptionItemActionProps> = ({
         Swal.fire({
           icon: "success",
           title: "Thành công",
-          text: "Thêm subscription item thành công!",
+          text: "Thêm gói phụ thành công!",
         });
       }
 
