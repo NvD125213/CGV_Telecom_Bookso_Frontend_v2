@@ -16,6 +16,7 @@ export interface SubscriptionItem {
 
 interface SubscriptionItemActionProps {
   subscriptionId: number;
+  plan: any;
   externalModalState?: boolean;
   onExternalModalClose?: () => void;
   preSelectedPlan?: any;
@@ -37,6 +38,8 @@ const SubscriptionItemAction: React.FC<SubscriptionItemActionProps> = ({
 
   const { data: plansData } = useApi(() => planService.get({}));
   const plans = plansData?.data?.items || [];
+
+  // const { data: planDetailData } = useApi(() => planService.getById())
 
   const [formData, setFormData] = useState<SubscriptionItem>({
     subscription_id: subscriptionId,
@@ -101,10 +104,6 @@ const SubscriptionItemAction: React.FC<SubscriptionItemActionProps> = ({
       newErrors.quantity = "Số lượng phải lớn hơn 0";
     }
 
-    if (!formData.price_override_vnd || formData.price_override_vnd < 0) {
-      newErrors.price_override_vnd = "Giá không hợp lệ";
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -112,10 +111,21 @@ const SubscriptionItemAction: React.FC<SubscriptionItemActionProps> = ({
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
+    let finalFormData = { ...formData };
+    if (
+      !finalFormData.price_override_vnd ||
+      finalFormData.price_override_vnd == 0
+    ) {
+      finalFormData = {
+        ...formData,
+        price_override_vnd: preSelectedPlan.price_vnd,
+      };
+    }
+
     try {
       if (editingItem && editingItem.id) {
         // Update
-        await subscriptionItemService.update(editingItem.id, formData);
+        await subscriptionItemService.update(editingItem.id, finalFormData);
         Swal.fire({
           icon: "success",
           title: "Thành công",
@@ -123,7 +133,7 @@ const SubscriptionItemAction: React.FC<SubscriptionItemActionProps> = ({
         });
       } else {
         // Create
-        await subscriptionItemService.create(formData);
+        await subscriptionItemService.create(finalFormData);
         Swal.fire({
           icon: "success",
           title: "Thành công",
@@ -212,14 +222,6 @@ const SubscriptionItemAction: React.FC<SubscriptionItemActionProps> = ({
                 onChange: (value) => setValue("plan_id", Number(value)),
                 error: errors.plan_id,
               },
-          // {
-          //   name: "quantity",
-          //   label: "Số lượng",
-          //   type: "number",
-          //   value: formData.quantity,
-          //   onChange: (value) => setValue("quantity", Number(value)),
-          //   error: errors.quantity,
-          // },
           {
             name: "price_override_vnd",
             label: "Giá thay đổi (VND)",
