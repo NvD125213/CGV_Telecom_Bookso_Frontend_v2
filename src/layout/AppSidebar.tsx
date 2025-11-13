@@ -116,11 +116,11 @@ const navItems: NavItem[] = [
       },
     ],
   },
-  // {
-  //   name: "Logs",
-  //   path: "/logs",
-  //   icon: <CiDatabase />,
-  // },
+  {
+    name: "Logs",
+    path: "/logs",
+    icon: <CiDatabase />,
+  },
 ];
 
 const othersItems: NavItem[] = [
