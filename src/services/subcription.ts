@@ -1,8 +1,7 @@
-import { instanceStatic } from "../config/apiStatic";
+// import { instanceStatic } from "../config/apiStatic";
 import axiosInstance from "../config/apiToken";
 import axios from "axios";
 import { cleanQuery } from "../helper/cleanQuery";
-import { is } from "date-fns/locale";
 
 export interface SubcriptionData {
   customer_name: string;

@@ -389,11 +389,11 @@ export const PlanActionPage = () => {
         0
       );
 
-      if (totalOutbound > form.did_count) {
+      if (!(totalOutbound == form.did_count)) {
         Swal.fire({
           icon: "error",
           title: "Lỗi",
-          text: `Tổng số outbound (${totalOutbound}) không được vượt quá tổng CID (${form.did_count})`,
+          text: `Tổng số outbound (${totalOutbound}) phải bằng tổng số CID (${form.did_count})`,
         });
         setLoading(false);
         return;
@@ -603,8 +603,6 @@ export const PlanActionPage = () => {
       }
     });
   }, [form]);
-
-  console.log(">>>", children);
 
   return (
     <>

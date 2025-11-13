@@ -69,7 +69,7 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
           vertical: "top",
           horizontal: "right",
         }}>
-        {onEdit && role === 1 && (
+        {/* {onEdit && role === 1 && (
           <MenuItem
             onClick={() => {
               handleClose();
@@ -80,7 +80,7 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
             </ListItemIcon>
             <ListItemText primary="Chỉnh sửa" />
           </MenuItem>
-        )}
+        )} */}
 
         {onDetail && (
           <MenuItem

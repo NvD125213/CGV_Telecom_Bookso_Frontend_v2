@@ -428,10 +428,10 @@ const SubsciptionList = () => {
     query.expired_from,
     query.expired_to,
     query.auto_renew,
-    query.is_payment, // ✅ thêm dòng này
+    query.is_payment, // thêm dòng này
   ]);
 
-  // ✅ FIX: Dùng state thay vì ref để trigger useEffect
+  // FIX: Dùng state thay vì ref để trigger useEffect
   const [quotaBody, setQuotaBody] = useState<any[]>([]);
 
   const fetchSubscriptions = async () => {
@@ -448,7 +448,7 @@ const SubsciptionList = () => {
             list_account: item.slide_users || [],
           })) || [];
 
-      // ✅ FIX: Set vào state để trigger useEffect quota
+      // FIX: Set vào state để trigger useEffect quota
       setQuotaBody(listAccount);
 
       setPagination(
@@ -492,8 +492,6 @@ const SubsciptionList = () => {
       acc[plan.id] = plan.price_vnd || 0;
       return acc;
     }, {}) || {};
-
-  console.log(">>>", subscriptions);
 
   //  FIX: useMemo để tránh tạo object mới mỗi lần render
   const processedData = useMemo(() => {
@@ -611,7 +609,7 @@ const SubsciptionList = () => {
 
   const [quotaData, setQuotaData] = useState<any[]>([]);
 
-  // ✅ FIX: Giờ quotaBody đã là state nên useEffect sẽ chạy đúng
+  // FIX: Giờ quotaBody đã là state nên useEffect sẽ chạy đúng
   useEffect(() => {
     const fetchQuota = async () => {
       if (!quotaBody || quotaBody.length === 0) return;
