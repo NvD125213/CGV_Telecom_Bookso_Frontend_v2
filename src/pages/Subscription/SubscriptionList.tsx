@@ -103,16 +103,20 @@ const CustomSubscriptionTable = ({
     {
       key: "customer_name",
       label: "Tên khách hàng",
-      minWidth: "min-w-[180px]",
+      minWidth: "min-w-[150px]",
     },
     { key: "total_did", label: "Tổng CID" },
     { key: "total_minutes", label: "Phút gọi" },
     { key: "username", label: "Sale" },
-    { key: "root_plan_id", label: "Gói" },
+    { key: "root_plan_id", label: "Gói chính" },
     { key: "total_price", label: "Tổng giá" },
     {
       key: "is_payment",
       label: "Thanh toán",
+    },
+    {
+      key: "list_sub_plan",
+      label: "Số gói phụ",
     },
     { key: "status", label: "Trạng thái" },
   ];
@@ -151,7 +155,7 @@ const CustomSubscriptionTable = ({
       <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-black">
         <div className="w-full overflow-x-auto">
           <div className="min-w-[1000px]">
-            <div className="max-h-[800px] overflow-y-auto dark:bg-black min-w-[900px]">
+            <div className="max-h-[800px] overflow-y-auto dark:bg-black min-w-[1000px] mb-4">
               <Table className="dark:text-white">
                 {/* Table Header */}
                 <TableHeader>
@@ -161,7 +165,7 @@ const CustomSubscriptionTable = ({
                         key={`${col.key}-${idx}`}
                         isHeader
                         className={`px-5 ${col.minWidth || ""} ${
-                          isManyColumns ? "text-[13px]" : "text-sm"
+                          isManyColumns ? "text-[12px]" : "text-sm"
                         } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start`}>
                         {col.label}
                       </TableCell>
@@ -490,7 +494,7 @@ const SubsciptionList = () => {
       return acc;
     }, {}) || {};
 
-  // ✅ FIX: useMemo để tránh tạo object mới mỗi lần render
+  //  FIX: useMemo để tránh tạo object mới mỗi lần render
   const processedData = useMemo(() => {
     return (
       subscriptions?.map((item: SubcriptionData) => {
@@ -628,19 +632,45 @@ const SubsciptionList = () => {
 
   // ✅ FIX: useMemo để tránh tạo array mới mỗi lần render
   const mapData = useMemo(() => {
-    if (!subscriptions.length) return [];
+    // 1. Kiểm tra và Tạo Map (Sửa lỗi plansData.items)
+    if (!subscriptions.length || !plansData?.data.items) return [];
+
+    // console.log("planData", plansData?.data.items);
+
+    const plansMap: Map<number, any> = new Map();
+    plansData.data.items.forEach((plan: any) => {
+      plansMap.set(plan.id, plan);
+    });
 
     return processedData.map((sub: any) => {
       const quota = quotaData?.find((q: any) => q.sub_Id === sub.id);
+      const planIds = sub.items.map((item: any) => item.plan_id);
+      const plans = planIds
+        .map((id: number) => plansMap.get(id))
+        .filter(Boolean);
+      let totalPlanMinutes = 0;
+      let totalPlanDidCount = 0;
+      const planNames: string[] = [];
+
+      plans.forEach((plan: any) => {
+        totalPlanMinutes += plan.minutes || 0;
+        totalPlanDidCount += plan.did_count || 0;
+        planNames.push(plan.name);
+      });
 
       return {
         ...sub,
-        totalProgress: sub.total_minutes || 0,
+        // ...planDetails, // <-- Thêm chi tiết plan tại đây
+        totalProgress: (sub.total_minutes || 0) + totalPlanMinutes,
         currentProgress: quota?.total_call_out || 0,
         total_price: sub.total_price || 0,
+        // Cộng dồn minutes và did_count từ plan
+        total_minutes: (sub.total_minutes || 0) + totalPlanMinutes,
+        list_sub_plan: planNames.length,
+        total_did: totalPlanDidCount + sub.total_did,
       };
     });
-  }, [processedData, quotaData, subscriptions.length]);
+  }, [processedData, quotaData, subscriptions.length, plansData]);
 
   return (
     <>
