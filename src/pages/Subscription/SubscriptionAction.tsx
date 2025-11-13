@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Input from "../../components/form/input/InputField";
 import Select from "../../components/form/Select";
@@ -864,6 +864,26 @@ export const SubcriptionActionPage = () => {
     });
   };
 
+  // Tổng minutes
+
+  // Tính tổng minutes từ plan gốc + các subscription items
+  const totalMinutes = useMemo(() => {
+    // Minutes từ plan gốc
+    const rootMinutes = form?.total_minutes || 0;
+
+    // Tổng minutes từ các subscription items
+    const itemsMinutes = items.reduce((sum, item) => {
+      // Tìm plan tương ứng với item.plan_id
+      const plan = allPlans.find((p: any) => p.id === item.plan_id);
+      const planMinutes = plan?.minutes || 0;
+
+      // Nhân với quantity
+      return sum + planMinutes * item.quantity;
+    }, 0);
+
+    return rootMinutes + itemsMinutes;
+  }, [planData, items, allPlans]);
+
   return (
     <>
       <PageBreadcrumb
@@ -1027,7 +1047,7 @@ export const SubcriptionActionPage = () => {
         {isHavingID && form.slide_users.length > 0 && (
           <div>
             <DualProgress
-              total={planData?.minutes}
+              total={totalMinutes}
               current={comboDetailData.total_call_out}
               label="Số phút gọi"
             />

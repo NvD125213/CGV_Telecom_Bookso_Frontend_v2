@@ -25,7 +25,6 @@ import Swal from "sweetalert2";
 import DualProgress from "../../components/progress-bar/DualProgress";
 import { formatCurrency } from "../../helper/formatCurrency";
 import ActionMenu from "./ActionMenu";
-import { min } from "lodash";
 import { CheckCircle } from "@mui/icons-material";
 import { BsXCircle } from "react-icons/bs";
 
@@ -155,7 +154,7 @@ const CustomSubscriptionTable = ({
       <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-black">
         <div className="w-full overflow-x-auto">
           <div className="min-w-[1000px]">
-            <div className="max-h-[800px] overflow-y-auto dark:bg-black min-w-[1000px] mb-4">
+            <div className="max-h-[800px] overflow-y-auto dark:bg-black min-w-[1000px] pb-4">
               <Table className="dark:text-white">
                 {/* Table Header */}
                 <TableHeader>
@@ -493,6 +492,8 @@ const SubsciptionList = () => {
       acc[plan.id] = plan.price_vnd || 0;
       return acc;
     }, {}) || {};
+
+  console.log(">>>", subscriptions);
 
   //  FIX: useMemo để tránh tạo object mới mỗi lần render
   const processedData = useMemo(() => {

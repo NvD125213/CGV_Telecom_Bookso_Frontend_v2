@@ -26,6 +26,7 @@ export interface SubscriptionItem {
   plan_id: number;
   quantity: number;
   price_override_vnd: number;
+  is_payment?: boolean;
   note: string;
 }
 
