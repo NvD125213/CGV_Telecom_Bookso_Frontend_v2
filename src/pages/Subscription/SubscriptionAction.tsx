@@ -125,6 +125,7 @@ export const SlideForm = ({ value, onChange }: SlideFormProps) => {
           <div key={index} className="flex items-center gap-2">
             <button
               type="button"
+              disabled
               onClick={() => handleRemove(index)}
               className="p-2 rounded-full bg-red-100 hover:bg-red-200 text-red-600 flex-shrink-0">
               <IoIosRemove size={20} />
@@ -133,6 +134,7 @@ export const SlideForm = ({ value, onChange }: SlideFormProps) => {
             <div className="flex-1 min-w-0">
               <Input
                 type="text"
+                disabledWhite
                 placeholder="Nhập giá trị"
                 value={item}
                 onChange={(e) => handleChange(index, e.target.value)}
@@ -141,13 +143,13 @@ export const SlideForm = ({ value, onChange }: SlideFormProps) => {
           </div>
         ))}
 
-        <button
+        {/* <button
           type="button"
           onClick={handleAdd}
           className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium mt-2">
           <IoIosAdd size={20} />
           Thêm mục
-        </button>
+        </button> */}
       </div>
     </div>
   );
@@ -601,31 +603,47 @@ export const SubcriptionActionPage = () => {
     {
       key: "status",
       label: "Trạng thái",
-      type: "span",
       classname:
         "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500",
     },
   ];
 
-  // Subscription items columns for ReusableTable
-  const itemColumns: {
-    key: keyof SubscriptionItem | "is_payment";
-    label: string;
-  }[] = [
+  const getItemColumns = () => [
     { key: "plan_id", label: "Gói bổ sung" },
     { key: "quantity", label: "Số lượng" },
     { key: "price_override_vnd", label: "Giá (VND)" },
     { key: "note", label: "Ghi chú" },
-    { key: "is_payment", label: "Thanh toán" }, // ✅ thêm cột mới
+    {
+      key: "status",
+      label: "Trạng thái",
+      render: (item: any) => {
+        return item.status === 1
+          ? {
+              text: "active",
+              classname:
+                "inline-flex items-center justify-center gap-1 px-4 py-1 rounded-full font-medium text-xs bg-success-50 text-success-600 dark:bg-success-500/15 min-w-[80px]",
+            }
+          : item.status === 2
+          ? {
+              text: "pending",
+              classname:
+                "inline-flex items-center justify-center gap-1 px-4 py-1 rounded-full font-medium text-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-orange-400 min-w-[80px]",
+            }
+          : {
+              text: "deleted",
+              classname:
+                "inline-flex items-center justify-center gap-1 px-4 py-1 rounded-full font-medium text-xs bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500 min-w-[80px]",
+            };
+      },
+    },
+    { key: "is_payment", label: "Thanh toán" },
   ];
 
-  // Helper function để map plan_id thành tên plan
   const mapPlanIdToName = (planId: number): string => {
     const plan = allPlans.find((p: any) => p.id === planId);
     return plan ? plan.name : "-";
   };
 
-  // Thêm subscription item
   const [modal, setModal] = useState<boolean>(false);
   const [selectedDataSubItem, setSelectedDataSubItem] = useState<any | null>(
     null
@@ -730,7 +748,7 @@ export const SubcriptionActionPage = () => {
         toolbar: {
           show: true,
         },
-        fontFamily: "'Roboto', 'Arial', sans-serif", // font hỗ trợ tiếng Việt
+        fontFamily: "'Roboto', 'Arial', sans-serif",
       },
 
       stroke: {
@@ -864,8 +882,6 @@ export const SubcriptionActionPage = () => {
     });
   };
 
-  // Tổng minutes
-
   // Tính tổng minutes từ plan gốc + các subscription items
   const totalMinutes = useMemo(() => {
     // Minutes từ plan gốc
@@ -883,6 +899,25 @@ export const SubcriptionActionPage = () => {
 
     return rootMinutes + itemsMinutes;
   }, [planData, items, allPlans]);
+
+  const totalAddOnPrice = useMemo(() => {
+    let paid = 0;
+    let unpaid = 0;
+
+    items.forEach((item) => {
+      const plan = allPlans.find((p: any) => p.id === item.plan_id);
+      const price = item.price_override_vnd ?? plan?.price_vnd ?? 0;
+      const totalPrice = price * item.quantity;
+
+      if (item.is_payment) {
+        paid += totalPrice;
+      } else {
+        unpaid += totalPrice;
+      }
+    });
+
+    return { paid, unpaid };
+  }, [items, allPlans]);
 
   return (
     <>
@@ -1032,7 +1067,7 @@ export const SubcriptionActionPage = () => {
                   className="text-gray-900 bg-gray-200 cursor-not-allowed border border-gray-300"
                 />
               </div>
-              {user.role == 1 && isEdit && (
+              {user.role == 1 && isDetail && (
                 <div>
                   <Label>Cấu hình mã trượt</Label>
                   <SlideForm
@@ -1084,26 +1119,48 @@ export const SubcriptionActionPage = () => {
           <ComponentCard className="mt-6">
             {/* Tab Navigation */}
             <div className="border-b border-gray-200 dark:border-gray-700 mb-4">
-              <nav className="-mb-px flex space-x-8">
-                <button
-                  onClick={() => setActiveTab("items")}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                    activeTab === "items"
-                      ? "border-indigo-500 text-indigo-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                  }`}>
-                  Gói bổ sung ({items.length})
-                </button>
-                <button
-                  onClick={() => setActiveTab("phones")}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                    activeTab === "phones"
-                      ? "border-indigo-500 text-indigo-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                  }`}>
-                  Số điện thoại ({form.phone_numbers?.length || 0})
-                </button>
-              </nav>
+              <div className="border-b border-gray-200 dark:border-gray-700 mb-4">
+                <div className="flex items-center justify-between">
+                  {/* Tabs */}
+                  <nav className="-mb-px flex space-x-8">
+                    <button
+                      onClick={() => setActiveTab("items")}
+                      className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                        activeTab === "items"
+                          ? "border-indigo-500 text-indigo-600"
+                          : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                      }`}>
+                      Gói bổ sung ({items.length})
+                    </button>
+
+                    <button
+                      onClick={() => setActiveTab("phones")}
+                      className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                        activeTab === "phones"
+                          ? "border-indigo-500 text-indigo-600"
+                          : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                      }`}>
+                      Số điện thoại ({form.phone_numbers?.length || 0})
+                    </button>
+                  </nav>
+
+                  {/* Stats */}
+                  <div className="flex gap-6 text-sm text-gray-600 dark:text-gray-400">
+                    <p>
+                      Đã thanh toán:{" "}
+                      <span className="font-semibold">
+                        {totalAddOnPrice.paid.toLocaleString()} VND
+                      </span>
+                    </p>
+                    <p>
+                      Chưa thanh toán:{" "}
+                      <span className="font-semibold">
+                        {totalAddOnPrice.unpaid.toLocaleString()} VND
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {activeTab === "phones" &&
@@ -1152,7 +1209,7 @@ export const SubcriptionActionPage = () => {
                     ? "Đã thanh toán"
                     : "Chưa thanh toán",
                 }))}
-                columns={itemColumns}
+                columns={getItemColumns()}
                 isLoading={itemsLoading}
                 error=""
                 disabled={true}

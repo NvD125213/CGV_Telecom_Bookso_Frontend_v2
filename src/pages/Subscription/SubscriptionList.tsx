@@ -3,14 +3,6 @@ import ComponentCard from "../../components/common/ComponentCard";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
 import { useState, useEffect, useRef, useMemo } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table";
-// import TableMobile from "../../mobiles/TableMobile";
 import { useIsMobile } from "../../hooks/useScreenSize";
 import { subscriptionService, getQuota } from "../../services/subcription";
 import { useApi } from "../../hooks/useApi";
@@ -21,12 +13,8 @@ import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
 import { Pagination } from "../../components/common/Pagination";
 import { useNavigate } from "react-router-dom";
+import { CustomSubscriptionTable } from "./SubscriptionTable";
 import Swal from "sweetalert2";
-import DualProgress from "../../components/progress-bar/DualProgress";
-import { formatCurrency } from "../../helper/formatCurrency";
-import ActionMenu from "./ActionMenu";
-import { CheckCircle } from "@mui/icons-material";
-import { BsXCircle } from "react-icons/bs";
 
 interface SubcriptionData {
   id: number;
@@ -45,288 +33,6 @@ interface SubcriptionData {
   is_payment?: boolean;
   items?: any[];
 }
-
-// Component để hiển thị status với màu sắc
-const StatusBadge = ({ status }: { status: number }) => {
-  const getStatusDisplay = (status: number) => {
-    switch (status) {
-      case 1:
-        return {
-          text: "active",
-          classname:
-            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500",
-        };
-      case 2:
-        return {
-          text: "Pending",
-          classname:
-            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-orange-400",
-        };
-      case 0:
-        return {
-          text: "expired",
-          classname:
-            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500",
-        };
-      default:
-        return {
-          text: "Không xác định",
-          classname:
-            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-gray-50 text-gray-600 dark:bg-gray-500/15 dark:text-gray-500",
-        };
-    }
-  };
-
-  const statusDisplay = getStatusDisplay(status);
-  return <span className={statusDisplay.classname}>{statusDisplay.text}</span>;
-};
-
-const CustomSubscriptionTable = ({
-  data,
-  isLoading,
-  onEdit,
-  onDelete,
-  onDetail,
-  onConfirm,
-  role,
-}: {
-  data: any[];
-  isLoading: boolean;
-  onEdit?: (item: any) => void;
-  onDelete?: (id: string | number) => void;
-  onDetail?: (item: any) => void;
-  onConfirm?: (id: string | number) => void;
-  role?: number;
-}) => {
-  const columns = [
-    {
-      key: "customer_name",
-      label: "Tên khách hàng",
-      minWidth: "min-w-[150px]",
-    },
-    { key: "total_did", label: "Tổng CID" },
-    { key: "total_minutes", label: "Phút gọi" },
-    { key: "username", label: "Sale" },
-    { key: "root_plan_id", label: "Gói chính" },
-    { key: "total_price", label: "Tổng giá" },
-    {
-      key: "is_payment",
-      label: "Thanh toán",
-    },
-    {
-      key: "list_sub_plan",
-      label: "Số gói phụ",
-    },
-    { key: "status", label: "Trạng thái" },
-  ];
-
-  const hasActionColumn = onEdit || onDelete;
-  const totalColumnCount = columns.length + 1 + (hasActionColumn ? 1 : 0);
-  const isManyColumns = totalColumnCount > 8;
-
-  const formatNumberVN = (value: number) => {
-    if (value == null) return "";
-    return value.toLocaleString("vi-VN");
-  };
-
-  // Lấy danh sách tổng giá
-  const { data: dataTotalPrice, isLoading: isLoadingTotalPrice } = useApi(() =>
-    subscriptionService.getTotalPrice()
-  );
-
-  return (
-    <div className="space-y-4">
-      {/* Total Price Display - Top Right */}
-      <div className="flex items-center justify-end">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-sm border border-gray-200 bg-white/50 backdrop-blur-sm dark:bg-transparent">
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            TỔNG DOANH THU:
-          </span>
-          <span className="text-base font-bold text-blue-600">
-            {isLoadingTotalPrice
-              ? "..."
-              : formatCurrency(dataTotalPrice?.data.total_price) ?? "0 đ"}
-          </span>
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-black">
-        <div className="w-full overflow-x-auto">
-          <div className="min-w-[1000px]">
-            <div className="max-h-[800px] overflow-y-auto dark:bg-black min-w-[1000px] pb-4">
-              <Table className="dark:text-white">
-                {/* Table Header */}
-                <TableHeader>
-                  <TableRow>
-                    {columns.map((col, idx) => (
-                      <TableCell
-                        key={`${col.key}-${idx}`}
-                        isHeader
-                        className={`px-5 ${col.minWidth || ""} ${
-                          isManyColumns ? "text-[12px]" : "text-sm"
-                        } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start`}>
-                        {col.label}
-                      </TableCell>
-                    ))}
-                    <TableCell
-                      isHeader
-                      className={`px-5 flex justify-center min-w-[150px] ${
-                        isManyColumns ? "text-[13px]" : "text-sm"
-                      } dark:text-gray-300 py-5 text-base font-semibold text-gray-500 text-start`}>
-                      Lưu lượng
-                    </TableCell>
-                    {hasActionColumn && (
-                      <TableCell
-                        isHeader
-                        className={`px-5 min-w-[120px] ${
-                          isManyColumns ? "text-[13px]" : "text-sm"
-                        } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-center
-                        bg-white dark:bg-black`}>
-                        Hành động
-                      </TableCell>
-                    )}
-                  </TableRow>
-                </TableHeader>
-
-                {/* Table Body */}
-                <TableBody>
-                  {isLoading ? (
-                    Array.from({ length: 5 }).map((_, index) => (
-                      <TableRow key={index}>
-                        {columns.map((col) => (
-                          <TableCell
-                            key={col.key}
-                            className={`px-5 py-3 ${
-                              col.minWidth || ""
-                            } text-sm text-gray-500 dark:text-gray-300 ${
-                              isManyColumns ? "text-[13px]" : "text-sm"
-                            }`}>
-                            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                          </TableCell>
-                        ))}
-                        <TableCell className="px-5 py-3 min-w-[200px]">
-                          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                        </TableCell>
-                        {hasActionColumn && (
-                          <TableCell
-                            className={`px-5 py-3 min-w-[120px] ${
-                              isManyColumns ? "text-[13px]" : "text-sm"
-                            } sticky right-0 bg-white dark:bg-black z-10`}>
-                            <div className="flex gap-2 justify-center">
-                              <div className="h-6 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                              <div className="h-6 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                            </div>
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    ))
-                  ) : data.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={totalColumnCount}
-                        className="py-12 text-center">
-                        <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
-                          <svg
-                            className="w-16 h-16 mb-4 text-gray-300 dark:text-gray-600"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={1}
-                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                            />
-                          </svg>
-                          <p className="text-lg font-medium mb-2">
-                            Không có dữ liệu
-                          </p>
-                          <p className="text-sm">
-                            Không tìm thấy subscription nào phù hợp với bộ lọc
-                            hiện tại
-                          </p>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    data.map((item) => (
-                      <TableRow key={item.id}>
-                        {columns.map((col) => (
-                          <TableCell
-                            key={col.key}
-                            className={`px-5 py-3 ${
-                              col.minWidth || ""
-                            } text-sm text-gray-500 dark:text-gray-300 ${
-                              isManyColumns ? "text-[13px]" : "text-sm"
-                            }`}>
-                            {col.key === "status" ? (
-                              <StatusBadge status={item.status} />
-                            ) : col.key === "is_payment" ? (
-                              <div className="flex items-center px-1">
-                                {item[col.key] ? (
-                                  <>
-                                    <CheckCircle className="w-5 h-5 text-green-500 dark:text-green-400" />
-                                  </>
-                                ) : (
-                                  <>
-                                    <BsXCircle className="w-5 h-5 text-red-500 dark:text-red-400" />
-                                  </>
-                                )}
-                              </div>
-                            ) : col.key === "total_price" ? (
-                              formatCurrency(item[col.key])
-                            ) : col.key === "total_minutes" ? (
-                              formatNumberVN(item[col.key])
-                            ) : (
-                              item[col.key] || "-"
-                            )}
-                          </TableCell>
-                        ))}
-                        <TableCell
-                          className={`px-5 dark:text-gray-300 py-3 min-w-[200px] ${
-                            isManyColumns ? "text-[13px]" : "text-sm"
-                          }`}>
-                          {item.currentProgress > 0 ? (
-                            <DualProgress
-                              barClassName="h-4"
-                              labelClassName="text-xs"
-                              total={item.totalProgress}
-                              current={item.currentProgress}
-                            />
-                          ) : (
-                            <span className="text-gray-400 flex justify-center dark:text-gray-500 text-xs">
-                              Chưa thêm mã trượt
-                            </span>
-                          )}
-                        </TableCell>
-                        {hasActionColumn && (
-                          <TableCell
-                            className={`px-5 py-3 min-w-[120px] ${
-                              isManyColumns ? "text-[13px]" : "text-sm"
-                            }  bg-white dark:bg-black`}>
-                            <ActionMenu
-                              item={item}
-                              role={role}
-                              onEdit={onEdit}
-                              onDetail={onDetail}
-                              onDelete={(id) => onDelete?.(id)}
-                              onConfirm={(id) => onConfirm?.(id)}
-                            />
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 export interface SubscriptionQuery {
   page: number;
@@ -501,10 +207,12 @@ const SubsciptionList = () => {
           ? planPriceMap[item.root_plan_id] || 0
           : 0;
         const items = item.items || [];
-        const itemsTotal = items.reduce((sum: number, item: any) => {
-          const price = item.price_override_vnd || 0;
-          return sum + price;
-        }, 0);
+        const itemsTotal = items
+          .filter((i) => i.status == 1)
+          .reduce((sum: number, item: any) => {
+            const price = item.price_override_vnd || 0;
+            return sum + price;
+          }, 0);
         const totalPrice = planPrice + itemsTotal;
 
         return {
@@ -585,6 +293,7 @@ const SubsciptionList = () => {
               `Thanh toán thành công cho hợp đồng book gói.`,
               "success"
             );
+            fetchSubscriptions();
             navigate("/subscriptions");
           } else {
             Swal.fire("Lỗi", "Không thể xác nhận thanh toán.", "error");
@@ -629,12 +338,9 @@ const SubsciptionList = () => {
     fetchQuota();
   }, [quotaBody, currentMonth]);
 
-  // ✅ FIX: useMemo để tránh tạo array mới mỗi lần render
+  // FIX: useMemo để tránh tạo array mới mỗi lần render
   const mapData = useMemo(() => {
-    // 1. Kiểm tra và Tạo Map (Sửa lỗi plansData.items)
     if (!subscriptions.length || !plansData?.data.items) return [];
-
-    // console.log("planData", plansData?.data.items);
 
     const plansMap: Map<number, any> = new Map();
     plansData.data.items.forEach((plan: any) => {
@@ -647,25 +353,29 @@ const SubsciptionList = () => {
       const plans = planIds
         .map((id: number) => plansMap.get(id))
         .filter(Boolean);
+
       let totalPlanMinutes = 0;
       let totalPlanDidCount = 0;
-      const planNames: string[] = [];
+
+      const planDetails = plans.map((plan: any) => ({
+        id: plan.id,
+        name: plan.name,
+        status: plan.status || "Hoạt động",
+        is_payment: plan.is_payment,
+      }));
 
       plans.forEach((plan: any) => {
         totalPlanMinutes += plan.minutes || 0;
         totalPlanDidCount += plan.did_count || 0;
-        planNames.push(plan.name);
       });
 
       return {
         ...sub,
-        // ...planDetails, // <-- Thêm chi tiết plan tại đây
         totalProgress: (sub.total_minutes || 0) + totalPlanMinutes,
         currentProgress: quota?.total_call_out || 0,
         total_price: sub.total_price || 0,
-        // Cộng dồn minutes và did_count từ plan
         total_minutes: (sub.total_minutes || 0) + totalPlanMinutes,
-        list_sub_plan: planNames.length,
+        list_sub_plan: planDetails, // ✅ Truyền object thay vì chỉ tên
         total_did: totalPlanDidCount + sub.total_did,
       };
     });

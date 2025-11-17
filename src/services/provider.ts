@@ -1,6 +1,6 @@
-import axiosInstance from "../config/apiToken";
 import { IProvider } from "../types";
 import { instanceStatic } from "../config/apiStatic";
+import axiosInstance from "../config/apiToken";
 import Swal from "sweetalert2";
 
 export const newProvider = {

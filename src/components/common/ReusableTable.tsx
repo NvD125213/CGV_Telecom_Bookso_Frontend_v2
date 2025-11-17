@@ -21,7 +21,6 @@ import {
   setSelectedIds,
 } from "../../store/selectedPhoneSlice";
 import { IoEyeOutline } from "react-icons/io5";
-import { MdConfirmationNumber } from "react-icons/md";
 import { GiConfirmed } from "react-icons/gi";
 
 interface Action<T> {
@@ -40,6 +39,10 @@ interface Props<T> {
     label: string;
     type?: string;
     classname?: string;
+    render?: (item: T) => {
+      text: React.ReactNode; // Cho phép ReactNode thay vì chỉ string
+      classname?: string;
+    };
   }[];
   onEdit?: (item: T) => void;
   onDelete?: (id: string | number) => void;
@@ -305,34 +308,43 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
                           </TableCell>
                         )}
                         {columns.map((col) => {
-                          const value = item[col.key];
-                          const displayValue =
-                            value === null ||
-                            value === undefined ||
-                            value === ""
-                              ? "-"
-                              : value;
+                          let content: React.ReactNode;
+                          let className = col.classname || "";
+
+                          if (col.render) {
+                            const renderResult = col.render(item);
+                            content = renderResult?.text ?? "-";
+                            className = renderResult?.classname || className;
+                          } else {
+                            const value = item[col.key];
+                            content =
+                              value === null ||
+                              value === undefined ||
+                              value === ""
+                                ? "-"
+                                : value;
+                          }
 
                           return (
                             <TableCell
                               key={col.key}
-                              className={`px-5 py-3 text-sm text-gray-500 dark:text-gray-300 ${
+                              className={`px-5 py-3 text-gray-500 dark:text-gray-300 ${
                                 isManyColumns ? "text-[13px]" : "text-sm"
                               }`}>
                               {col.type === "button" ? (
-                                <button className={col.classname}>
-                                  {displayValue as string}
-                                </button>
+                                <button className={className}>{content}</button>
                               ) : col.type === "span" ? (
-                                <span className={col.classname}>
-                                  {displayValue as string}
-                                </span>
+                                <span className={className}>{content}</span>
+                              ) : col.render ? (
+                                // Thêm điều kiện này để wrap content với className từ render
+                                <span className={className}>{content}</span>
                               ) : (
-                                displayValue
+                                content
                               )}
                             </TableCell>
                           );
                         })}
+
                         {hasActionColumn && (
                           <TableCell
                             align="center"

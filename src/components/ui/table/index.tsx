@@ -1,5 +1,4 @@
-import { ReactNode } from "react";
-
+import { ReactNode, MouseEvent } from "react";
 // Props for Table
 interface TableProps {
   children: ReactNode;
@@ -22,6 +21,9 @@ interface TableBodyProps {
 interface TableRowProps {
   children: ReactNode;
   className?: string;
+  onClick?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
 interface TableCellProps {
@@ -30,8 +32,10 @@ interface TableCellProps {
   className?: string;
   colSpan?: number;
   rowSpan?: number;
-  align?: "left" | "center" | "right"; // 👈 thêm prop align
+  onClick?: (e: MouseEvent<HTMLTableCellElement>) => void;
+  align?: "left" | "center" | "right";
 }
+
 // Table Component
 const Table: React.FC<TableProps> = ({ children, className }) => {
   return <table className={`min-w-full z-0 ${className}`}>{children}</table>;
@@ -48,8 +52,23 @@ const TableBody: React.FC<TableBodyProps> = ({ children, className }) => {
 };
 
 // TableRow Component
-const TableRow: React.FC<TableRowProps> = ({ children, className }) => {
-  return <tr className={className}>{children}</tr>;
+const TableRow: React.FC<TableRowProps> = ({
+  children,
+  className,
+  onClick,
+  onMouseEnter,
+  onMouseLeave,
+}) => {
+  return (
+    <tr
+      className={className}
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      style={{ cursor: onClick ? "pointer" : "default" }}>
+      {children}
+    </tr>
+  );
 };
 
 // TableCell Component
@@ -59,11 +78,11 @@ const TableCell: React.FC<TableCellProps> = ({
   className = "",
   colSpan,
   rowSpan,
-  align = "left", // 👈 mặc định là left
+  onClick,
+  align = "left",
 }) => {
   const CellTag = isHeader ? "th" : "td";
 
-  // Tạo class căn giữa
   const alignClass =
     align === "center"
       ? "text-center"
@@ -75,9 +94,11 @@ const TableCell: React.FC<TableCellProps> = ({
     <CellTag
       className={`${alignClass} ${className}`}
       colSpan={colSpan}
+      onClick={onClick}
       rowSpan={rowSpan}>
       {children}
     </CellTag>
   );
 };
+
 export { Table, TableHeader, TableBody, TableRow, TableCell };
