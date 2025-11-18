@@ -1,8 +1,14 @@
-import { Edit } from "@mui/icons-material";
-import { useState } from "react";
-import { BsTrash2 } from "react-icons/bs";
+import { useCallback, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import React from "react";
+import { RootState } from "../../store";
+import { useSelector } from "react-redux";
+import { GiConfirmed } from "react-icons/gi";
+import {
+  subscriptionItemService,
+  subscriptionService,
+} from "../../services/subcription";
+import Swal from "sweetalert2";
 
 interface StatusConfigItem {
   bg: string;
@@ -17,8 +23,8 @@ const statusConfig = {
     label: "active",
   },
   deleted: {
-    bg: "bg-gray-100 dark:bg-gray-800",
-    text: "text-gray-700 dark:text-gray-400",
+    bg: "bg-red-500",
+    text: "text-white",
     label: "deleted",
   },
   pending: {
@@ -30,90 +36,154 @@ const statusConfig = {
 
 export type StatusKey = keyof typeof statusConfig;
 
-export const StatusBadge = React.memo(({ status }: { status: number }) => {
-  // Map số sang key string
-  const statusMap: Record<number, StatusKey> = {
-    1: "active",
-    2: "pending",
-    0: "deleted",
-  };
+export const StatusBadge = React.memo(
+  ({ status }: { status: number | string }) => {
+    const statusMap: Record<string | number, StatusKey> = {
+      1: "active",
+      2: "pending",
+      0: "deleted",
+      active: "active",
+      pending: "pending",
+      deleted: "deleted",
+    };
 
-  const config = statusConfig[statusMap[status]] ?? statusConfig.deleted;
+    const config = statusConfig[statusMap[status] ?? "active"];
 
-  return (
-    <span
-      className={`inline-flex items-center rounded-2xl px-2 py-0.5 text-xs font-medium ${config.bg} ${config.text}`}>
-      {config.label}
-    </span>
-  );
-});
+    return (
+      <span
+        className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${config.bg} ${config.text}`}>
+        {config.label}
+      </span>
+    );
+  }
+);
 
-// Skeleton
 export const SubPlanSkeleton = () => (
-  <div className="animate-pulse w-full p-4 space-y-2">
+  <div className="animate-pulse w-full space-y-2">
     {[...Array(3)].map((_, i) => (
-      <div
-        key={i}
-        className="flex items-center justify-between py-2.5 px-3 border-b border-gray-200 dark:border-gray-700">
-        <div className="h-4 flex-1 bg-gray-300 dark:bg-gray-700 rounded mr-3"></div>
-        <div className="h-4 w-16 bg-gray-300 dark:bg-gray-700 rounded"></div>
+      <div key={i} className="flex items-center gap-3 py-2 px-3">
+        <div className="h-4 flex-1 bg-gray-300 dark:bg-gray-700 rounded"></div>
         <div className="h-4 w-20 bg-gray-300 dark:bg-gray-700 rounded"></div>
+        <div className="h-4 w-20 bg-gray-300 dark:bg-gray-700 rounded"></div>
+        <div className="h-4 w-16 bg-gray-300 dark:bg-gray-700 rounded"></div>
       </div>
     ))}
   </div>
 );
 
 export const SubPlanRow = React.memo(
-  ({ sub, onEdit, onDelete, isHovered, setHoveredRow }: any) => {
+  ({ sub, onConfirm, checkPayment }: any) => {
+    const formatCurrency = (value: number | undefined) =>
+      value
+        ? new Intl.NumberFormat("vi-VN", {
+            style: "currency",
+            currency: "VND",
+          }).format(value)
+        : "-";
+
+    const formatDate = (date: string | undefined) =>
+      date
+        ? new Date(date).toLocaleString("vi-VN", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+          })
+        : "-";
+
+    const user = useSelector((state: RootState) => state.auth.user);
+
     return (
       <motion.tr
         layout
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.15 }}
-        onMouseEnter={() => setHoveredRow(sub.id)}
-        onMouseLeave={() => setHoveredRow(null)}
-        className={`border-b border-gray-100 dark:border-gray-800 transition-colors duration-150 ${
-          isHovered ? "dark:bg-gray-800/40 bg-gray-50" : ""
-        }`}>
-        {/* Name + Icon - Wider column */}
-        <td className="py-2.5 px-3 flex-1 min-w-0">
+        className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors">
+        {/* Dot payment */}
+        <td className="px-6 py-3 text-center">
+          <span className="relative flex h-2.5 w-2.5">
+            <span
+              className={`absolute inset-0 rounded-full animate-ping ${
+                sub.is_payment ? "bg-blue-400" : "bg-red-400"
+              } opacity-75`}
+            />
+            <span
+              className={`relative h-2.5 w-2.5 rounded-full ${
+                sub.is_payment ? "bg-blue-500" : "bg-red-500"
+              }`}
+            />
+          </span>
+        </td>
+
+        {/* Name + Avatar */}
+        <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 flex-shrink-0 bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-700 dark:text-blue-400 text-xs font-semibold">
-              {sub.name?.charAt(0)?.toUpperCase()}
+            <div className="w-8 h-8 flex-shrink-0 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg flex items-center justify-center text-xs font-semibold">
+              {(sub.name?.[0] || "P").toUpperCase()}
             </div>
-            <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-              {sub.name}
-            </span>
+            <span className="truncate min-w-[120px]">{sub.name || "-"}</span>
           </div>
         </td>
 
+        {/* Type */}
+        <td className="px-4 py-3 text-sm text-center min-w-[100px]">
+          {sub.type === "main" ? (
+            <span className="px-2 py-1 text-xs font-medium rounded-full text-blue-700 bg-blue-100 dark:bg-blue-900/30">
+              Gói chính
+            </span>
+          ) : (
+            <span className="px-2 py-1 text-xs font-medium rounded-full text-gray-500 bg-gray-100 dark:bg-gray-800/50">
+              Gói phụ
+            </span>
+          )}
+        </td>
+
         {/* Status */}
-        <td className="py-2.5 px-3 w-32 text-center">
+        <td className="px-4 py-3 text-sm text-center">
           <StatusBadge status={sub.status} />
         </td>
 
-        {/* Actions */}
-        {(onEdit || onDelete) && (
-          <td className="py-2.5 px-3 w-24 flex-shrink-0">
-            <div className="flex gap-1 justify-end">
-              {onEdit && (
-                <button
-                  onClick={() => onEdit(sub)}
-                  className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                  <Edit className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                </button>
-              )}
-              {onDelete && (
-                <button
-                  onClick={() => onDelete(sub.id)}
-                  className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                  <BsTrash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
-                </button>
-              )}
-            </div>
-          </td>
-        )}
+        {/* Price */}
+        <td className="px-4 py-3 text-xs text-center text-gray-600 dark:text-gray-300">
+          <span className="font-medium">Giá: {formatCurrency(sub.price)}</span>
+        </td>
+
+        {/* is_payment */}
+        <td className="px-4 py-3 text-sm text-center">
+          <button
+            className={`px-3 py-1 text-xs min-w-[120px] font-medium rounded-full ${
+              sub.is_payment
+                ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                : "bg-red-100 text-red-700 hover:bg-red-200"
+            }`}
+            disabled>
+            {sub.is_payment ? "Đã thanh toán" : "Chưa thanh toán"}
+          </button>
+        </td>
+
+        {/* Created */}
+        <td className="px-4 py-3 text-xs text-center text-gray-600 dark:text-gray-300">
+          Ngày tạo: {formatDate(sub.created_at)}
+        </td>
+
+        {/* Expired */}
+        <td className="px-4 py-3 text-xs text-center text-gray-600 dark:text-gray-300">
+          Ngày hết hạn: {formatDate(sub.expired)}
+        </td>
+
+        {/* Confirm button */}
+        {checkPayment === false &&
+          (user.sub == "VANLTT" || user.sub == "HUYLQ") && (
+            <td className="px-6 py-3 text-center">
+              <button onClick={onConfirm}>
+                <GiConfirmed className="h-5 w-5 text-blue-500" />
+              </button>
+            </td>
+          )}
       </motion.tr>
     );
   }
@@ -121,32 +191,106 @@ export const SubPlanRow = React.memo(
 
 export const SubPlanTable = ({
   subPlans,
+  mainSub,
   isLoading,
-  onEdit,
-  onDelete,
+  onReload,
+  checkPayment,
 }: any) => {
-  const [hoveredRow, setHoveredRow] = useState(null);
+  const mergedPlans = useMemo(
+    () => [
+      { ...mainSub, type: "main" },
+      ...subPlans.map((p: any) => ({ ...p, type: "sub" })),
+    ],
+    [mainSub, subPlans]
+  );
+  const user = useSelector((state: RootState) => state.auth.user);
+
+  const handleConfirmPayment = useCallback(
+    async (item: any) => {
+      if (item.is_payment) {
+        Swal.fire({
+          icon: "info",
+          title: "Đã thanh toán",
+          text: "Gói này đã được thanh toán trước đó.",
+        });
+        return; // Dừng hàm, không tiếp tục xác nhận
+      }
+
+      const result = await Swal.fire({
+        title: "Xác nhận thanh toán",
+        text: "Bạn có chắc chắn muốn xác nhận thanh toán cho gói này không?",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Xác nhận",
+        cancelButtonText: "Hủy",
+      });
+
+      if (!result.isConfirmed) return;
+
+      try {
+        const service =
+          item.type === "main" ? subscriptionService : subscriptionItemService;
+
+        const res = await service.update(item.id, { is_payment: true });
+
+        if (res?.status === 200) {
+          Swal.fire("Đã xác nhận!", "Thanh toán thành công.", "success");
+          if (onReload) await onReload();
+        } else {
+          Swal.fire("Lỗi", "Không thể xác nhận thanh toán.", "error");
+        }
+      } catch (error: any) {
+        Swal.fire(
+          "Lỗi",
+          error?.response?.data?.detail || "Xảy ra lỗi",
+          "error"
+        );
+      }
+    },
+    [onReload]
+  );
 
   return (
-    <div className="flex flex-col items-center gap-3 mt-4 max-w-[1200px]">
-      <div className="w-full bg-white dark:bg-gray-900 dark:border-gray-800 overflow-hidden p-3">
+    <div className="w-full bg-white dark:bg-gray-900 rounded-lg overflow-hidden px-2 dark:border-gray-800">
+      <div className="overflow-x-auto">
         {isLoading ? (
-          <SubPlanSkeleton />
-        ) : (
-          <table className="text-sm w-[80%] table-auto">
+          <div className="p-4">
+            <SubPlanSkeleton />
+          </div>
+        ) : mergedPlans?.length ? (
+          <table className="w-full text-sm">
+            <thead className="dark:bg-gray-800/50 sticky top-0">
+              <tr>
+                <th className="w-5"></th>
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <th
+                    key={i}
+                    className="px-4 text-center font-semibold text-gray-700 dark:text-gray-300 text-xs"></th>
+                ))}
+                {checkPayment === false &&
+                  (user.sub == "VANLTT" || user.sub == "HUYLQ") && (
+                    <th className="px-4 text-center w-20 text-xs font-semibold"></th>
+                  )}
+              </tr>
+            </thead>
+
             <tbody>
-              {subPlans.map((sub: any, index: number) => (
+              {mergedPlans.map((sub: any, index: number) => (
                 <SubPlanRow
                   key={`${sub.id}-${index}`}
                   sub={sub}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                  isHovered={hoveredRow === sub.id}
-                  setHoveredRow={setHoveredRow}
+                  checkPayment={checkPayment}
+                  onConfirm={() => handleConfirmPayment(sub)}
                 />
               ))}
             </tbody>
           </table>
+        ) : (
+          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+            Không có gói phụ nào được đặt
+          </div>
         )}
       </div>
     </div>

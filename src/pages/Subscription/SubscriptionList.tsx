@@ -54,7 +54,7 @@ export interface SubscriptionQuery {
 
 const SubsciptionList = () => {
   const navigate = useNavigate();
-  const [subscriptions, setsubscriptions] = useState<SubcriptionData[]>([]);
+  const [subscriptions, setSubscriptions] = useState<SubcriptionData[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -144,7 +144,7 @@ const SubsciptionList = () => {
     setLoading(true);
     try {
       const result = await subscriptionService.get(query);
-      setsubscriptions(result.data?.items || []);
+      setSubscriptions(result.data?.items || []);
 
       const listAccount =
         result.data?.items
@@ -221,6 +221,7 @@ const SubsciptionList = () => {
           tax_code: item.tax_code || "-",
           contract_code: item.contract_code || "-",
           username: item.username || "-",
+          sub_price: planPrice,
           slide_users:
             item.slide_users && typeof item.slide_users === "object"
               ? Object.values(item.slide_users).join(", ") || "-"
@@ -350,6 +351,7 @@ const SubsciptionList = () => {
     return processedData.map((sub: any) => {
       const quota = quotaData?.find((q: any) => q.sub_Id === sub.id);
       const planIds = sub.items.map((item: any) => item.plan_id);
+
       const plans = planIds
         .map((id: number) => plansMap.get(id))
         .filter(Boolean);
@@ -357,17 +359,44 @@ const SubsciptionList = () => {
       let totalPlanMinutes = 0;
       let totalPlanDidCount = 0;
 
-      const planDetails = plans.map((plan: any) => ({
-        id: plan.id,
-        name: plan.name,
-        status: plan.status || "Hoạt động",
-        is_payment: plan.is_payment,
-      }));
+      const planDetails = sub.items
+        .map((item: any) => {
+          const plan = plansMap.get(item.plan_id);
+          if (!plan) return null;
+
+          return {
+            id: item.id, // dùng sub item id để đảm bảo unique
+            planId: plan.id,
+            name: plan.name,
+            status: item.status,
+            created_at: item.created_at,
+            expired: item.expired,
+            is_payment: item.is_payment,
+            note: item.note,
+            quantity: item.quantity,
+            price: item.price_override_vnd,
+          };
+        })
+        .filter(Boolean);
 
       plans.forEach((plan: any) => {
         totalPlanMinutes += plan.minutes || 0;
         totalPlanDidCount += plan.did_count || 0;
       });
+      const mainSub = {
+        id: sub.id,
+        name: sub.root_plan_id,
+        status: sub.status,
+        created_at: sub.created_at,
+        expired: sub.expired,
+        is_payment: sub.is_payment,
+        note: sub.note || null,
+        price: sub.sub_price,
+        quantity: sub.quantity || null,
+        total_minutes: (sub.total_minutes || 0) + totalPlanMinutes,
+        total_did: totalPlanDidCount + sub.total_did,
+        contract_code: sub.contract_code,
+      };
 
       return {
         ...sub,
@@ -375,7 +404,8 @@ const SubsciptionList = () => {
         currentProgress: quota?.total_call_out || 0,
         total_price: sub.total_price || 0,
         total_minutes: (sub.total_minutes || 0) + totalPlanMinutes,
-        list_sub_plan: planDetails, // ✅ Truyền object thay vì chỉ tên
+        main_sub: mainSub,
+        list_sub_plan: planDetails,
         total_did: totalPlanDidCount + sub.total_did,
       };
     });
@@ -527,6 +557,10 @@ const SubsciptionList = () => {
                 role={user.role}
                 onEdit={(item) => {
                   navigate(`/subscriptions/edit/${item.id}`);
+                }}
+                onReload={() => {
+                  console.log("Reload triggered from SubPlanTable");
+                  return fetchSubscriptions();
                 }}
                 onConfirm={(item) => handleConfirmPayment(item)}
                 onDetail={(item) =>

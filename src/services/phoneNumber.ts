@@ -1,5 +1,6 @@
 import axiosInstance from "../config/apiToken";
 import { IPhoneNumber, IReportDate } from "../types";
+// import { axiosInstance } from "../config/apiStatic";
 
 export const initialPhoneNumber: IPhoneNumber = {
   id: 0,

@@ -7,12 +7,12 @@ import {
   ListItemText,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import EditIcon from "@mui/icons-material/Edit";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CheckIcon from "@mui/icons-material/Check";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
+import { useTheme } from "../../context/ThemeContext";
 
 interface ActionMenuProps {
   item: any;
@@ -44,17 +44,22 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
 
   // Ẩn onConfirm nếu role không phải là 1 (admin)
   const user = useSelector((state: RootState) => state.auth.user);
-
+  const { theme } = useTheme();
   return (
     <div className="flex items-center justify-start mx-4">
       <IconButton
         onClick={handleClick}
         size="small"
         sx={{
-          backgroundColor: "#f1f5f9",
+          backgroundColor: theme == "dark" ? "transparent" : "#f1f5f9",
           "&:hover": { backgroundColor: "#e2e8f0" },
         }}>
-        <MoreVertIcon fontSize="small" />
+        <MoreVertIcon
+          fontSize="small"
+          sx={{
+            color: theme == "dark" ? "white" : "black",
+          }}
+        />
       </IconButton>
 
       <Menu

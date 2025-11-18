@@ -1,6 +1,5 @@
-// import { axiosIntance } from "../config/apiStatic";
-import axiosIntance from "../config/apiToken";
-import axios from "axios";
+// import { axiosInstance } from "../config/apiStatic";
+import axiosInstance from "../config/apiToken";
 import { cleanQuery } from "../helper/cleanQuery";
 
 export interface SubcriptionData {
@@ -32,47 +31,47 @@ export interface SubscriptionItem {
 export const subscriptionService = {
   get: async (params: any) => {
     const cleanedParams = cleanQuery(params);
-    return await axiosIntance.get("/api/v3/subscription", {
+    return await axiosInstance.get("/api/v3/subscription", {
       params: cleanedParams,
     });
   },
   getTotalPrice: async () => {
-    return await axiosIntance.get("/api/v3/subscription/get-total-price");
+    return await axiosInstance.get("/api/v3/subscription/get-total-price");
   },
   getById: async (id: number) => {
-    return await axiosIntance.get(`/api/v3/subscription/${id}`);
+    return await axiosInstance.get(`/api/v3/subscription/${id}`);
   },
 
   create: async (data: SubcriptionData) => {
-    return await axiosIntance.post("/api/v3/subscription", data);
+    return await axiosInstance.post("/api/v3/subscription", data);
   },
   update: async (id: number, data: Partial<SubcriptionData>) => {
-    return await axiosIntance.put(`/api/v3/subscription/${id}`, data);
+    return await axiosInstance.put(`/api/v3/subscription/${id}`, data);
   },
   delete: async (id: number) => {
-    return await axiosIntance.delete(`/api/v3/subscription/${id}`);
+    return await axiosInstance.delete(`/api/v3/subscription/${id}`);
   },
 };
 
 export const subscriptionItemService = {
   get: async (params: any) => {
     const cleanedParams = cleanQuery(params);
-    return await axiosIntance.get("/api/v3/subscription-items", {
+    return await axiosInstance.get("/api/v3/subscription-items", {
       params: cleanedParams,
     });
   },
 
   getById: async (id: number) => {
-    return await axiosIntance.get(`/api/v3/subscription-items/${id}`);
+    return await axiosInstance.get(`/api/v3/subscription-items/${id}`);
   },
   create: async (data: SubscriptionItem) => {
-    return await axiosIntance.post("/api/v3/subscription-items", data);
+    return await axiosInstance.post("/api/v3/subscription-items", data);
   },
   update: async (id: number, data: Partial<SubscriptionItem>) => {
-    return await axiosIntance.put(`/api/v3/subscription-items/${id}`, data);
+    return await axiosInstance.put(`/api/v3/subscription-items/${id}`, data);
   },
   delete: async (id: number) => {
-    return await axiosIntance.delete(`/api/v3/subscription-items/${id}`);
+    return await axiosInstance.delete(`/api/v3/subscription-items/${id}`);
   },
 };
 
@@ -84,7 +83,7 @@ export const getDetailCombo = async (
   const monthHeader = month_year;
 
   try {
-    const response = await axiosIntance.get("/api/v3/combo/detail", {
+    const response = await axiosInstance.get("/api/v3/combo/detail", {
       headers: {
         list_account: listHeader,
         month_year: monthHeader,
@@ -102,7 +101,7 @@ export const getQuota = async (
   month_year: string
 ) => {
   try {
-    const response = await axiosIntance.post(
+    const response = await axiosInstance.post(
       "/api/v3/combo/quota",
       list_account, // body JSON
       {

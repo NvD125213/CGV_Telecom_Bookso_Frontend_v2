@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Input from "../../components/form/input/InputField";
 import Select from "../../components/form/Select";
@@ -8,7 +8,7 @@ import { subscriptionService } from "../../services/subcription";
 import Button from "../../components/ui/button/Button";
 import Swal from "sweetalert2";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-import { IoIosAdd, IoIosRemove } from "react-icons/io";
+import { IoIosClose, IoIosRemove } from "react-icons/io";
 import { PlanData } from "../../components/pricing-card/pricing-card";
 import { useLocation } from "react-router-dom";
 import ReusableTable from "../../components/common/ReusableTable";
@@ -94,24 +94,36 @@ interface SlideFormProps {
 
 export const SlideForm = ({ value, onChange }: SlideFormProps) => {
   const [items, setItems] = useState<string[]>(value || []);
+  const [input, setInput] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const updateParent = (list: string[]) => {
     onChange(list);
   };
 
-  const handleAdd = () => setItems([...items, ""]);
+  const handleAddTag = () => {
+    if (input.trim() && !items.includes(input.trim())) {
+      const newItems = [...items, input.trim()];
+      setItems(newItems);
+      updateParent(newItems);
+      setInput("");
+      inputRef.current?.focus();
+    }
+  };
 
-  const handleRemove = (index: number) => {
+  const handleRemoveTag = (index: number) => {
     const newItems = items.filter((_, i) => i !== index);
     setItems(newItems);
     updateParent(newItems);
   };
 
-  const handleChange = (index: number, val: string) => {
-    const newItems = [...items];
-    newItems[index] = val;
-    setItems(newItems);
-    updateParent(newItems);
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddTag();
+    } else if (e.key === "Backspace" && input === "" && items.length > 0) {
+      handleRemoveTag(items.length - 1);
+    }
   };
 
   useEffect(() => {
@@ -120,41 +132,21 @@ export const SlideForm = ({ value, onChange }: SlideFormProps) => {
 
   return (
     <div>
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap gap-2 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 focus-within:ring-2 focus-within:ring-indigo-500">
+        {/* Tags */}
         {items.map((item, index) => (
-          <div key={index} className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled
-              onClick={() => handleRemove(index)}
-              className="p-2 rounded-full bg-red-100 hover:bg-red-200 text-red-600 flex-shrink-0">
-              <IoIosRemove size={20} />
-            </button>
-
-            <div className="flex-1 min-w-0">
-              <Input
-                type="text"
-                disabledWhite
-                placeholder="Nhập giá trị"
-                value={item}
-                onChange={(e) => handleChange(index, e.target.value)}
-              />
-            </div>
+          <div
+            key={index}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full text-sm font-medium">
+            <span>{item}</span>
           </div>
         ))}
 
-        {/* <button
-          type="button"
-          onClick={handleAdd}
-          className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium mt-2">
-          <IoIosAdd size={20} />
-          Thêm mục
-        </button> */}
+        {/* Input */}
       </div>
     </div>
   );
 };
-
 export const SubcriptionActionPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -1067,18 +1059,18 @@ export const SubcriptionActionPage = () => {
                   className="text-gray-900 bg-gray-200 cursor-not-allowed border border-gray-300"
                 />
               </div>
-              {user.role == 1 && isDetail && (
-                <div>
-                  <Label>Cấu hình mã trượt</Label>
-                  <SlideForm
-                    value={form.slide_users as string[]}
-                    onChange={(updated) => handleChange("slide_users", updated)}
-                  />
-                </div>
-              )}
             </>
           )}
         </div>
+        {isDetail && form.slide_users?.length > 0 && (
+          <div>
+            <Label>Danh sách mã trượt</Label>
+            <SlideForm
+              value={form.slide_users as string[]}
+              onChange={(updated) => handleChange("slide_users", updated)}
+            />
+          </div>
+        )}
         {isHavingID && form.slide_users.length > 0 && (
           <div>
             <DualProgress

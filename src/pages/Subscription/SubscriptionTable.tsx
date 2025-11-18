@@ -5,7 +5,6 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table";
-// import TableMobile from "../../mobiles/TableMobile";
 import { subscriptionService } from "../../services/subcription";
 import { useApi } from "../../hooks/useApi";
 import DualProgress from "../../components/progress-bar/DualProgress";
@@ -17,58 +16,40 @@ import SubPlanSelect from "./SubPlanDropdown";
 import { useState, Fragment } from "react";
 import { SubPlanTable } from "./SubPlanTable";
 import { ChevronDownIcon } from "../../icons";
+import { motion, AnimatePresence } from "framer-motion";
 
-// Component để hiển thị status với màu sắc - Redesigned
 const StatusBadge = ({ status }: { status: number }) => {
   const getStatusDisplay = (status: number) => {
     switch (status) {
       case 1:
         return {
-          text: "active",
+          text: "Active",
           className:
-            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500 ",
+            "inline-flex items-center px-2 py-1 rounded-full font-medium text-xs bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500",
         };
       case 2:
         return {
-          text: "pending",
+          text: "Pending",
           className:
-            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-500 ",
+            "inline-flex items-center px-2 py-1 rounded-full font-medium text-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-500",
         };
       case 0:
         return {
-          text: "deleted",
-
+          text: "Deleted",
           className:
-            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-500 ",
+            "inline-flex items-center px-2 py-1 rounded-full font-medium text-xs bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-500",
         };
       default:
         return {
-          text: "Không xác định",
-          icon: (
-            <svg
-              className="w-3.5 h-3.5"
-              fill="currentColor"
-              viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
-                clipRule="evenodd"
-              />
-            </svg>
-          ),
+          text: "Unknown",
           className:
-            "inline-flex items-center px-3 py-1.5 gap-1.5 rounded-full font-semibold text-xs bg-gray-100 text-gray-700 dark:bg-gray-500/20 dark:text-gray-400 border border-gray-200 dark:border-gray-500/30 shadow-sm",
+            "inline-flex items-center px-2 py-1 rounded-full font-medium text-xs bg-gray-100 text-gray-700 dark:bg-gray-500/20 dark:text-gray-400",
         };
     }
   };
 
   const statusDisplay = getStatusDisplay(status);
-  return (
-    <span className={statusDisplay.className}>
-      {statusDisplay.icon}
-      {statusDisplay.text}
-    </span>
-  );
+  return <span className={statusDisplay.className}>{statusDisplay.text}</span>;
 };
 
 export const CustomSubscriptionTable = ({
@@ -78,6 +59,7 @@ export const CustomSubscriptionTable = ({
   onDelete,
   onDetail,
   onConfirm,
+  onReload,
   role,
 }: {
   data: any[];
@@ -86,69 +68,73 @@ export const CustomSubscriptionTable = ({
   onDelete?: (id: string | number) => void;
   onDetail?: (item: any) => void;
   onConfirm?: (id: string | number) => void;
+  onReload?: () => void;
   role?: number;
 }) => {
   const columns = [
-    {
-      key: "customer_name",
-      label: "Tên khách hàng",
-      minWidth: "min-w-[200px]",
-    },
-    { key: "total_did", label: "Tổng CID" },
-    { key: "total_minutes", label: "Phút gọi" },
-    { key: "progress", label: "Lưu lượng", minWidth: "min-w-[200px]" },
-    { key: "list_sub_plan", label: "Gói phụ" },
-    { key: "total_price", label: "Tổng giá" },
-    { key: "root_plan_id", label: "Gói chính" },
-    { key: "is_payment", label: "Thanh toán" },
-    { key: "username", label: "Sale" },
-    { key: "status", label: "Trạng thái" },
+    { key: "customer_name", label: "Khách hàng", width: "w-[180px]" },
+    { key: "total_did", label: "CID", width: "w-[80px]" },
+    { key: "total_minutes", label: "Số phút", width: "w-[100px]" },
+    { key: "progress", label: "Lưu lượng cuộc gọi", width: "w-[250px]" },
+    { key: "total_price", label: "Tổng giá", width: "w-[120px]" },
+    { key: "root_plan_id", label: "Gói chính", width: "w-[100px]" },
+    { key: "is_payment", label: "Thanh toán", width: "w-[90px]" },
+    { key: "username", label: "Sales", width: "w-[100px]" },
+    { key: "status", label: "Trạng thái", width: "w-[100px]" },
   ];
 
   const hasActionColumn = onEdit || onDelete;
-  const totalColumnCount = columns.length + 1 + (hasActionColumn ? 1 : 0);
-  const isManyColumns = totalColumnCount > 8;
+  const { data: dataTotalPrice, isLoading: isLoadingTotalPrice } = useApi(() =>
+    subscriptionService.getTotalPrice()
+  );
+
+  const [openRows, setOpenRows] = useState<Record<string, boolean>>({});
+
+  const toggleRow = (id: string, subListPlan: any) => {
+    if (subListPlan.list_sub_plan.length === 0) return;
+    setOpenRows((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
 
   const formatNumberVN = (value: number) => {
     if (value == null) return "";
     return value.toLocaleString("vi-VN");
   };
 
-  // Lấy danh sách tổng giá
-  const { data: dataTotalPrice, isLoading: isLoadingTotalPrice } = useApi(() =>
-    subscriptionService.getTotalPrice()
-  );
+  const checkPayment = (data: any) => {
+    const { main_sub, list_sub_plan } = data;
 
-  // Mở bảng subPlan nếu có
-  const [openRows, setOpenRows] = useState<Record<string, boolean>>({});
-  const toggleRow = (id: string) => {
-    setOpenRows((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
+    // Filter status = 0
+    const activeItems = [main_sub, ...(list_sub_plan || [])].filter(
+      (item) => item.status !== 0
+    );
+
+    // trả về bool
+    return activeItems.every((item) => item.is_payment == true);
   };
+
   return (
-    <div className="space-y-4">
-      {/* Total Price Display - Top Right */}
-      <div className="flex items-center justify-end gap-3">
-        {/* Tổng đã thanh toán */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-sm border border-green-300 bg-green-50 dark:bg-green-500/10">
-          <span className="text-xs font-semibold text-green-600 uppercase tracking-wider">
-            ĐÃ THANH TOÁN:
+    <div className="space-y-3">
+      {/* Summary Cards - Compact */}
+      <div className="flex gap-2 justify-end">
+        <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-green-300 bg-green-50 dark:bg-green-500/10">
+          <span className="text-xs font-semibold text-green-600 dark:text-green-400 whitespace-nowrap">
+            Tổng doanh thu:
           </span>
-          <span className="text-base font-bold text-green-700 dark:text-green-400">
+          <span className="text-sm font-bold text-green-700 dark:text-green-400">
             {isLoadingTotalPrice
               ? "..."
               : formatCurrency(dataTotalPrice?.data.total_price)}
           </span>
         </div>
 
-        {/* Tổng chưa thanh toán */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-sm border border-red-300 bg-red-50 dark:bg-red-500/10">
-          <span className="text-xs font-semibold text-red-600 uppercase tracking-wider">
-            CHƯA THANH TOÁN:
+        <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-red-300 bg-red-50 dark:bg-red-500/10">
+          <span className="text-xs font-semibold text-red-600 dark:text-red-400 whitespace-nowrap">
+            Chưa thanh toán:
           </span>
-          <span className="text-base font-bold text-red-700 dark:text-red-400">
+          <span className="text-sm font-bold text-red-700 dark:text-red-400">
             {isLoadingTotalPrice
               ? "..."
               : formatCurrency(dataTotalPrice?.data.outstanding_amount)}
@@ -156,29 +142,30 @@ export const CustomSubscriptionTable = ({
         </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-black">
-        <div className="w-full overflow-x-auto">
-          <div className="min-w-[1000px]">
-            <div className="max-h-[800px] overflow-y-auto dark:bg-black min-w-[1000px] pb-4">
-              <Table className="dark:text-white">
-                {/* Table Header */}
-                <TableHeader>
-                  <TableRow>
-                    {columns.map((col, idx) => (
+      {/* Table Container */}
+      <motion.div
+        className="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-black overflow-hidden"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.15 }}>
+        <div className="overflow-x-auto">
+          <div className="inline-block min-w-full">
+            <div className="max-h-[600px] overflow-y-auto dark:bg-black">
+              <Table className="dark:text-white text-sm">
+                {/* Header */}
+                <TableHeader className="relative top-0 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell
+                      isHeader
+                      className="px-4 py-2.5 font-semibold text-gray-700 dark:text-gray-300 text-xs w-6">
+                      <div></div>
+                    </TableCell>
+
+                    {columns.map((col) => (
                       <TableCell
-                        align={
-                          ["list_sub_plan", "progress", "total_price"].includes(
-                            col.key
-                          )
-                            ? "left"
-                            : "center"
-                        }
-                        key={`${col.key}-${idx}`}
+                        key={col.key}
                         isHeader
-                        className={`px-5 ${col.minWidth || ""} ${
-                          isManyColumns ? "text-[12px]" : "text-sm"
-                        } dark:text-gray-300 py-3 text-base font-semibold text-gray-500`}>
+                        className={`px-3 py-2.5 font-semibold text-gray-700 dark:text-gray-300 text-xs whitespace-nowrap ${col.width}`}>
                         {col.label}
                       </TableCell>
                     ))}
@@ -186,238 +173,200 @@ export const CustomSubscriptionTable = ({
                     {hasActionColumn && (
                       <TableCell
                         isHeader
-                        className={`px-5 min-w-[120px] ${
-                          isManyColumns ? "text-[13px]" : "text-sm"
-                        } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-center
-                        bg-white dark:bg-black`}>
+                        className="px-3 py-2.5 font-semibold text-gray-700 dark:text-gray-300 text-xs text-center w-[100px]">
                         Hành động
                       </TableCell>
                     )}
                   </TableRow>
                 </TableHeader>
 
-                {/* Table Body */}
+                {/* Body */}
                 <TableBody>
                   {isLoading ? (
                     Array.from({ length: 5 }).map((_, index) => (
-                      <TableRow key={index}>
+                      <motion.tr
+                        key={index}
+                        className="border-b border-gray-100 dark:border-gray-800"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}>
+                        <TableCell className="px-4 py-2.5 w-6">
+                          <div></div>
+                        </TableCell>
                         {columns.map((col) => (
                           <TableCell
                             key={col.key}
-                            className={`px-5 py-3 ${
-                              col.minWidth || ""
-                            } text-sm text-gray-500 dark:text-gray-300 ${
-                              isManyColumns ? "text-[13px]" : "text-sm"
-                            }`}>
-                            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                            className={`px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 ${col.width}`}>
+                            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-3/4" />
                           </TableCell>
                         ))}
-                        <TableCell className="px-5 py-3 min-w-[200px]">
-                          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                        </TableCell>
                         {hasActionColumn && (
-                          <TableCell
-                            className={`px-5 py-3 min-w-[120px] ${
-                              isManyColumns ? "text-[13px]" : "text-sm"
-                            } sticky right-0 bg-white dark:bg-black z-10`}>
-                            <div className="flex gap-2 justify-center">
-                              <div className="h-6 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                              <div className="h-6 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                            </div>
+                          <TableCell className="px-3 py-2.5 w-[80px]">
+                            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-1/2 mx-auto" />
                           </TableCell>
                         )}
-                      </TableRow>
+                      </motion.tr>
                     ))
                   ) : data.length === 0 ? (
-                    <TableRow>
+                    <motion.tr
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3 }}>
                       <TableCell
-                        colSpan={totalColumnCount}
+                        colSpan={columns.length + (hasActionColumn ? 2 : 1)}
                         className="py-12 text-center">
-                        <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
+                        <motion.div
+                          className="flex flex-col items-center gap-2 text-gray-500 dark:text-gray-400"
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.3, delay: 0.3 }}>
                           <svg
-                            className="w-16 h-16 mb-4 text-gray-300 dark:text-gray-600"
+                            className="w-12 h-12 text-gray-300 dark:text-gray-600"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24">
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
-                              strokeWidth={1}
+                              strokeWidth={1.5}
                               d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                             />
                           </svg>
-                          <p className="text-lg font-medium mb-2">
-                            Không có dữ liệu
+                          <p className="text-sm font-medium">No data found</p>
+                          <p className="text-xs">
+                            No subscriptions match the current filter
                           </p>
-                          <p className="text-sm">
-                            Không tìm thấy subscription nào phù hợp với bộ lọc
-                            hiện tại
-                          </p>
-                        </div>
+                        </motion.div>
                       </TableCell>
-                    </TableRow>
+                    </motion.tr>
                   ) : (
-                    data.map((item, index) => (
-                      <Fragment key={`${index}-${Number(item.id)}`}>
-                        {/* Row chính */}
-                        <TableRow
-                          className={`
-                          cursor-pointer transition-all duration-200 ease-in-out
-                          ${
-                            openRows[item.id]
-                              ? "bg-blue-50 dark:bg-blue-950/20 border-l-4 border-blue-500"
-                              : "hover:bg-gray-50 dark:hover:bg-gray-800/50 border-l-4 border-transparent"
-                          }
-                        `}
-                          onClick={() => toggleRow(item.id)}>
-                          {/* Cột đầu tiên với icon expand */}
-                          <TableCell
-                            align="left"
-                            className="px-5 py-3 text-sm text-gray-500 dark:text-gray-300">
-                            <div className="flex items-center gap-2">
-                              <ChevronDownIcon
-                                className={`
-                                  w-4 h-4 flex-shrink-0 text-gray-400 transition-transform duration-300
-                                  ${
-                                    openRows[item.id]
-                                      ? "rotate-180"
-                                      : "rotate-0"
-                                  }
-                                `}
-                              />
+                    <AnimatePresence>
+                      {data.map((item, index) => (
+                        <Fragment key={`${index}-${Number(item.id)}`}>
+                          {/* Main Row */}
+                          <motion.tr
+                            className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors cursor-pointer"
+                            onClick={() => toggleRow(item.id, item)}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.2 }}
+                            layout>
+                            <TableCell className="px-4 py-2.5 w-6">
+                              {item.list_sub_plan.length > 0 && (
+                                <motion.div
+                                  animate={{
+                                    rotate: openRows[item.id] ? 180 : 0,
+                                  }}
+                                  transition={{ duration: 0.2 }}>
+                                  <ChevronDownIcon className="w-4 h-4 text-gray-400" />
+                                </motion.div>
+                              )}
+                            </TableCell>
 
-                              <span>{item.customer_name || "-"}</span>
-                            </div>
-                          </TableCell>
-
-                          {/* Các cột còn lại */}
-                          {columns.slice(1).map((col) => (
-                            <TableCell
-                              align={
-                                [
-                                  "list_sub_plan",
-                                  "progress",
-                                  "total_price",
-                                ].includes(col.key)
-                                  ? "left"
-                                  : "center"
-                              }
-                              key={col.key}
-                              className={`px-5 py-3 ${
-                                col.minWidth || ""
-                              } text-sm text-gray-500 dark:text-gray-300 ${
-                                isManyColumns ? "text-[13px]" : "text-sm"
-                              }`}>
-                              {/* ... render logic cho từng cột giữ nguyên ... */}
-                              {col.key === "status" ? (
-                                <StatusBadge status={item.status} />
-                              ) : col.key === "is_payment" ? (
-                                <div className="flex items-center px-1">
-                                  {item[col.key] ? (
-                                    <CheckIcon className="text-blue-500 pr-2" />
-                                  ) : (
-                                    <CloseIcon className="text-red-500 pr-2" />
-                                  )}
-                                </div>
-                              ) : col.key === "total_price" ? (
-                                formatCurrency(item[col.key])
-                              ) : col.key === "total_minutes" ? (
-                                formatNumberVN(item[col.key])
-                              ) : col.key === "list_sub_plan" ? (
-                                <SubPlanSelect subPlans={item.list_sub_plan} />
-                              ) : col.key === "progress" ? (
-                                item.currentProgress > 0 ? (
-                                  <DualProgress
-                                    barClassName="h-4"
-                                    labelClassName="text-xs"
-                                    total={item.totalProgress}
-                                    current={item.currentProgress}
-                                  />
-                                ) : (
-                                  <span className="text-gray-400 flex justify-start dark:text-gray-500 text-xs">
-                                    Chưa thêm mã trượt
+                            {columns.map((col) => (
+                              <TableCell
+                                key={col.key}
+                                className={`px-3 py-2.5 text-xs text-gray-600 dark:text-gray-300 ${col.width}`}>
+                                {col.key === "customer_name" ? (
+                                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                                    {item[col.key] || "-"}
                                   </span>
-                                )
-                              ) : (
-                                item[col.key] || "-"
-                              )}
-                            </TableCell>
-                          ))}
-
-                          {hasActionColumn && (
-                            <TableCell
-                              className={`px-5 py-3 min-w-[120px] ${
-                                isManyColumns ? "text-[13px]" : "text-sm"
-                              } bg-white dark:bg-black`}
-                              onClick={(e: any) => e.stopPropagation()}>
-                              <ActionMenu
-                                item={item}
-                                role={role}
-                                onEdit={onEdit}
-                                onDetail={onDetail}
-                                onDelete={(id) => onDelete?.(id)}
-                                onConfirm={(id) => onConfirm?.(id)}
-                              />
-                            </TableCell>
-                          )}
-                        </TableRow>
-
-                        {/* Row con với animation */}
-                        <TableRow
-                          className={`
-                            overflow-hidden transition-all duration-300 ease-in-out
-                            ${
-                              openRows[item.id]
-                                ? "opacity-100"
-                                : "opacity-0 h-0"
-                            }
-                          `}>
-                          <TableCell
-                            colSpan={totalColumnCount}
-                            className={`
-                              bg-gradient-to-b from-blue-50/50 to-white 
-                              dark:from-blue-950/10 dark:to-gray-900
-                              transition-all duration-300 ease-in-out
-                              ${
-                                openRows[item.id]
-                                  ? "p-0 border-b-2 border-blue-200 dark:border-blue-800"
-                                  : "p-0 h-0"
-                              }
-                            `}>
-                            <div
-                              className={`
-                                transform transition-all duration-300 ease-in-out origin-top
-                                ${
-                                  openRows[item.id]
-                                    ? "scale-y-100 opacity-100"
-                                    : "scale-y-0 opacity-0 h-0"
-                                }
-                              `}>
-                              {openRows[item.id] && (
-                                <div className="animate-slideDown">
-                                  <SubPlanTable
+                                ) : col.key === "status" ? (
+                                  <StatusBadge status={item.status} />
+                                ) : col.key === "is_payment" ? (
+                                  <div className="flex justify-center">
+                                    {item[col.key] &&
+                                    checkPayment(item) == true ? (
+                                      <CheckIcon className="w-4 h-4 text-blue-500" />
+                                    ) : (
+                                      <CloseIcon className="w-4 h-4 text-red-500" />
+                                    )}
+                                  </div>
+                                ) : col.key === "total_price" ? (
+                                  <span className="font-medium">
+                                    {formatCurrency(item[col.key])}
+                                  </span>
+                                ) : col.key === "total_minutes" ? (
+                                  formatNumberVN(item[col.key])
+                                ) : col.key === "list_sub_plan" ? (
+                                  <SubPlanSelect
                                     subPlans={item.list_sub_plan}
-                                    onEdit={(sub: any) =>
-                                      console.log("Edit sub plan", sub)
-                                    }
-                                    onDelete={(subId: any) =>
-                                      console.log("Delete sub plan", subId)
-                                    }
                                   />
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      </Fragment>
-                    ))
+                                ) : col.key === "progress" ? (
+                                  item.currentProgress > 0 ? (
+                                    <DualProgress
+                                      barClassName="h-2"
+                                      labelClassName="text-xs"
+                                      total={item.totalProgress}
+                                      current={item.currentProgress}
+                                    />
+                                  ) : (
+                                    <span className="text-gray-400 text-xs">
+                                      Không có dữ liệu
+                                    </span>
+                                  )
+                                ) : (
+                                  item[col.key] || "-"
+                                )}
+                              </TableCell>
+                            ))}
+
+                            {hasActionColumn && (
+                              <TableCell
+                                className="px-3 py-2.5 w-[80px] text-center"
+                                onClick={(e) => e.stopPropagation()}>
+                                <ActionMenu
+                                  item={item}
+                                  role={role}
+                                  onEdit={onEdit}
+                                  onDetail={onDetail}
+                                  onDelete={(id) => onDelete?.(id)}
+                                  onConfirm={(id) => onConfirm?.(id)}
+                                />
+                              </TableCell>
+                            )}
+                          </motion.tr>
+
+                          {/* Expanded Row */}
+                          <AnimatePresence>
+                            {openRows[item.id] && (
+                              <motion.tr
+                                className="dark:bg-gray-900/20 border-b border-gray-100 dark:border-gray-800"
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{
+                                  opacity: 1,
+                                  height: "auto",
+                                }}
+                                exit={{ opacity: 0, height: 0 }}
+                                transition={{ duration: 0.2 }}
+                                layout>
+                                <TableCell
+                                  colSpan={
+                                    columns.length + (hasActionColumn ? 2 : 1)
+                                  }
+                                  className="p-0">
+                                  <div className="py-2">
+                                    <SubPlanTable
+                                      subPlans={item.list_sub_plan}
+                                      mainSub={item.main_sub}
+                                      checkPayment={checkPayment(item)}
+                                      onReload={onReload}
+                                    />
+                                  </div>
+                                </TableCell>
+                              </motion.tr>
+                            )}
+                          </AnimatePresence>
+                        </Fragment>
+                      ))}
+                    </AnimatePresence>
                   )}
                 </TableBody>
               </Table>
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

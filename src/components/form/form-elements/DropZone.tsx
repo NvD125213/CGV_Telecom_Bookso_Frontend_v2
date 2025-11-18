@@ -84,7 +84,7 @@ const DropzoneComponent: React.FC<DropzoneComponentProps> = ({
       <ComponentCard>
         <div className="flex items-center justify-between p-2">
           {" "}
-          <h2 className="font-extrabold text-[18px] text-blue-500 dark:text-blue-400 font-serif tracking-wide">
+          <h2 className="font-bold text-[18px] text-blue-500 dark:text-blue-400 font-serif tracking-wide">
             Tải xuống file Excel
           </h2>
           <Link

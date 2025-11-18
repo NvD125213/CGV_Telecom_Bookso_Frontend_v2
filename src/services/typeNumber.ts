@@ -1,6 +1,7 @@
 import axiosInstance from "../config/apiToken";
 import { ITypeNumber } from "../types";
 import Swal from "sweetalert2";
+// import { axiosInstance } from "../config/apiStatic";
 
 export const newTypeNumber = {
   id: "",
