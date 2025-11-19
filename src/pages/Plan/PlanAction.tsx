@@ -8,254 +8,21 @@ import { planService } from "../../services/plan";
 import Button from "../../components/ui/button/Button";
 import Swal from "sweetalert2";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-import { IoIosAdd, IoIosRemove } from "react-icons/io";
 import { useApi } from "../../hooks/useApi";
-import { getProviders } from "../../services/provider";
 import { validateForm } from "../../validate/plan";
 import PricingCard, {
   PlanData,
 } from "../../components/pricing-card/pricing-card";
-import { useScrollPagination } from "../../hooks/useScrollPagination";
+import { useScrollPagination } from "./hooks/useScrollPagination";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
 import AutoCompleteSwitch from "../../components/autoCompleteSwitch/AutoCompleteSwitch";
 import { users } from "../../constants/user";
 import { Option } from "../../components/ui/autocomplete/auto-complete";
-
-type RouteEntry = {
-  key: string;
-  value: string | number;
-};
-
-interface MetaEntry {
-  key: string;
-  value: string;
-}
-
-interface OutboundDidFormProps {
-  value: Record<string, number>;
-  meta: Record<string, string>;
-  onChange: (value: Record<string, number>) => void;
-  onMetaChange: (meta: Record<string, string>) => void;
-}
-
-const formatNumberWithCommas = (value: string) => {
-  // Xóa các ký tự không phải số
-  const numericValue = value.replace(/\D/g, "");
-  // Thêm dấu phẩy phân cách hàng nghìn
-  return numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-};
-
-const parseNumberFromFormatted = (value: string) => {
-  return Number(value.replace(/,/g, ""));
-};
-
-export const OutboundDidForm = ({
-  value,
-  onChange,
-  meta,
-  onMetaChange,
-}: OutboundDidFormProps) => {
-  const { data: dataProviders, isLoading, error } = useApi(getProviders);
-
-  const [routes, setRoutes] = useState<RouteEntry[]>(
-    Object.keys(value).length > 0
-      ? Object.entries(value).map(([key, val]) => ({ key, value: val }))
-      : []
-  );
-  const [metaRoutes, setMetaRoutes] = useState<MetaEntry[]>(
-    Object.entries(meta).map(([key, val]) => ({ key, value: val }))
-  );
-
-  const routeOptions = isLoading
-    ? [{ label: "Đang tải...", value: "" }]
-    : error
-    ? [{ label: "Lỗi tải dữ liệu", value: "" }]
-    : dataProviders?.map((p: any) => ({
-        label: p.name,
-        value: p.name,
-      })) ?? [];
-
-  const updateParent = (list: RouteEntry[]) => {
-    const obj = Object.fromEntries(
-      list.map((r) => [r.key, parseNumberFromFormatted(r.value as any)])
-    );
-    onChange(obj);
-  };
-
-  const updateMetaParent = (list: MetaEntry[]) => {
-    const obj = Object.fromEntries(list.map((r) => [r.key, r.value]));
-    onMetaChange(obj);
-  };
-
-  // Outbound handlers
-  const handleAdd = () => {
-    const newRoutes = [...routes, { key: "", value: "" }];
-    setRoutes(newRoutes);
-  };
-
-  const handleRemove = (index: number) => {
-    const newRoutes = routes.filter((_, i) => i !== index);
-    setRoutes(newRoutes);
-    updateParent(newRoutes);
-  };
-
-  const handleChange = (index: number, field: "key" | "value", val: any) => {
-    const newRoutes = [...routes];
-
-    if (field === "value") {
-      // Chỉ cho phép nhập số, có phẩy
-      const formatted = formatNumberWithCommas(val);
-      newRoutes[index] = { ...newRoutes[index], value: formatted as any };
-    } else {
-      newRoutes[index] = { ...newRoutes[index], key: val };
-    }
-
-    setRoutes(newRoutes);
-    updateParent(newRoutes);
-  };
-
-  // Meta handlers
-  const handleMetaAdd = () => {
-    const newRoutes = [...metaRoutes, { key: "", value: "" }];
-    setMetaRoutes(newRoutes);
-  };
-
-  const handleMetaRemove = (index: number) => {
-    const newRoutes = metaRoutes.filter((_, i) => i !== index);
-    setMetaRoutes(newRoutes);
-    updateMetaParent(newRoutes);
-  };
-
-  const handleMetaChange = (
-    index: number,
-    field: "key" | "value",
-    val: any
-  ) => {
-    const newRoutes = [...metaRoutes];
-    newRoutes[index] = {
-      ...newRoutes[index],
-      [field]: val,
-    };
-    setMetaRoutes(newRoutes);
-    updateMetaParent(newRoutes);
-  };
-
-  // Cập nhật thay đổi khi vào mode edit
-  useEffect(() => {
-    setRoutes(
-      Object.keys(value).length > 0
-        ? Object.entries(value).map(([key, val]) => ({
-            key,
-            value: formatNumberWithCommas(val.toString()),
-          }))
-        : []
-    );
-  }, [value]);
-
-  useEffect(() => {
-    setMetaRoutes(
-      Object.entries(meta).map(([key, val]) => ({ key, value: val }))
-    );
-  }, [meta]);
-  return (
-    <div>
-      <div className="grid grid-cols-2 gap-8">
-        {/* Outbound DID Section */}
-        <div>
-          <Label>Cấu hình Outbound CID</Label>
-          <div className="flex flex-col gap-3 mt-3">
-            {routes.map((route, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleRemove(index)}
-                  className="p-2 rounded-full bg-red-100 hover:bg-red-200 text-red-600 flex-shrink-0">
-                  <IoIosRemove size={20} />
-                </button>
-
-                <div className="flex-1 min-w-0">
-                  <Select
-                    options={routeOptions}
-                    value={route.key}
-                    onChange={(val) => handleChange(index, "key", val)}
-                  />
-                </div>
-
-                <div className="w-24 flex-shrink-0">
-                  <Input
-                    type="text"
-                    value={route.value}
-                    onChange={(e) =>
-                      handleChange(index, "value", e.target.value)
-                    }
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-            ))}
-
-            <button
-              type="button"
-              onClick={handleAdd}
-              className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium mt-2">
-              <IoIosAdd size={20} />
-              Thêm tuyến Outbound
-            </button>
-          </div>
-        </div>
-
-        {/* Meta Section */}
-        <div>
-          <Label>Cấu hình Meta</Label>
-          <div className="flex flex-col gap-3 mt-3">
-            {metaRoutes.map((route, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleMetaRemove(index)}
-                  className="p-2 rounded-full bg-red-100 hover:bg-red-200 text-red-600 flex-shrink-0">
-                  <IoIosRemove size={20} />
-                </button>
-
-                <div className="flex-1 min-w-0">
-                  <Input
-                    type="text"
-                    value={route.key}
-                    onChange={(val) =>
-                      handleMetaChange(index, "key", val.target.value)
-                    }
-                    placeholder="Nhập key"
-                  />
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <Input
-                    type="text"
-                    value={route.value}
-                    onChange={(e) =>
-                      handleMetaChange(index, "value", e.target.value)
-                    }
-                    placeholder="Nhập value"
-                  />
-                </div>
-              </div>
-            ))}
-
-            <button
-              type="button"
-              onClick={handleMetaAdd}
-              className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium mt-2">
-              <IoIosAdd size={20} />
-              Thêm tuyến Meta
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+import { OutboundDidForm } from "./OutboundDidForm";
+import { PlanDefault } from "./interfaces/PlanForm";
+import { useCurrencyInput, useMultiCurrencyInput } from "./hooks/useCurrency";
 
 export interface PlanForm {
   name: string;
@@ -279,50 +46,14 @@ export interface PlanForm {
 export const PlanActionPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-
   const user = useSelector((state: RootState) => state.auth.user);
-
   const isUpdate = Boolean(id);
-  const [form, setForm] = useState<PlanForm>({
-    name: "",
-    parent_id: null,
-    minutes: 0,
-    did_count: 0,
-    price_vnd: 0,
-    outbound_did_by_route: {},
-    total_users: 1,
-    meta: {},
-    is_active: true,
-    status: 1,
-    is_public: true,
-    users: {
-      rule: [],
-    },
-    expiration_time: new Date().toISOString(),
-    expiration_time_package: 3,
-  });
+  const [form, setForm] = useState<PlanForm>(PlanDefault);
 
   useEffect(() => {
     if (!isUpdate) {
       // Nếu đang tạo mới, reset form
-      setForm({
-        name: "",
-        parent_id: null,
-        minutes: 0,
-        did_count: 0,
-        price_vnd: 0,
-        outbound_did_by_route: {},
-        total_users: 1,
-        meta: {},
-        is_active: true,
-        status: 1,
-        is_public: true,
-        users: {
-          rule: [],
-        },
-        expiration_time: new Date().toISOString(),
-        expiration_time_package: 3,
-      });
+      setForm(PlanDefault);
     }
   }, [isUpdate]);
 
@@ -414,7 +145,7 @@ export const PlanActionPage = () => {
         return;
       }
 
-      setFormErrors({}); // clear lỗi cũ nếu hợp lệ
+      setFormErrors({});
       setLoading(true);
 
       if (isUpdate) {
@@ -444,24 +175,12 @@ export const PlanActionPage = () => {
     }
   };
 
-  // Format currency
-  const [currency, setCurrency] = useState("");
-  const handleCurrency = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value.replace(/[^0-9]/g, ""); // chỉ giữ số
-    if (!rawValue) {
-      setCurrency("");
-      handleChange("price_vnd", 0);
-      return;
-    }
+  // Gọi hook currency để xử lý giá tiền
+  const { currency, handleCurrency, setCurrency } = useCurrencyInput((value) =>
+    handleChange("price_vnd", value)
+  );
 
-    const formattedValue = new Intl.NumberFormat("vi-VN").format(
-      Number(rawValue)
-    );
-    setCurrency(formattedValue);
-    handleChange("price_vnd", Number(rawValue));
-  };
-
-  // Cập nhật tiền về string khi vào
+  // Chuyển tiền sang string khi render lên UI
   useEffect(() => {
     if (isUpdate && form.price_vnd !== null && form.price_vnd !== undefined) {
       const formattedValue = new Intl.NumberFormat("vi-VN").format(
@@ -506,6 +225,7 @@ export const PlanActionPage = () => {
     setChildren([]);
   }, [id]);
 
+  // Xử lý phân trang scroll cho các thẻ
   const { scrollRef, canScrollLeft, canScrollRight, scroll } =
     useScrollPagination<PlanData>([]);
 
@@ -551,58 +271,18 @@ export const PlanActionPage = () => {
     return namePage;
   };
 
-  const [currencyFields, setCurrencyFields] = useState<{
-    [key: string]: string;
-  }>({
-    price_vnd: "",
-    minutes: "",
-    did_count: "",
-    total_users: "",
-  });
+  const fieldsToFormat: (keyof PlanForm)[] = [
+    "price_vnd",
+    "minutes",
+    "did_count",
+    "total_users",
+  ];
 
-  // Hàm format số sang currency
-  const formatCurrency = (value: number | string) => {
-    if (!value) return "";
-    return new Intl.NumberFormat("vi-VN").format(Number(value));
-  };
-
-  // Hàm xử lý input currency chung
-  const handleCurrencyChange = <K extends keyof PlanForm>(
-    field: K,
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const rawValue = e.target.value.replace(/[^0-9]/g, ""); // chỉ giữ số
-    setCurrencyFields((prev) => ({
-      ...prev,
-      [field]: rawValue
-        ? new Intl.NumberFormat("vi-VN").format(Number(rawValue))
-        : "",
-    }));
-    handleChange(field, Number(rawValue) as PlanForm[K]); // ép kiểu cho TS
-  };
-
-  useEffect(() => {
-    const fieldsToFormat: (keyof PlanForm)[] = [
-      "price_vnd",
-      "minutes",
-      "did_count",
-      "total_users",
-    ];
-
-    fieldsToFormat.forEach((field) => {
-      const value = form[field];
-      if (
-        value !== null &&
-        value !== undefined &&
-        (typeof value === "number" || typeof value === "string")
-      ) {
-        setCurrencyFields((prev) => ({
-          ...prev,
-          [field]: formatCurrency(value),
-        }));
-      }
-    });
-  }, [form]);
+  const { currencyFields, handleCurrencyChange } = useMultiCurrencyInput(
+    form,
+    handleChange,
+    fieldsToFormat
+  );
 
   return (
     <>
@@ -795,8 +475,8 @@ export const PlanActionPage = () => {
                 {canScrollRight && (
                   <button
                     className="absolute right-[-40px] top-1/2 -translate-y-1/2 z-10 p-2 
-              bg-white rounded-full shadow hover:bg-gray-100
-              dark:bg-gray-800 dark:hover:bg-gray-700 dark:shadow-gray-900"
+                  bg-white rounded-full shadow hover:bg-gray-100
+                  dark:bg-gray-800 dark:hover:bg-gray-700 dark:shadow-gray-900"
                     onClick={() => scroll("right")}>
                     <FiChevronRight
                       size={20}

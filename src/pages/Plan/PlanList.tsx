@@ -16,22 +16,8 @@ import { useNavigate } from "react-router-dom";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
+import { PlanQuery, Plans } from "./interfaces/PlanQuery";
 import Swal from "sweetalert2";
-
-interface Plans {
-  meta: Record<any, any>;
-  items: PlanData[];
-}
-
-export interface PlanQuery {
-  page: number;
-  size: number;
-  order_by: string;
-  order_dir: string;
-  search?: string;
-  status?: string;
-  is_root?: string;
-}
 
 export const PlanList = () => {
   const user = useSelector((state: RootState) => state.auth?.user);

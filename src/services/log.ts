@@ -1,5 +1,5 @@
 import axiosInstance from "../config/apiToken";
-import { instanceStatic } from "../config/apiStatic";
+// import { instanceStatic } from "../config/apiStatic";
 import { cleanQuery } from "../helper/cleanQuery";
 
 export const logPackageService = {

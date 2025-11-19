@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import React from "react";
 import { RootState } from "../../store";
@@ -28,8 +28,8 @@ const statusConfig = {
     label: "deleted",
   },
   pending: {
-    bg: "bg-yellow-100 dark:bg-yellow-900/30",
-    text: "text-yellow-700 dark:text-yellow-400",
+    bg: "bg-warning-100 dark:bg-warning-900/30",
+    text: "text-warning-500",
     label: "pending",
   },
 } satisfies Record<string, StatusConfigItem>;
@@ -79,7 +79,7 @@ export const SubPlanRow = React.memo(
             style: "currency",
             currency: "VND",
           }).format(value)
-        : "-";
+        : "0 ₫";
 
     const formatDate = (date: string | undefined) =>
       date
@@ -95,6 +95,8 @@ export const SubPlanRow = React.memo(
         : "-";
 
     const user = useSelector((state: RootState) => state.auth.user);
+
+    console.log(">>> sub", sub.id, sub.price);
 
     return (
       <motion.tr
@@ -164,17 +166,18 @@ export const SubPlanRow = React.memo(
             {sub.is_payment ? "Đã thanh toán" : "Chưa thanh toán"}
           </button>
         </td>
-
-        {/* Created */}
-        <td className="px-4 py-3 text-xs text-center text-gray-600 dark:text-gray-300">
-          Ngày tạo: {formatDate(sub.created_at)}
+        <td className="px-4 py-3 text-xs text-center">
+          <span
+            className={`inline-block px-2 py-1 text-[11px] rounded-full font-medium ${
+              sub.status === 2
+                ? "bg-warning-100 text-warning-500"
+                : "bg-green-100 text-green-700"
+            }`}>
+            {sub.status === 2
+              ? "Chưa triển khai gói"
+              : `Ngày triển khai: ${formatDate(sub.updated_at)}`}
+          </span>
         </td>
-
-        {/* Expired */}
-        <td className="px-4 py-3 text-xs text-center text-gray-600 dark:text-gray-300">
-          Ngày hết hạn: {formatDate(sub.expired)}
-        </td>
-
         {/* Confirm button */}
         {checkPayment === false &&
           (user.sub == "VANLTT" || user.sub == "HUYLQ") && (
@@ -253,7 +256,7 @@ export const SubPlanTable = ({
   );
 
   return (
-    <div className="w-full bg-white dark:bg-gray-900 rounded-lg overflow-hidden px-2 dark:border-gray-800">
+    <div className="w-full bg-white dark:bg-gray-900 rounded-lg overflow-hidden px-4 dark:border-gray-800">
       <div className="overflow-x-auto">
         {isLoading ? (
           <div className="p-4">
@@ -264,7 +267,7 @@ export const SubPlanTable = ({
             <thead className="dark:bg-gray-800/50 sticky top-0">
               <tr>
                 <th className="w-5"></th>
-                {Array.from({ length: 7 }).map((_, i) => (
+                {Array.from({ length: 6 }).map((_, i) => (
                   <th
                     key={i}
                     className="px-4 text-center font-semibold text-gray-700 dark:text-gray-300 text-xs"></th>

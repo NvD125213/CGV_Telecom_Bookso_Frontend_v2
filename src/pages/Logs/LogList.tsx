@@ -2,7 +2,14 @@ import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  lazy,
+  Suspense,
+} from "react";
 import { logPackageService } from "../../services/log";
 import ReusableTable from "../../components/common/ReusableTable";
 import { useQuerySync } from "../../hooks/useQueryAsync";
@@ -16,17 +23,14 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   Typography,
   IconButton,
 } from "@mui/material";
 import { Close as CloseIcon } from "@mui/icons-material";
+
+const LogDetailModal = lazy(() =>
+  import("./LogDetailModal").then((m) => ({ default: m.default }))
+);
 
 interface Logs {
   id: number;
@@ -36,13 +40,13 @@ interface Logs {
   contract_code: string;
   tax_code: string;
   total_cid: number;
-  total_minutes: number;
+  total_minutes: string;
   phone_numbers: string[];
   total_users: number;
   price_per_user: number;
   price_per_minute: number;
   price_phone_numbers: string;
-  total_price: number;
+  total_price: string;
   is_subscription_items: boolean;
   is_subscription: boolean;
   is_order: boolean;
@@ -64,9 +68,9 @@ interface LogQuery {
   is_subscription?: boolean;
   is_subscription_items?: boolean;
   is_order?: boolean;
-  type?: string; // chỉ dùng FE
-  created_from?: string; // ISO 8601
-  created_to?: string; // ISO 8601
+  type?: string;
+  created_from?: string;
+  created_to?: string;
 }
 
 const LogList = () => {
@@ -92,8 +96,22 @@ const LogList = () => {
 
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(0);
+  const [selectedLog, setSelectedLog] = useState<Logs | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // 1. fetchLogs: KHÔNG debounce
+  const formatVnd = (value: number | string | undefined) => {
+    const num = Number(value) || 0;
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(num);
+  };
+
+  const formatMinutes = (value: number | string | undefined) => {
+    const num = Number(value) || 0;
+    return new Intl.NumberFormat("vi-VN").format(num);
+  };
+
   const fetchLogs = useCallback(async (filters: LogQuery) => {
     try {
       setLoading(true);
@@ -112,6 +130,8 @@ const LogList = () => {
       setLogs(
         data.map((item) => ({
           ...item,
+          total_price: formatVnd(item.total_price),
+          total_minutes: formatMinutes(item.total_minutes),
           type: item.is_subscription
             ? "Gói chính"
             : item.is_subscription_items
@@ -132,7 +152,6 @@ const LogList = () => {
     }
   }, []);
 
-  // Effect: debounce chỉ khi search thay đổi
   const isFirstRender = useRef(true);
 
   useEffect(() => {
@@ -149,15 +168,13 @@ const LogList = () => {
     }, 500);
     debounced();
     return () => debounced.cancel();
-  }, [search]);
+  }, [search, setQuery]);
 
-  // Effect: fetch API mỗi khi query thay đổi (KHÔNG debounce)
   useEffect(() => {
     fetchLogs(query);
   }, [query, fetchLogs]);
 
   const handleChangeType = (value: string) => {
-    // Không bị debounce vì không đi qua search
     setQuery({ ...query, type: value, page: 1 });
   };
 
@@ -172,7 +189,6 @@ const LogList = () => {
     { label: "Order", value: "order" },
   ];
 
-  // ==== Các cột mặc định ====
   const baseColumns: { key: keyof Logs | "type"; label: string }[] = [
     { key: "name_plan", label: "Tên gói" },
     { key: "name_sale", label: "Sale" },
@@ -185,10 +201,6 @@ const LogList = () => {
     { key: "total_price", label: "Tổng tiền" },
     { key: "type", label: "Loại" },
   ];
-
-  // Mở modal và gọi dữ liệu
-  const [selectedLog, setSelectedLog] = useState<Logs | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const openModal = (log: Logs) => {
     setSelectedLog(log);
@@ -204,154 +216,164 @@ const LogList = () => {
     <>
       <PageBreadcrumb pageTitle="Danh sách log" />
       <ComponentCard>
-        <div className="mb-4 grid gap-4 grid-cols-2">
-          <div>
-            <Label>Tìm kiếm</Label>
-            <Input
-              placeholder="Tìm theo tên KH, hợp đồng, MST, sale, tên gói,..."
-              value={search.q || ""}
-              onChange={(e) => setSearch({ ...search, q: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label>Chọn gói</Label>
-            <Input
-              placeholder="Tìm theo tên gói, gói phụ hoặc order"
-              value={search.name_plan || ""}
-              onChange={(e) =>
-                setSearch({ ...search, name_plan: e.target.value })
-              }
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          {/* Bộ lọc theo ngày */}
-          <div>
-            <Label>Từ ngày</Label>
-            <Input
-              type="datetime-local"
-              value={query.created_from || ""}
-              onChange={(e) =>
-                handleInputChange(
-                  "created_from",
-                  new Date(e.target.value).toISOString()
-                )
-              }
-            />
-          </div>
-          <div>
-            <Label>Đến ngày</Label>
-            <Input
-              type="datetime-local"
-              value={query.created_to || ""}
-              onChange={(e) =>
-                handleInputChange(
-                  "created_to",
-                  new Date(e.target.value).toISOString()
-                )
-              }
-            />
-          </div>
-        </div>
-        {/* Bộ lọc tìm kiếm */}
-        <div className="grid grid-cols-4 gap-4 mb-4">
-          <div>
-            <Label>Tên khách hàng</Label>
-            <Input
-              placeholder="Tìm kiếm theo tên khách hàng"
-              value={search.customer_name}
-              onChange={(e) =>
-                setSearch({ ...search, customer_name: e.target.value })
-              }
-            />
-          </div>
-          <div>
-            <Label>Mã hợp đồng</Label>
-            <Input
-              placeholder="Tìm kiếm theo mã hợp đồng"
-              value={search.contract_code || ""}
-              onChange={(e) =>
-                setSearch({ ...search, contract_code: e.target.value })
-              }
-            />
-          </div>
-          <div>
-            <Label>Mã số thuế</Label>
-            <Input
-              placeholder="Tìm kiếm theo mã số thuế"
-              value={search.tax_code || ""}
-              onChange={(e) =>
-                setSearch({ ...search, tax_code: e.target.value })
-              }
-            />
-          </div>
-          <div>
-            <Label>Nhân viên bán</Label>
-            <Input
-              placeholder="Tìm kiếm theo nhân viên bán"
-              value={query.name_sale || ""}
-              onChange={(e) => handleInputChange("name_sale", e.target.value)}
-            />
-          </div>
-          <div>
-            <Label>Số điện thoại</Label>
-            <Input
-              placeholder="Tìm kiếm theo số điện thoại"
-              value={search.phone}
-              onChange={(e) => setSearch({ ...search, phone: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label>Loại logs</Label>
-            <Select
-              options={logTypeOptions}
-              value={query.type || ""}
-              onChange={handleChangeType}
-              className="w-64"
-            />
+        {/* Filters Section */}
+        <div className="space-y-4 mb-6">
+          {/* Search Row */}
+          <div className="grid gap-4 grid-cols-2">
+            <div>
+              <Label>Tìm kiếm</Label>
+              <Input
+                placeholder="Tìm theo tên KH, hợp đồng, MST, sale, tên gói,..."
+                value={search.q || ""}
+                onChange={(e) => setSearch({ ...search, q: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Chọn gói</Label>
+              <Input
+                placeholder="Tìm theo tên gói, gói phụ hoặc order"
+                value={search.name_plan || ""}
+                onChange={(e) =>
+                  setSearch({ ...search, name_plan: e.target.value })
+                }
+              />
+            </div>
           </div>
 
-          <div>
-            <Label>Thứ tự</Label>
-            <Select
-              options={[
-                { label: "Tăng dần", value: "asc" },
-                { label: "Giảm dần", value: "desc" },
-              ]}
-              value={query.order_dir}
-              onChange={(value) => handleInputChange("order_dir", value)}
-              className="w-64"
-            />
+          {/* Date Range Row */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Từ ngày</Label>
+              <Input
+                type="datetime-local"
+                value={query.created_from || ""}
+                onChange={(e) =>
+                  handleInputChange(
+                    "created_from",
+                    new Date(e.target.value).toISOString()
+                  )
+                }
+              />
+            </div>
+            <div>
+              <Label>Đến ngày</Label>
+              <Input
+                type="datetime-local"
+                value={query.created_to || ""}
+                onChange={(e) =>
+                  handleInputChange(
+                    "created_to",
+                    new Date(e.target.value).toISOString()
+                  )
+                }
+              />
+            </div>
           </div>
-          <div>
-            <Label>Sắp xếp theo</Label>
-            <Select
-              options={[
-                { label: "Tên gói", value: "name_plan" },
-                { label: "Mã hợp đồng", value: "contract_code" },
-                { label: "Mã số thuế", value: "tax_code" },
-                { label: "Tổng giá", value: "total_price" },
-                { label: "Ngày tạo", value: "created_at" },
-                { label: "Ngày cập nhật", value: "updated_at" },
-              ]}
-              value={query.order_by}
-              onChange={(value) => handleInputChange("order_by", value)}
-              className="w-64"
-            />
+
+          {/* Advanced Filters Row */}
+          <div className="grid grid-cols-4 gap-4">
+            <div>
+              <Label>Tên khách hàng</Label>
+              <Input
+                placeholder="Tìm kiếm theo tên khách hàng"
+                value={search.customer_name}
+                onChange={(e) =>
+                  setSearch({ ...search, customer_name: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Label>Mã hợp đồng</Label>
+              <Input
+                placeholder="Tìm kiếm theo mã hợp đồng"
+                value={search.contract_code || ""}
+                onChange={(e) =>
+                  setSearch({ ...search, contract_code: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Label>Mã số thuế</Label>
+              <Input
+                placeholder="Tìm kiếm theo mã số thuế"
+                value={search.tax_code || ""}
+                onChange={(e) =>
+                  setSearch({ ...search, tax_code: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Label>Nhân viên bán</Label>
+              <Input
+                placeholder="Tìm kiếm theo nhân viên bán"
+                value={query.name_sale || ""}
+                onChange={(e) => handleInputChange("name_sale", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Số điện thoại</Label>
+              <Input
+                placeholder="Tìm kiếm theo số điện thoại"
+                value={search.phone}
+                onChange={(e) =>
+                  setSearch({ ...search, phone: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Label>Loại logs</Label>
+              <Select
+                options={logTypeOptions}
+                value={query.type || ""}
+                onChange={handleChangeType}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <Label>Thứ tự</Label>
+              <Select
+                options={[
+                  { label: "Tăng dần", value: "asc" },
+                  { label: "Giảm dần", value: "desc" },
+                ]}
+                value={query.order_dir}
+                onChange={(value) => handleInputChange("order_dir", value)}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <Label>Sắp xếp theo</Label>
+              <Select
+                options={[
+                  { label: "Tên gói", value: "name_plan" },
+                  { label: "Mã hợp đồng", value: "contract_code" },
+                  { label: "Mã số thuế", value: "tax_code" },
+                  { label: "Tổng giá", value: "total_price" },
+                  { label: "Ngày tạo", value: "created_at" },
+                  { label: "Ngày cập nhật", value: "updated_at" },
+                ]}
+                value={query.order_by}
+                onChange={(value) => handleInputChange("order_by", value)}
+                className="w-full"
+              />
+            </div>
           </div>
         </div>
 
-        {loading ? (
+        {/* Table Content */}
+        {loading && (
           <div className="flex flex-col items-center justify-center py-16 text-gray-500">
             <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500 mb-4"></div>
             <p>Đang tải dữ liệu...</p>
           </div>
-        ) : errorData ? (
+        )}
+        {errorData && (
           <div className="flex flex-col items-center justify-center py-10 text-center">
-            <MdErrorOutline size={48} className="mb-3" />
-            <p className="text-lg font-medium">{errorData}</p>
+            <MdErrorOutline size={48} className="mb-3 text-red-500" />
+            <p className="text-lg font-medium text-red-600">{errorData}</p>
           </div>
-        ) : logs.length === 0 ? (
+        )}
+        {!loading && !errorData && logs.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-gray-500">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -371,7 +393,8 @@ const LogList = () => {
               Hãy thử thay đổi bộ lọc hoặc tìm kiếm khác.
             </p>
           </div>
-        ) : (
+        )}
+        {!loading && !errorData && logs.length > 0 && (
           <ReusableTable
             showId={false}
             error={errorData}
@@ -385,43 +408,61 @@ const LogList = () => {
             isLoading={loading}
           />
         )}
-        <div className="mt-6">
-          <Pagination
-            limit={query.size}
-            offset={query.page - 1}
-            totalPages={pages || 1}
-            onPageChange={(limit, offset) => {
-              setQuery({
-                ...query,
-                size: limit,
-                page: offset + 1,
-              });
-            }}
-            onLimitChange={(limit) => {
-              setQuery({
-                ...query,
-                size: limit,
-                page: 1,
-              });
-            }}
-          />
-        </div>
+
+        {/* Pagination */}
+        {pages > 1 && (
+          <div className="mt-6">
+            <Pagination
+              limit={query.size}
+              offset={query.page - 1}
+              totalPages={pages || 1}
+              onPageChange={(limit, offset) => {
+                setQuery({
+                  ...query,
+                  size: limit,
+                  page: offset + 1,
+                });
+              }}
+              onLimitChange={(limit) => {
+                setQuery({
+                  ...query,
+                  size: limit,
+                  page: 1,
+                });
+              }}
+            />
+          </div>
+        )}
       </ComponentCard>
 
-      <Dialog open={isModalOpen} onClose={closeModal} maxWidth="lg" fullWidth>
-        <DialogTitle sx={{ bgcolor: "#f5f7fa", pb: 1.5 }}>
+      {/* Modal with Lazy Loading */}
+      <Dialog
+        open={isModalOpen}
+        onClose={closeModal}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: "8px",
+            backgroundColor: "#ffffff",
+          },
+        }}>
+        <DialogTitle
+          sx={{
+            bgcolor: "#f9fafb",
+            pb: 1.5,
+            borderBottom: "1px solid #e5e7eb",
+          }}>
           <div className="flex justify-between items-center">
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: "bold", color: "#1f2937" }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: "#1f2937" }}>
               Chi tiết log gói:{" "}
               <Typography
                 component="span"
-                sx={{ color: "#2563eb", fontWeight: "bold" }}>
+                sx={{ color: "#2563eb", fontWeight: 600 }}>
                 {selectedLog?.name_plan}
               </Typography>
             </Typography>
-            <IconButton onClick={closeModal} sx={{ color: "#6b7280" }}>
+            <IconButton onClick={closeModal} sx={{ color: "#9ca3af" }}>
               <CloseIcon />
             </IconButton>
           </div>
@@ -430,172 +471,22 @@ const LogList = () => {
         <DialogContent
           dividers
           sx={{
-            backgroundColor: "#fafafa",
+            backgroundColor: "#ffffff",
+            padding: "24px",
             "&::-webkit-scrollbar": { width: "6px" },
             "&::-webkit-scrollbar-thumb": {
               backgroundColor: "#d1d5db",
               borderRadius: "4px",
             },
           }}>
-          {selectedLog ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* ==== BẢNG PRICE_PHONE_NUMBERS ==== */}
-              <div>
-                <Typography
-                  variant="subtitle1"
-                  sx={{
-                    mb: 2,
-                    fontWeight: 600,
-                    borderLeft: "4px solid #2563eb",
-                    pl: 1.5,
-                    color: "#111827",
-                  }}>
-                  Chi tiết giá theo đầu số
-                </Typography>
-
-                {selectedLog.price_phone_numbers ? (
-                  <TableContainer
-                    component={Paper}
-                    elevation={2}
-                    sx={{
-                      borderRadius: 2,
-                      overflow: "hidden",
-                      maxHeight: 350,
-                      overflowY: "auto",
-                      "&::-webkit-scrollbar": { width: "6px" },
-                      "&::-webkit-scrollbar-thumb": {
-                        backgroundColor: "#cbd5e1",
-                        borderRadius: "4px",
-                      },
-                    }}>
-                    <Table size="small" stickyHeader>
-                      <TableHead sx={{ backgroundColor: "#2563eb" }}>
-                        <TableRow>
-                          <TableCell
-                            sx={{ color: "black", fontWeight: "bold" }}>
-                            Đầu số
-                          </TableCell>
-                          <TableCell
-                            align="right"
-                            sx={{ color: "black", fontWeight: "bold" }}>
-                            Phí cài đặt
-                          </TableCell>
-                          <TableCell
-                            align="right"
-                            sx={{ color: "black", fontWeight: "bold" }}>
-                            Phí duy trì
-                          </TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {Object.entries(
-                          JSON.parse(selectedLog.price_phone_numbers)
-                        ).map(([provider, fees]: [string, any], index) => (
-                          <TableRow
-                            key={provider}
-                            sx={{
-                              backgroundColor:
-                                index % 2 === 0 ? "#f9fafb" : "white",
-                            }}>
-                            <TableCell sx={{ fontWeight: 500 }}>
-                              {provider}
-                            </TableCell>
-                            <TableCell align="right">
-                              {fees?.installation_fee
-                                ? `${fees.installation_fee.toLocaleString(
-                                    "vi-VN"
-                                  )} đ`
-                                : "-"}
-                            </TableCell>
-                            <TableCell align="right">
-                              {fees?.maintenance_fee
-                                ? `${fees.maintenance_fee.toLocaleString(
-                                    "vi-VN"
-                                  )} đ`
-                                : "-"}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                ) : (
-                  <Typography color="text.secondary">
-                    Không có dữ liệu đầu số
-                  </Typography>
-                )}
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
               </div>
-
-              {/* ==== BẢNG DANH SÁCH SỐ ĐIỆN THOẠI ==== */}
-              <div>
-                <Typography
-                  variant="subtitle1"
-                  sx={{
-                    mb: 2,
-                    fontWeight: 600,
-                    borderLeft: "4px solid #059669",
-                    pl: 1.5,
-                    color: "#111827",
-                  }}>
-                  Danh sách số điện thoại
-                </Typography>
-
-                {selectedLog.phone_numbers &&
-                selectedLog.phone_numbers.length > 0 ? (
-                  <TableContainer
-                    component={Paper}
-                    elevation={2}
-                    sx={{
-                      borderRadius: 2,
-                      overflow: "hidden",
-                      maxHeight: 350,
-                      overflowY: "auto",
-                      "&::-webkit-scrollbar": { width: "6px" },
-                      "&::-webkit-scrollbar-thumb": {
-                        backgroundColor: "#cbd5e1",
-                        borderRadius: "4px",
-                      },
-                    }}>
-                    <Table size="small" stickyHeader>
-                      <TableHead sx={{ backgroundColor: "#059669" }}>
-                        <TableRow>
-                          <TableCell
-                            sx={{ color: "black", fontWeight: "bold" }}>
-                            STT
-                          </TableCell>
-                          <TableCell
-                            sx={{ color: "black", fontWeight: "bold" }}>
-                            Số điện thoại
-                          </TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {selectedLog.phone_numbers.map((phone, index) => (
-                          <TableRow
-                            key={index}
-                            sx={{
-                              backgroundColor:
-                                index % 2 === 0 ? "#f9fafb" : "white",
-                            }}>
-                            <TableCell>{index + 1}</TableCell>
-                            <TableCell>{phone}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                ) : (
-                  <Typography color="text.secondary">
-                    Không có số điện thoại nào
-                  </Typography>
-                )}
-              </div>
-            </div>
-          ) : (
-            <Typography color="text.secondary">
-              Không có dữ liệu chi tiết để hiển thị.
-            </Typography>
-          )}
+            }>
+            {selectedLog && <LogDetailModal log={selectedLog} />}
+          </Suspense>
         </DialogContent>
       </Dialog>
     </>
