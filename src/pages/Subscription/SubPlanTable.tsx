@@ -95,8 +95,10 @@ export const SubPlanRow = React.memo(
         : "-";
 
     const user = useSelector((state: RootState) => state.auth.user);
-
-    console.log(">>> sub", sub.id, sub.price);
+    const formatNumberVN = (value: number) => {
+      if (value == null) return "";
+      return value.toLocaleString("vi-VN");
+    };
 
     return (
       <motion.tr
@@ -130,7 +132,13 @@ export const SubPlanRow = React.memo(
             <span className="truncate min-w-[120px]">{sub.name || "-"}</span>
           </div>
         </td>
-
+        
+        {/* Minutes */}
+        <td className="px-4 py-3 text-xs text-center text-gray-600 dark:text-gray-300 flex flex-col">
+          <span className="font-medium">Tổng phút gọi:</span>
+          <span className="font-medium">{formatNumberVN(sub.minutes)} phút</span>
+        </td>
+        
         {/* Type */}
         <td className="px-4 py-3 text-sm text-center min-w-[100px]">
           {sub.type === "main" ? (
@@ -166,18 +174,25 @@ export const SubPlanRow = React.memo(
             {sub.is_payment ? "Đã thanh toán" : "Chưa thanh toán"}
           </button>
         </td>
+        
+        {/* Deployment info */}
         <td className="px-4 py-3 text-xs text-center">
           <span
             className={`inline-block px-2 py-1 text-[11px] rounded-full font-medium ${
               sub.status === 2
                 ? "bg-warning-100 text-warning-500"
+                : sub.status === 0
+                ? "bg-red-100 text-red-500"
                 : "bg-green-100 text-green-700"
             }`}>
             {sub.status === 2
               ? "Chưa triển khai gói"
+              : sub.status === 0
+              ? "Gói đã xóa và các số đã được thu hồi"
               : `Ngày triển khai: ${formatDate(sub.updated_at)}`}
           </span>
         </td>
+        
         {/* Confirm button */}
         {checkPayment === false &&
           (user.sub == "VANLTT" || user.sub == "HUYLQ") && (
@@ -214,14 +229,14 @@ export const SubPlanTable = ({
         Swal.fire({
           icon: "info",
           title: "Đã thanh toán",
-          text: "Gói này đã được thanh toán trước đó.",
+          text: "Gói này đã được thanh toán trước đó !",
         });
         return; // Dừng hàm, không tiếp tục xác nhận
       }
 
       const result = await Swal.fire({
         title: "Xác nhận thanh toán",
-        text: "Bạn có chắc chắn muốn xác nhận thanh toán cho gói này không?",
+        text: `Bạn có chắc chắn muốn xác nhận thanh toán gói ${item.name} không?`,
         icon: "question",
         showCancelButton: true,
         confirmButtonColor: "#3085d6",
@@ -267,7 +282,7 @@ export const SubPlanTable = ({
             <thead className="dark:bg-gray-800/50 sticky top-0">
               <tr>
                 <th className="w-5"></th>
-                {Array.from({ length: 6 }).map((_, i) => (
+                {Array.from({ length: 7 }).map((_, i) => (
                   <th
                     key={i}
                     className="px-4 text-center font-semibold text-gray-700 dark:text-gray-300 text-xs"></th>

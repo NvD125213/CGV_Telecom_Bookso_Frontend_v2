@@ -116,7 +116,7 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
           <MenuItem
             onClick={() => {
               handleClose();
-              onConfirm(item.id);
+              onConfirm(item);
             }}>
             <ListItemIcon>
               <CheckIcon fontSize="small" color="error" />

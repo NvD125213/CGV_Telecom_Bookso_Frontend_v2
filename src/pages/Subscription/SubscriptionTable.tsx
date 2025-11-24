@@ -67,7 +67,7 @@ export const CustomSubscriptionTable = ({
   onEdit?: (item: any) => void;
   onDelete?: (id: string | number) => void;
   onDetail?: (item: any) => void;
-  onConfirm?: (id: string | number) => void;
+  onConfirm?: (item: any) => void;
   onReload?: () => void;
   role?: number;
 }) => {
@@ -321,7 +321,7 @@ export const CustomSubscriptionTable = ({
                                   onEdit={onEdit}
                                   onDetail={onDetail}
                                   onDelete={(id) => onDelete?.(id)}
-                                  onConfirm={(id) => onConfirm?.(id)}
+                                  onConfirm={(item) => onConfirm?.(item)}
                                 />
                               </TableCell>
                             )}

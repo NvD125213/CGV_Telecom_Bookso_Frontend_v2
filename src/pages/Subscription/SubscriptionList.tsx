@@ -134,7 +134,7 @@ const SubsciptionList = () => {
     query.expired_from,
     query.expired_to,
     query.auto_renew,
-    query.is_payment, // thêm dòng này
+    query.is_payment, 
   ]);
 
   // FIX: Dùng state thay vì ref để trigger useEffect
@@ -272,10 +272,10 @@ const SubsciptionList = () => {
     }
   };
 
-  const handleConfirmPayment = async (id: any) => {
+  const handleConfirmPayment = async (item: any) => {
     Swal.fire({
       title: "Xác nhận thanh toán",
-      text: `Bạn có chắc chắn muốn xác nhận thanh toán cho hợp đồng book gói này không?`,
+      text: `Bạn có chắc chắn muốn xác nhận thanh toán gói cho khách hàng ${item.customer_name} không?`,
       icon: "question",
       showCancelButton: true,
       confirmButtonColor: "#3085d6",
@@ -285,7 +285,7 @@ const SubsciptionList = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const res = await subscriptionService.update(id, {
+          const res = await subscriptionService.update(item.id, {
             is_payment: true,
           });
           if (res.status === 200) {
@@ -350,11 +350,6 @@ const SubsciptionList = () => {
 
     return processedData.map((sub: any) => {
       const quota = quotaData?.find((q: any) => q.sub_Id === sub.id);
-      const planIds = sub.items.map((item: any) => item.plan_id);
-
-      const plans = planIds
-        .map((id: number) => plansMap.get(id))
-        .filter(Boolean);
 
       let totalPlanMinutes = 0;
       let totalPlanDidCount = 0;
@@ -376,13 +371,20 @@ const SubsciptionList = () => {
             note: item.note,
             quantity: item.quantity,
             price: item.price_override_vnd,
+            minutes: plan.minutes || 0, // Thêm minutes riêng cho từng plan
           };
         })
         .filter(Boolean);
 
-      plans.forEach((plan: any) => {
-        totalPlanMinutes += plan.minutes || 0;
-        totalPlanDidCount += plan.did_count || 0;
+      // Chỉ cộng minutes và did_count cho các sub có status == 1
+      sub.items.forEach((item: any) => {
+        if (item.status == 1) {
+          const plan = plansMap.get(item.plan_id);
+          if (plan) {
+            totalPlanMinutes += plan.minutes || 0;
+            totalPlanDidCount += plan.did_count || 0;
+          }
+        }
       });
       const mainSub = {
         id: sub.id,
@@ -398,6 +400,7 @@ const SubsciptionList = () => {
         total_minutes: (sub.total_minutes || 0) + totalPlanMinutes,
         total_did: totalPlanDidCount + sub.total_did,
         contract_code: sub.contract_code,
+        minutes: sub.total_minutes || 0, // Thêm minutes riêng cho main sub (root plan)
       };
 
       return {
@@ -412,6 +415,9 @@ const SubsciptionList = () => {
       };
     });
   }, [processedData, quotaData, subscriptions.length, plansData]);
+
+  console.log(">>>", mapData);
+  
 
   return (
     <>
@@ -561,7 +567,6 @@ const SubsciptionList = () => {
                   navigate(`/subscriptions/edit/${item.id}`);
                 }}
                 onReload={() => {
-                  console.log("Reload triggered from SubPlanTable");
                   return fetchSubscriptions();
                 }}
                 onConfirm={(item) => handleConfirmPayment(item)}

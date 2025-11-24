@@ -47,7 +47,7 @@ interface Props<T> {
   onEdit?: (item: T) => void;
   onDelete?: (id: string | number) => void;
   onDetail?: (item: T) => void;
-  onConfirm?: (id: any) => void;
+  onConfirm?: (item: any) => void;
   actions?: Action<T>[];
   onCheck?: (selectedIds: (string | number)[], selectedRows: T[]) => void;
   selectedIds?: (string | number)[];
@@ -376,7 +376,7 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
                               )}
                               {onConfirm && (
                                 <button
-                                  onClick={() => onConfirm(item.id)}
+                                  onClick={() => onConfirm(item)}
                                   className="bg-blue-400 text-white px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2">
                                   <GiConfirmed />
                                 </button>

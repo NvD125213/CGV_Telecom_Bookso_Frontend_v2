@@ -8,7 +8,6 @@ import { subscriptionService } from "../../services/subcription";
 import Button from "../../components/ui/button/Button";
 import Swal from "sweetalert2";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-import { IoIosClose, IoIosRemove } from "react-icons/io";
 import { PlanData } from "../../components/pricing-card/pricing-card";
 import { useLocation } from "react-router-dom";
 import ReusableTable from "../../components/common/ReusableTable";
@@ -31,8 +30,6 @@ import CustomModal from "../../components/common/CustomModal";
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
 import DualProgress from "../../components/progress-bar/DualProgress";
-import { useSelector } from "react-redux";
-import { RootState } from "../../store";
 
 export interface PhoneNumber {
   phone_number: string;
@@ -147,13 +144,14 @@ export const SlideForm = ({ value, onChange }: SlideFormProps) => {
     </div>
   );
 };
+
 export const SubcriptionActionPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const location = useLocation();
   const plan = location.state as PlanData | null;
-  const user = useSelector((state: RootState) => state.auth.user);
+  // const user = useSelector((state: RootState) => state.auth.user);
 
   // Các mode
   const isEdit = location.pathname.includes(`/subscriptions/edit/${id}`)
@@ -837,10 +835,10 @@ export const SubcriptionActionPage = () => {
   );
 
   // Xử lý xác nhận số
-  const handleConfirmPayment = async (id: any) => {
+  const handleConfirmPayment = async (item: any) => {
     Swal.fire({
       title: "Xác nhận thanh toán",
-      text: `Bạn có chắc chắn muốn xác nhận thanh toán cho hợp đồng book gói này không?`,
+      text: `Bạn có chắc chắn muốn xác nhận thanh toán gói cho khách hàng ${item.customer_name} không?`,
       icon: "question",
       showCancelButton: true,
       confirmButtonColor: "#3085d6",
@@ -850,7 +848,7 @@ export const SubcriptionActionPage = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const res = await subscriptionItemService.update(id, {
+          const res = await subscriptionItemService.update(item.id, {
             is_payment: true,
           });
           if (res.status === 200) {
@@ -1206,7 +1204,7 @@ export const SubcriptionActionPage = () => {
                 error=""
                 disabled={true}
                 disabledReset={true}
-                onConfirm={(id) => handleConfirmPayment(id)}
+                onConfirm={(item) => handleConfirmPayment(item)}
                 role={1}
                 onEdit={(item) => {
                   const originalItem = items.find(

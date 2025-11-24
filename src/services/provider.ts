@@ -1,5 +1,5 @@
 import { IProvider } from "../types";
-// import { axiosInstance } from "../config/apiStatic";
+import { instanceStatic } from "../config/apiStatic";
 import axiosInstance from "../config/apiToken";
 import Swal from "sweetalert2";
 
@@ -17,7 +17,7 @@ export const newProvider = {
 // Get all list provider
 export const getProviders = async () => {
   try {
-    const res = await axiosInstance.get("/api/v2/provider/all");
+    const res = await instanceStatic.get("/api/v2/provider/all");
     return res?.data;
   } catch (error: any) {
     throw new Error(error);
@@ -27,7 +27,7 @@ export const getProviders = async () => {
 // Get provider by id
 export const getProviderById = async (id: string) => {
   try {
-    const res = await axiosInstance.get(
+    const res = await instanceStatic.get(
       `/api/v2/provider/provider-by-id?provider_id=${id}`
     );
     return res.data;

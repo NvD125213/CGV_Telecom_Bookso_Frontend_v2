@@ -10,10 +10,12 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import EditIcon from "@mui/icons-material/Edit";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { CheckCircleOutline } from "@mui/icons-material";
 
 interface ActionMenuProps {
   item: any;
   role?: number;
+  status?: any;
   onEdit?: (item: any) => void;
   onDetail?: (item: any) => void;
   onDelete?: (id: string) => void;
@@ -23,9 +25,11 @@ interface ActionMenuProps {
 const ActionMenu: React.FC<ActionMenuProps> = ({
   item,
   role,
+  status,
   onEdit,
   onDetail,
   onDelete,
+  onConfirm,
 }) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -87,19 +91,32 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
             <ListItemText primary="Chi tiết" />
           </MenuItem>
         )}
-
-        {onDelete && (
+        {onConfirm && item.is_payment == false && (
           <MenuItem
             onClick={() => {
               handleClose();
-              onDelete(item.id);
+              onConfirm(item);
             }}>
             <ListItemIcon>
-              <DeleteIcon fontSize="small" color="error" />
+              <CheckCircleOutline fontSize="small" color="info" />
             </ListItemIcon>
-            <ListItemText primary="Xóa" />
+            <ListItemText primary="Xác nhận" />
           </MenuItem>
         )}
+        {onDelete &&
+          status != 1 &&
+          status != 0 && ( // Đã sửa || thành &&
+            <MenuItem
+              onClick={() => {
+                handleClose();
+                onDelete(item);
+              }}>
+              <ListItemIcon>
+                <DeleteIcon fontSize="small" color="error" />
+              </ListItemIcon>
+              <ListItemText primary="Xóa" />
+            </MenuItem>
+          )}
       </Menu>
     </div>
   );

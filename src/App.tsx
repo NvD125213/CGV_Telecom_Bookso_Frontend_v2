@@ -32,7 +32,8 @@ import { SubcriptionActionPage } from "./pages/Subscription/SubscriptionAction";
 import SubscriptionList from "./pages/Subscription/SubscriptionList";
 import LogList from "./pages/Logs/LogList";
 import OrderList from "./pages/Order/OrderList";
-import { OrderActionPage } from "./pages/Order/OrderAction";
+// import { OrderActionPage } from "./pages/Order/OrderAction";
+import {OrderActionPage} from "./pages/Order/OrderAction/OrderAction.tsx";
 
 function AppWithInactivityHandler() {
   const { resetInactivityTimer } = useAuth();

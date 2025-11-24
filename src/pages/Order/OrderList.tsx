@@ -11,20 +11,18 @@ import {
   TableRow,
 } from "../../components/ui/table";
 import { orderServices } from "../../services/order";
-import { useApi } from "../../hooks/useApi";
 import { useQuerySync } from "../../hooks/useQueryAsync";
-import { planService } from "../../services/plan";
-import { PencilIcon } from "../../icons";
-import { RiDeleteBinLine } from "react-icons/ri";
 import Select from "../../components/form/Select";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
 import { useNavigate } from "react-router-dom";
 import Pagination from "../../components/pagination/pagination";
-import Swal from "sweetalert2";
 import { formatCurrency } from "../../helper/formatCurrency";
 import { IoIosAdd } from "react-icons/io";
 import ActionMenu from "./ActionMenu";
+import { CheckCircleOutline } from "@mui/icons-material";
+import { IoCloseCircleOutline } from "react-icons/io5";
+import Swal from "sweetalert2";
 
 interface OrderData {
   id: number;
@@ -55,9 +53,15 @@ const StatusBadge = ({ status }: { status: number }) => {
         };
       case 2:
         return {
-          text: "Pending",
+          text: "pending",
           classname:
             "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-orange-400",
+        };
+      case 3:
+        return {
+          text: "deploying",
+          classname:
+            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400",
         };
       case 0:
         return {
@@ -85,6 +89,7 @@ const CustomOrderTable = ({
   onEdit,
   onDelete,
   onDetail,
+  onConfirm,
   role,
   hideId,
 }: {
@@ -92,7 +97,8 @@ const CustomOrderTable = ({
   isLoading: boolean;
   onEdit?: (item: any) => void;
   onDetail?: (item: any) => void;
-  onDelete?: (id: string | number) => void;
+  onDelete?: (item: any) => void;
+  onConfirm?: (item: any) => void;
   role?: number;
   hideId?: boolean;
 }) => {
@@ -100,9 +106,12 @@ const CustomOrderTable = ({
     { key: "customer_name", label: "Tên khách hàng" },
     { key: "tax_code", label: "Mã số thuế" },
     { key: "contract_code", label: "Mã hợp đồng" },
-    // { key: "quantity", label: "Số lượng" },
+    {
+      key: "is_payment",
+      label: "Thanh toán",
+    },
     { key: "total_users", label: "Tổng user" },
-    { key: "total_minute", label: "Tổng phút gọi" },
+    { key: "total_minute", label: "Phút gọi" },
     { key: "user_name", label: "Sale" },
     { key: "total_price", label: "Tổng giá" },
     { key: "status", label: "Trạng thái" },
@@ -111,6 +120,8 @@ const CustomOrderTable = ({
   const hasActionColumn = onEdit || onDelete;
   const totalColumnCount = columns.length + 1 + (hasActionColumn ? 1 : 0); // +1 for ID column, +1 for actions
   const isManyColumns = totalColumnCount > 8;
+  const formatNumber = (num: number) =>
+    num?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-black">
@@ -135,7 +146,11 @@ const CustomOrderTable = ({
                       isHeader
                       className={`px-5 ${
                         isManyColumns ? "text-[13px]" : "text-sm"
-                      } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start`}>
+                      } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 ${
+                        col.key === "customer_name"
+                          ? "!text-start"
+                          : "!text-center"
+                      }`}>
                       {col.label}
                     </TableCell>
                   ))}
@@ -166,8 +181,10 @@ const CustomOrderTable = ({
                         <TableCell
                           key={col.key}
                           className={`px-5 py-3 text-sm text-gray-500 dark:text-gray-300 ${
-                            isManyColumns ? "text-[13px]" : "text-sm"
-                          }`}>
+                            col.key === "customer_name"
+                              ? "!text-start"
+                              : "!text-center"
+                          } ${isManyColumns ? "text-[13px]" : "text-sm"}`}>
                           <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
                         </TableCell>
                       ))}
@@ -224,17 +241,28 @@ const CustomOrderTable = ({
                         <TableCell
                           key={col.key}
                           className={`px-5 py-3 text-sm text-gray-500 dark:text-gray-300 ${
-                            isManyColumns ? "text-[13px]" : "text-sm"
-                          }`}>
+                            col.key === "customer_name"
+                              ? "!text-start"
+                              : "!text-center"
+                          } ${isManyColumns ? "text-[13px]" : "text-sm"}`}>
                           {col.key === "status" ? (
                             <StatusBadge status={item.status} />
                           ) : col.key === "total_price" ? (
                             formatCurrency(item[col.key])
+                          ) : col.key === "is_payment" ? (
+                            item.is_payment ? (
+                              <CheckCircleOutline className="w-5 h-5 text-green-500 mx-auto" />
+                            ) : (
+                              <IoCloseCircleOutline className="w-5 h-5 text-red-500 mx-auto" />
+                            )
+                          ) : col.key === "total_minute" ? (
+                            formatNumber(item.total_minute)
                           ) : (
                             item[col.key] || "-"
                           )}
                         </TableCell>
                       ))}
+
                       {hasActionColumn && (
                         <TableCell
                           className={`px-5 py-3 min-w-[120px] ${
@@ -243,9 +271,11 @@ const CustomOrderTable = ({
                           <ActionMenu
                             item={item}
                             role={role}
+                            status={item.status}
                             onEdit={onEdit}
                             onDetail={onDetail}
-                            onDelete={(id) => onDelete?.(id)}
+                            onDelete={onDelete}
+                            onConfirm={onConfirm}
                           />
                         </TableCell>
                       )}
@@ -368,6 +398,80 @@ const OrderList = () => {
       };
     }) || [];
 
+  // Hàm xác nhận thanh toán
+  const handleConfirmPayment = async (item: any) => {
+    if (item.is_payment == true) {
+      Swal.fire({
+        icon: "info",
+        title: "Đã thanh toán",
+        text: "Order này đã được thanh toán trước đó !",
+      });
+      return;
+    }
+
+    const result = await Swal.fire({
+      title: "Xác nhận thanh toán",
+      text: `Bạn có chắc chắn muốn xác nhận thanh toán order cho khách hàng ${item.customer_name} không?`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Xác nhận",
+      cancelButtonText: "Hủy",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      const res = await orderServices.update(item.id, { is_payment: true });
+
+      if (res?.status === 200) {
+        Swal.fire("Đã xác nhận!", "Thanh toán thành công.", "success");
+        fetchOrders();
+      } else {
+        Swal.fire("Lỗi", "Không thể xác nhận thanh toán.", "error");
+      }
+    } catch (error: any) {
+      Swal.fire("Lỗi", error?.response?.data?.detail || "Xảy ra lỗi", "error");
+    }
+  };
+
+  // Xử lý xóa dữ liệu
+  const handleDelete = async (data: any) => {
+    const result = await Swal.fire({
+      title: "Xác nhận xóa",
+      text: `Bạn có chắc chắn muốn xóa order của khách hàng "${data.customer_name}" không?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Xóa",
+      cancelButtonText: "Hủy",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const res = await orderServices.delete(data.id); // gọi API xóa
+        if (res.status === 200) {
+          Swal.fire(
+            "Đã xóa!",
+            `Order cho khách hàng "${data.customer_name}" đã được xóa !`,
+            "success"
+          );
+          fetchOrders();
+        } else {
+          Swal.fire("Lỗi", "Không thể xóa gói này.", "error");
+        }
+      } catch (error: any) {
+        Swal.fire(
+          "Lỗi",
+          error?.response?.data?.detail || "Xảy ra lỗi",
+          "error"
+        );
+      }
+    }
+  };
+
   return (
     <>
       <PageBreadcrumb pageTitle="Danh sách order số" />
@@ -476,10 +580,11 @@ const OrderList = () => {
               role={user.role}
               hideId={true}
               onEdit={(item) => {
-                navigate(`/order/edit/${item.id}`);
+                navigate(`/order/edit/${item.id}`, { state: { data: item } });
               }}
               onDetail={(item) => navigate(`/order/detail/${item.id}`)}
-              onDelete={(id) => console.log(id)}
+              onDelete={(item) => handleDelete(item)}
+              onConfirm={(item) => handleConfirmPayment(item)}
             />
             <div className="mt-6">
               <Pagination
