@@ -81,11 +81,11 @@ const navItems: NavItem[] = [
       },
     ],
   },
-  // {
-  //   name: "Order",
-  //   icon: <MdOutlineStarBorder />,
-  //   path: "/order",
-  // },
+  {
+    name: "Order",
+    icon: <MdOutlineStarBorder />,
+    path: "/order",
+  },
   {
     name: "Số điện thoại",
     icon: <TableIcon />,

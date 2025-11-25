@@ -126,8 +126,6 @@ const SubscriptionItemAction: React.FC<SubscriptionItemActionProps> = ({
 
     try {
       if (editingItem && editingItem.id) {
-        // Update
-        // console.log("Cập nhật:", editingItem.id, finalFormData);
         await subscriptionItemService.update(editingItem.id, finalFormData);
         Swal.fire({
           icon: "success",
@@ -136,7 +134,6 @@ const SubscriptionItemAction: React.FC<SubscriptionItemActionProps> = ({
         });
       } else {
         // Create
-        // console.log(">>>", finalFormData);
         await subscriptionItemService.create(finalFormData);
         Swal.fire({
           icon: "success",

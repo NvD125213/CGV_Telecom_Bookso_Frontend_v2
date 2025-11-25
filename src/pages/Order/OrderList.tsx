@@ -49,31 +49,31 @@ const StatusBadge = ({ status }: { status: number }) => {
         return {
           text: "active",
           classname:
-            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500",
+            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500 w-[80px]",
         };
       case 2:
         return {
           text: "pending",
           classname:
-            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-orange-400",
+            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-orange-400 w-[80px]",
         };
       case 3:
         return {
           text: "deploying",
           classname:
-            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400",
+            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400 w-[80px]",
         };
       case 0:
         return {
           text: "expired",
           classname:
-            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500",
+            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500 w-[80px]",
         };
       default:
         return {
           text: "Không xác định",
           classname:
-            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-gray-50 text-gray-600 dark:bg-gray-500/15 dark:text-gray-500",
+            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-gray-50 text-gray-600 dark:bg-gray-500/15 dark:text-gray-500 w-[80px]",
         };
     }
   };
@@ -150,7 +150,7 @@ const CustomOrderTable = ({
                         col.key === "customer_name"
                           ? "!text-start"
                           : "!text-center"
-                      }`}>
+                      } `}>
                       {col.label}
                     </TableCell>
                   ))}
@@ -244,7 +244,7 @@ const CustomOrderTable = ({
                             col.key === "customer_name"
                               ? "!text-start"
                               : "!text-center"
-                          } ${isManyColumns ? "text-[13px]" : "text-sm"}`}>
+                          } ${isManyColumns ? "text-[13px]" : "text-sm"} `}>
                           {col.key === "status" ? (
                             <StatusBadge status={item.status} />
                           ) : col.key === "total_price" ? (

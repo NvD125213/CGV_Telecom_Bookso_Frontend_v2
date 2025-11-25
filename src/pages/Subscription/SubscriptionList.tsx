@@ -134,7 +134,7 @@ const SubsciptionList = () => {
     query.expired_from,
     query.expired_to,
     query.auto_renew,
-    query.is_payment, 
+    query.is_payment,
   ]);
 
   // FIX: Dùng state thay vì ref để trigger useEffect
@@ -368,6 +368,7 @@ const SubsciptionList = () => {
             updated_at: item.updated_at,
             expired: item.expired,
             is_payment: item.is_payment,
+            released_at: item.released_at,
             note: item.note,
             quantity: item.quantity,
             price: item.price_override_vnd,
@@ -394,6 +395,7 @@ const SubsciptionList = () => {
         expired: sub.expired,
         updated_at: sub.updated_at,
         is_payment: sub.is_payment,
+        released_at: sub.released_at,
         note: sub.note || null,
         price: sub.sub_price,
         quantity: sub.quantity || null,
@@ -415,9 +417,6 @@ const SubsciptionList = () => {
       };
     });
   }, [processedData, quotaData, subscriptions.length, plansData]);
-
-  console.log(">>>", mapData);
-  
 
   return (
     <>

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
 export default function DualProgress({
-  total = 10000,
-  current = 9500,
+  total = 0,
+  current = 0,
   label = "",
   className = "",
   barClassName = "",

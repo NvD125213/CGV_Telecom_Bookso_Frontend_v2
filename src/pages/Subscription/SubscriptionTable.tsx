@@ -17,6 +17,7 @@ import { useState, Fragment } from "react";
 import { SubPlanTable } from "./SubPlanTable";
 import { ChevronDownIcon } from "../../icons";
 import { motion, AnimatePresence } from "framer-motion";
+// import { formatDate } from "@fullcalendar/core/index.js";
 
 const StatusBadge = ({ status }: { status: number }) => {
   const getStatusDisplay = (status: number) => {
@@ -79,6 +80,7 @@ export const CustomSubscriptionTable = ({
     { key: "total_price", label: "Tổng giá", width: "w-[120px]" },
     { key: "root_plan_id", label: "Gói chính", width: "w-[100px]" },
     { key: "is_payment", label: "Thanh toán", width: "w-[90px]" },
+    { key: "released_at", label: "Ngày triển khai", width: "w-[100px]" },
     { key: "username", label: "Sales", width: "w-[100px]" },
     { key: "status", label: "Trạng thái", width: "w-[100px]" },
   ];
@@ -114,7 +116,18 @@ export const CustomSubscriptionTable = ({
     // trả về bool
     return activeItems.every((item) => item.is_payment == true);
   };
-
+  const formatDate = (date: string | undefined) =>
+      date
+        ? new Date(date).toLocaleString("vi-VN", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+          })
+        : "-";
   return (
     <div className="space-y-3">
       {/* Summary Cards - Compact */}
@@ -285,6 +298,10 @@ export const CustomSubscriptionTable = ({
                                 ) : col.key === "total_price" ? (
                                   <span className="font-medium">
                                     {formatCurrency(item[col.key])}
+                                  </span>
+                                ) : col.key === "released_at" ? (
+                                  <span className="font-medium">
+                                    {formatDate(item[col.key])}
                                   </span>
                                 ) : col.key === "total_minutes" ? (
                                   formatNumberVN(item[col.key])

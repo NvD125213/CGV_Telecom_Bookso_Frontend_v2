@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
 import { getDetailCombo } from "../../services/subcription";
-
+import Label from "../../components/form/Label";
+import Select from "../../components/form/Select";
 
 interface CidItem {
   cid: string;
@@ -207,6 +208,28 @@ export const ComboQuotaChart: React.FC<ComboQuotaChartProps> = ({
     };
   };
 
+  // ===== MONTH & YEAR STATE =====
+  const currentDate = new Date();
+  const [selectedMonth, setSelectedMonth] = useState<string>((currentDate.getMonth() + 1).toString());
+  const [selectedYear, setSelectedYear] = useState<string>(currentDate.getFullYear().toString());
+
+  // ===== OPTIONS FOR SELECT =====
+  const months = Array.from({ length: 12 }, (_, i) => ({
+    value: (i + 1).toString(),
+    label: `Tháng ${i + 1}`,
+  }));
+
+  const years = Array.from(
+    { length: currentDate.getFullYear() - 2020 + 1 },
+    (_, i) => {
+      const year = 2020 + i;
+      return {
+        value: year.toString(),
+        label: year.toString(),
+      };
+    }
+  );
+
   // ===== DETAIL & CHART DATA =====
   const [comboDetail, setComboDetail] = useState<any>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
@@ -220,9 +243,13 @@ export const ComboQuotaChart: React.FC<ComboQuotaChartProps> = ({
       setIsLoadingDetail(true);
 
       try {
+        // Format month to always be 2 digits (e.g., "01", "02", ..., "12")
+        const formattedMonth = selectedMonth.padStart(2, "0");
+        const monthYear = `${selectedYear}-${formattedMonth}`;
+        
         const result = await getDetailCombo(
           JSON.stringify(slide_user),
-          "2025-11"
+          monthYear
         );
 
         if (result?.message === "OK") {
@@ -239,7 +266,7 @@ export const ComboQuotaChart: React.FC<ComboQuotaChartProps> = ({
     };
 
     fetchComboDetail();
-  }, [slide_user]);
+  }, [slide_user, selectedMonth, selectedYear]);
 
   const quotaData = comboDetail?.quota_data || [];
   const cidData = comboDetail?.cids_data || [];
@@ -278,6 +305,28 @@ export const ComboQuotaChart: React.FC<ComboQuotaChartProps> = ({
 
   return (
     <div className="relative">
+      {/* Month & Year Selectors */}
+       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <Label>Chọn năm</Label>
+                <Select
+                  placeholder="Chọn năm"
+                  options={years}
+                  value={selectedYear}
+                  onChange={(value) => setSelectedYear(value)}
+                />
+              </div>
+              <div>
+                <Label>Chọn tháng</Label>
+                <Select
+                  placeholder="Chọn tháng"
+                  options={months}
+                  value={selectedMonth}
+                  onChange={(value) => setSelectedMonth(value)}
+                />
+              </div>
+            </div>
+
       <div className="flex justify-between items-center mb-3">
         <h4 className="text-md font-semibold text-gray-700 dark:text-gray-300">
           Biểu đồ sử dụng (call_out)
