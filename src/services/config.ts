@@ -8,15 +8,15 @@ interface ConfigData {
 
 export const configService = {
   getConfig: async () => {
-    return await instanceStatic.get("/api/v3/configs");
+    return await axiosInstance.get("/api/v3/configs");
   },
   getConfigByKey: async (key: string) => {
-    return await instanceStatic.get(`/api/v3/configs/${key}`);
+    return await axiosInstance.get(`/api/v3/configs/${key}`);
   },
   createConfig: async (body: ConfigData) => {
-    return await instanceStatic.post("/api/v3/configs", body);
+    return await axiosInstance.post("/api/v3/configs", body);
   },
   updateConfig: async (id: number, body: ConfigData) => {
-    return await instanceStatic.put(`/api/v3/configs/${id}`, body);
+    return await axiosInstance.put(`/api/v3/configs/${id}`, body);
   },
 };
