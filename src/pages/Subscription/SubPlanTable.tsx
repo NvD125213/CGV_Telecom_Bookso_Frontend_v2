@@ -22,10 +22,10 @@ const statusConfig = {
     text: "text-green-700 dark:text-green-400",
     label: "active",
   },
-  deleted: {
+  expired: {
     bg: "bg-red-500",
     text: "text-white",
-    label: "deleted",
+    label: "expired",
   },
   pending: {
     bg: "bg-warning-100 dark:bg-warning-900/30",
@@ -41,10 +41,10 @@ export const StatusBadge = React.memo(
     const statusMap: Record<string | number, StatusKey> = {
       1: "active",
       2: "pending",
-      0: "deleted",
+      0: "expired",
       active: "active",
       pending: "pending",
-      deleted: "deleted",
+      expired: "expired",
     };
 
     const config = statusConfig[statusMap[status] ?? "active"];

@@ -20,6 +20,7 @@ export const OutboundDidForm = ({
   onChange,
   meta,
   onMetaChange,
+  hide,
 }: OutboundDidFormProps) => {
   const { data: dataProviders, isLoading, error } = useApi(getProviders);
 
@@ -123,99 +124,111 @@ export const OutboundDidForm = ({
       Object.entries(meta).map(([key, val]) => ({ key, value: val }))
     );
   }, [meta]);
+
+  // Determine which sections to show
+  const showOutbound = hide !== "outbound";
+  const showMeta = hide !== "meta";
+
   return (
     <div>
-      <div className="grid grid-cols-2 gap-8">
+      <div
+        className={`grid ${
+          showOutbound && showMeta ? "grid-cols-2" : "grid-cols-1"
+        } gap-8`}>
         {/* Outbound DID Section */}
-        <div>
-          <Label>Cấu hình Outbound CID</Label>
-          <div className="flex flex-col gap-3 mt-3">
-            {routes.map((route, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleRemove(index)}
-                  className="p-2 rounded-full bg-red-100 hover:bg-red-200 text-red-600 flex-shrink-0">
-                  <IoIosRemove size={20} />
-                </button>
+        {showOutbound && (
+          <div>
+            <Label>Cấu hình Outbound CID</Label>
+            <div className="flex flex-col gap-3 mt-3">
+              {routes.map((route, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleRemove(index)}
+                    className="p-2 rounded-full bg-red-100 hover:bg-red-200 text-red-600 flex-shrink-0">
+                    <IoIosRemove size={20} />
+                  </button>
 
-                <div className="flex-1 min-w-0">
-                  <Select
-                    options={routeOptions}
-                    value={route.key}
-                    onChange={(val) => handleChange(index, "key", val)}
-                  />
+                  <div className="flex-1 min-w-0">
+                    <Select
+                      options={routeOptions}
+                      value={route.key}
+                      onChange={(val) => handleChange(index, "key", val)}
+                    />
+                  </div>
+
+                  <div className="w-24 flex-shrink-0">
+                    <Input
+                      type="text"
+                      value={route.value}
+                      onChange={(e) =>
+                        handleChange(index, "value", e.target.value)
+                      }
+                      placeholder="0"
+                    />
+                  </div>
                 </div>
+              ))}
 
-                <div className="w-24 flex-shrink-0">
-                  <Input
-                    type="text"
-                    value={route.value}
-                    onChange={(e) =>
-                      handleChange(index, "value", e.target.value)
-                    }
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-            ))}
-
-            <button
-              type="button"
-              onClick={handleAdd}
-              className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium mt-2">
-              <IoIosAdd size={20} />
-              Thêm tuyến Outbound
-            </button>
+              <button
+                type="button"
+                onClick={handleAdd}
+                className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium mt-2">
+                <IoIosAdd size={20} />
+                Thêm tuyến Outbound
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Meta Section */}
-        <div>
-          <Label>Cấu hình Meta</Label>
-          <div className="flex flex-col gap-3 mt-3">
-            {metaRoutes.map((route, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleMetaRemove(index)}
-                  className="p-2 rounded-full bg-red-100 hover:bg-red-200 text-red-600 flex-shrink-0">
-                  <IoIosRemove size={20} />
-                </button>
+        {showMeta && (
+          <div>
+            <Label>Cấu hình Meta</Label>
+            <div className="flex flex-col gap-3 mt-3">
+              {metaRoutes.map((route, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleMetaRemove(index)}
+                    className="p-2 rounded-full bg-red-100 hover:bg-red-200 text-red-600 flex-shrink-0">
+                    <IoIosRemove size={20} />
+                  </button>
 
-                <div className="flex-1 min-w-0">
-                  <Input
-                    type="text"
-                    value={route.key}
-                    onChange={(val) =>
-                      handleMetaChange(index, "key", val.target.value)
-                    }
-                    placeholder="Nhập key"
-                  />
+                  <div className="flex-1 min-w-0">
+                    <Input
+                      type="text"
+                      value={route.key}
+                      onChange={(val) =>
+                        handleMetaChange(index, "key", val.target.value)
+                      }
+                      placeholder="Nhập key"
+                    />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <Input
+                      type="text"
+                      value={route.value}
+                      onChange={(e) =>
+                        handleMetaChange(index, "value", e.target.value)
+                      }
+                      placeholder="Nhập value"
+                    />
+                  </div>
                 </div>
+              ))}
 
-                <div className="flex-1 min-w-0">
-                  <Input
-                    type="text"
-                    value={route.value}
-                    onChange={(e) =>
-                      handleMetaChange(index, "value", e.target.value)
-                    }
-                    placeholder="Nhập value"
-                  />
-                </div>
-              </div>
-            ))}
-
-            <button
-              type="button"
-              onClick={handleMetaAdd}
-              className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium mt-2">
-              <IoIosAdd size={20} />
-              Thêm tuyến Meta
-            </button>
+              <button
+                type="button"
+                onClick={handleMetaAdd}
+                className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium mt-2">
+                <IoIosAdd size={20} />
+                Thêm tuyến Meta
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

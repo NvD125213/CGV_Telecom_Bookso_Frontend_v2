@@ -19,6 +19,9 @@ export const orderServices = {
   update: async (id: number, data: any) => {
     return await axiosInstance.put(`/api/v3/orders/${id}`, data);
   },
+  reNewOrder: async (id: number, data: any) => {
+    return await axiosInstance.put(`/api/v3/orders/renew-order/${id}`, data);
+  },
 
   delete: async (id: number) => {
     return await axiosInstance.delete(`/api/v3/orders/${id}`);

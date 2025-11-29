@@ -13,4 +13,5 @@ export interface OutboundDidFormProps {
   meta: Record<string, string>;
   onChange: (value: Record<string, number>) => void;
   onMetaChange: (meta: Record<string, string>) => void;
+  hide?: "meta" | "outbound";
 }

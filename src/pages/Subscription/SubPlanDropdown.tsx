@@ -126,7 +126,7 @@ const SubPlanSelect: React.FC<SubPlanSelectProps> = ({ subPlans, label }) => {
                     ? plan.status === 1
                       ? "active"
                       : plan.status === 0
-                      ? "deleted"
+                      ? "expired"
                       : "pending"
                     : plan.status
                 }

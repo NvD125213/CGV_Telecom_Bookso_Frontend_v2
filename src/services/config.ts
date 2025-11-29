@@ -1,4 +1,4 @@
-import { instanceStatic } from "../config/apiStatic";
+// import { instanceStatic } from "../config/apiStatic";
 import axiosInstance from "../config/apiToken";
 
 interface ConfigData {

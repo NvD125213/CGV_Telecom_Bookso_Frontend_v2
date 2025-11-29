@@ -11,6 +11,8 @@ import {
   TableRow,
 } from "../../components/ui/table";
 import { orderServices } from "../../services/order";
+import { configService } from "../../services/config";
+import { getPriceForRange } from "./PriceConfig";
 import { useQuerySync } from "../../hooks/useQueryAsync";
 import Select from "../../components/form/Select";
 import Input from "../../components/form/input/InputField";
@@ -23,6 +25,7 @@ import ActionMenu from "./ActionMenu";
 import { CheckCircleOutline } from "@mui/icons-material";
 import { IoCloseCircleOutline } from "react-icons/io5";
 import Swal from "sweetalert2";
+import ModalRenew from "./ModalRenew";
 
 interface OrderData {
   id: number;
@@ -90,6 +93,7 @@ const CustomOrderTable = ({
   onDelete,
   onDetail,
   onConfirm,
+  onRenew,
   role,
   hideId,
 }: {
@@ -99,6 +103,7 @@ const CustomOrderTable = ({
   onDetail?: (item: any) => void;
   onDelete?: (item: any) => void;
   onConfirm?: (item: any) => void;
+  onRenew?: (item: any) => void;
   role?: number;
   hideId?: boolean;
 }) => {
@@ -276,6 +281,7 @@ const CustomOrderTable = ({
                             onDetail={onDetail}
                             onDelete={onDelete}
                             onConfirm={onConfirm}
+                            onRenew={onRenew}
                           />
                         </TableCell>
                       )}
@@ -472,6 +478,99 @@ const OrderList = () => {
     }
   };
 
+  // Xử lý modal renew
+  const [openModalRenew, setOpenModalRenew] = useState(false);
+  const [currentItem, setCurrentItem] = useState<any>(null);
+
+  const handleRenewWithOldInfo = async (data: any) => {
+    const dataSubmit = {
+      customer_name: data.customer_name,
+      tax_code: data.tax_code,
+      contract_code: data.contract_code,
+      total_price: data.total_price,
+      quantity: 1,
+      total_users: data.total_users,
+      total_minute: data.total_minute,
+      outbound_did_by_route: data.outbound_did_by_route,
+    };
+    const result = await Swal.fire({
+      title: "Xác nhận",
+      text: "Bạn có chắc chắn muốn xác nhận gia hạn order này với các thông tin cũ không không?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Xác nhận",
+      cancelButtonText: "Hủy",
+    });
+    if (result.isConfirmed) {
+      const res = await orderServices.reNewOrder(data.id, dataSubmit);
+      if (res.status === 200) {
+        Swal.fire("Đã gia hạn!", "Gia hạn thành công.", "success");
+        fetchOrders();
+      } else {
+        Swal.fire("Lỗi", "Không thể gia hạn gói này.", "error");
+      }
+    }
+  };
+
+  const handleRenewWithNewInfo = async (newData: {
+    users: number;
+    minutes: number;
+    price: number;
+    outboundDidByRoute: Record<string, number>;
+    meta: Record<string, string>;
+  }) => {
+    if (!currentItem) return;
+
+    const dataSubmit = {
+      customer_name: currentItem.customer_name,
+      tax_code: currentItem.tax_code,
+      contract_code: currentItem.contract_code,
+      total_price: newData.price,
+      quantity: 1,
+      total_users: newData.users,
+      total_minute: newData.minutes,
+      outbound_did_by_route: newData.outboundDidByRoute,
+      meta: newData.meta,
+    };
+
+    const result = await Swal.fire({
+      title: "Xác nhận",
+      text: "Bạn có chắc chắn muốn xác nhận gia hạn order này với các thông tin mới không không?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Xác nhận",
+      cancelButtonText: "Hủy",
+      width: "500px",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const res = await orderServices.reNewOrder(currentItem.id, dataSubmit);
+        if (res.status === 200) {
+          Swal.fire(
+            "Đã gia hạn!",
+            "Gia hạn với thông tin mới thành công.",
+            "success"
+          );
+          setOpenModalRenew(false);
+          fetchOrders();
+        } else {
+          Swal.fire("Lỗi", "Không thể gia hạn order này.", "error");
+        }
+      } catch (error: any) {
+        Swal.fire(
+          "Lỗi",
+          error?.response?.data?.detail || "Xảy ra lỗi khi gia hạn",
+          "error"
+        );
+      }
+    }
+  };
+
   return (
     <>
       <PageBreadcrumb pageTitle="Danh sách order số" />
@@ -585,6 +684,10 @@ const OrderList = () => {
               onDetail={(item) => navigate(`/order/detail/${item.id}`)}
               onDelete={(item) => handleDelete(item)}
               onConfirm={(item) => handleConfirmPayment(item)}
+              onRenew={(item) => {
+                setCurrentItem(item);
+                setOpenModalRenew(true);
+              }}
             />
             <div className="mt-6">
               <Pagination
@@ -610,6 +713,18 @@ const OrderList = () => {
           </>
         </div>
       </ComponentCard>
+      <ModalRenew
+        open={openModalRenew}
+        onClose={() => setOpenModalRenew(false)}
+        currentData={{
+          users: currentItem?.total_users || 0,
+          minutes: currentItem?.total_minute || 0,
+          price: currentItem?.total_price || 0,
+          outboundDidByRoute: currentItem?.outbound_did_by_route || {},
+        }}
+        onRenewWithOldInfo={() => handleRenewWithOldInfo(currentItem)}
+        onRenewWithNewInfo={handleRenewWithNewInfo}
+      />
     </>
   );
 };

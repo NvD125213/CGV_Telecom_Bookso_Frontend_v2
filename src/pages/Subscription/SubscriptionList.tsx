@@ -14,6 +14,7 @@ import Label from "../../components/form/Label";
 import { Pagination } from "../../components/common/Pagination";
 import { useNavigate } from "react-router-dom";
 import { CustomSubscriptionTable } from "./SubscriptionTable";
+import ModalRenew from "./ModalRenew";
 import Swal from "sweetalert2";
 
 interface SubcriptionData {
@@ -50,6 +51,7 @@ export interface SubscriptionQuery {
   contract_code?: string;
   username?: string;
   is_payment?: boolean;
+  created_month?: string;
 }
 
 const SubsciptionList = () => {
@@ -61,39 +63,21 @@ const SubsciptionList = () => {
   const isMobile = useIsMobile(768);
   const user = useSelector((state: RootState) => state.auth.user);
 
-  const [expiredFrom, setExpiredFrom] = useState<string>("");
-  const [expiredTo, setExpiredTo] = useState<string>("");
-
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endOfMonth = new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
-    0,
-    23,
-    59,
-    59
-  );
-
-  function toLocalISOString(date: Date) {
-    const tzOffset = date.getTimezoneOffset() * 60000;
-    const localTime = new Date(date.getTime() - tzOffset);
-    return localTime.toISOString().slice(0, 16);
-  }
+  // Tính tháng hiện tại cho created_at filter
+  const getCurrentMonth = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, "0");
+    return `${year}-${month}`;
+  };
 
   const [query, setQuery] = useQuerySync<SubscriptionQuery>({
     page: 1,
     size: 10,
     order_by: "created_at",
     order_dir: "desc",
-    expired_from: toLocalISOString(startOfMonth),
-    expired_to: toLocalISOString(endOfMonth),
+    created_month: getCurrentMonth(), // Mặc định lọc theo created_at trong tháng hiện tại
   });
-
-  useEffect(() => {
-    if (query.expired_from) setExpiredFrom(query.expired_from);
-    if (query.expired_to) setExpiredTo(query.expired_to);
-  }, [query.expired_from, query.expired_to]);
 
   const [pagination, setPagination] = useState({
     page: query.page,
@@ -120,9 +104,9 @@ const SubsciptionList = () => {
       query.search || ""
     }_${query.status || ""}_${query.root_plan_id || ""}_${
       query.expired_from || ""
-    }_${query.expired_to || ""}_${query.auto_renew ?? ""}_${
-      query.is_payment ?? ""
-    }`;
+    }_${query.expired_to || ""}_${query.created_month || ""}_${
+      query.auto_renew ?? ""
+    }_${query.is_payment ?? ""}`;
   }, [
     query.page,
     query.size,
@@ -133,6 +117,7 @@ const SubsciptionList = () => {
     query.root_plan_id,
     query.expired_from,
     query.expired_to,
+    query.created_month,
     query.auto_renew,
     query.is_payment,
   ]);
@@ -180,9 +165,11 @@ const SubsciptionList = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryKey]);
 
-  // Lấy danh sách plans
   const { data: plansData, isLoading: isLoadingPlans } = useApi(() =>
-    planService.get({})
+    planService.get({
+      size: 100,
+      page: 1, // nếu API yêu cầu cả `page`
+    })
   );
 
   // Map plan name
@@ -217,10 +204,10 @@ const SubsciptionList = () => {
 
         return {
           ...item,
-          customer_name: item.customer_name || "-",
-          tax_code: item.tax_code || "-",
-          contract_code: item.contract_code || "-",
-          username: item.username || "-",
+          customer_name: item.customer_name,
+          tax_code: item.tax_code,
+          contract_code: item.contract_code,
+          username: item.username,
           sub_price: planPrice,
           slide_users:
             item.slide_users && typeof item.slide_users === "object"
@@ -232,8 +219,8 @@ const SubsciptionList = () => {
           total_price: totalPrice,
           auto_renew: item.auto_renew ? "Có" : "Không",
           status: item.status,
-          total_did: item.total_did || "-",
-          total_minutes: item.total_minutes || "-",
+          total_did: item.total_did,
+          total_minutes: item.total_minutes,
         };
       }) || []
     );
@@ -418,6 +405,107 @@ const SubsciptionList = () => {
     });
   }, [processedData, quotaData, subscriptions.length, plansData]);
 
+  // Xử lý phần gia hạn
+  const [openModalRenew, setOpenModalRenew] = useState(false);
+  const [renewData, setRenewData] = useState<any>(null);
+
+  // State cho plans trong modal renew
+  const [renewPlans, setRenewPlans] = useState<any[]>([]);
+  const [renewCurrentPage, setRenewCurrentPage] = useState(1);
+  const [renewTotalPages, setRenewTotalPages] = useState(1);
+  const [renewLoading, setRenewLoading] = useState(false);
+
+  // Load plans cho modal renew
+  const loadRenewPlans = async (page: number) => {
+    setRenewLoading(true);
+    try {
+      const response = await planService.get({
+        page: page,
+        size: 20,
+        order_by: "created_at",
+        order_dir: "desc",
+        is_root: "true",
+      });
+
+      setRenewPlans(response.data?.items || []);
+      setRenewCurrentPage(page);
+      setRenewTotalPages(Math.ceil((response.data?.meta?.total || 0) / 20));
+    } catch (error) {
+      console.error("Error loading renew plans:", error);
+      setRenewPlans([]);
+    } finally {
+      setRenewLoading(false);
+    }
+  };
+
+  // Xử lý gia hạn gói
+  const handleRenew = async (
+    item: any,
+    type: "renew" | "new",
+    plan_id: number // Bắt buộc phải có plan_id
+  ) => {
+    try {
+      const payload: any = {
+        customer_name: item.customer_name || "",
+        tax_code: item.tax_code || "",
+        contract_code: item.contract_code || "",
+        root_plan_id: plan_id, // Luôn có root_plan_id
+      };
+
+      console.log("Payload to send:", payload);
+
+      const result = await Swal.fire({
+        title: "Xác nhận gia hạn",
+        text:
+          type === "renew"
+            ? "Bạn có chắc chắn muốn gia hạn gói cũ không?"
+            : "Bạn có chắc chắn muốn chuyển sang gói mới không?",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Xác nhận",
+        cancelButtonText: "Hủy",
+      });
+
+      if (result.isConfirmed) {
+        const res = await subscriptionService.reNewSubcription(
+          item.id,
+          payload
+        );
+
+        if (res.status === 200) {
+          await Swal.fire({
+            icon: "success",
+            title: "Gia hạn thành công!",
+            text:
+              type === "renew"
+                ? "Gói cũ đã được gia hạn."
+                : "Đã chuyển sang gói mới.",
+            confirmButtonColor: "#3085d6",
+          });
+
+          // Refresh danh sách
+          fetchSubscriptions();
+          setOpenModalRenew(false);
+        } else {
+          Swal.fire("Lỗi", "Không thể gia hạn gói này.", "error");
+        }
+      }
+    } catch (error: any) {
+      Swal.fire(
+        "Lỗi",
+        error?.response?.data?.detail || "Xảy ra lỗi khi gia hạn",
+        "error"
+      );
+    }
+  };
+
+  // Load plans ngay khi component mount
+  useEffect(() => {
+    loadRenewPlans(1);
+  }, []);
+
   return (
     <>
       <PageBreadcrumb pageTitle="Danh sách đăng ký gói" />
@@ -455,13 +543,29 @@ const SubsciptionList = () => {
               />
             </div>
 
+            {/* Tháng tạo */}
+            <div className="w-full">
+              <Label>Thời gian tạo</Label>
+              <Input
+                type="month"
+                value={query.created_month || ""}
+                onChange={(e) =>
+                  setQuery({
+                    ...query,
+                    created_month: e.target.value || undefined,
+                  })
+                }
+                className="w-full border border-gray-300 px-3 py-2 rounded-md"
+                placeholder="Chọn tháng"
+              />
+            </div>
+
             <div>
               <Label>Ngày hết hạn từ</Label>
               <Input
                 type="datetime-local"
-                value={expiredFrom}
+                value={query.expired_from}
                 onChange={(e) => {
-                  setExpiredFrom(e.target.value);
                   setQuery({ ...query, expired_from: e.target.value });
                 }}
                 className="w-full border border-gray-300 px-3 py-2 rounded-md"
@@ -473,9 +577,8 @@ const SubsciptionList = () => {
               <Label>Ngày hết hạn đến</Label>
               <Input
                 type="datetime-local"
-                value={expiredTo}
+                value={query.expired_to}
                 onChange={(e) => {
-                  setExpiredTo(e.target.value);
                   setQuery({ ...query, expired_to: e.target.value });
                 }}
                 className="w-full border border-gray-300 px-3 py-2 rounded-md"
@@ -532,8 +635,7 @@ const SubsciptionList = () => {
               />
             </div>
 
-            {/* Sắp xếp theo */}
-            <div className="w-full">
+            {/* <div className="w-full">
               <Label>Sắp xếp theo</Label>
               <Select
                 options={[
@@ -547,7 +649,7 @@ const SubsciptionList = () => {
                 onChange={(value) => setQuery({ ...query, order_by: value })}
                 placeholder="Chọn cách sắp xếp"
               />
-            </div>
+            </div> */}
           </div>
 
           {error && <div className="text-red-500 mb-4">{error}</div>}
@@ -568,6 +670,10 @@ const SubsciptionList = () => {
                 onReload={() => {
                   return fetchSubscriptions();
                 }}
+                onRenew={(item) => {
+                  setRenewData(item);
+                  setOpenModalRenew(true);
+                }}
                 onConfirm={(item) => handleConfirmPayment(item)}
                 onDetail={(item) =>
                   navigate(`/subscriptions/detail/${item.id}`)
@@ -579,6 +685,38 @@ const SubsciptionList = () => {
           )}
         </div>
       </ComponentCard>
+
+      <ModalRenew
+        open={openModalRenew}
+        onClose={() => setOpenModalRenew(false)}
+        item={renewData}
+        onSubmit={(data) => {
+          if (data.type === "renew") {
+            // Tìm subscription gốc để lấy root_plan_id (number)
+            const originalSub = subscriptions.find(
+              (s) => s.id === renewData?.id
+            );
+
+            if (originalSub && originalSub.root_plan_id) {
+              handleRenew(renewData, "renew", originalSub.root_plan_id);
+            } else {
+              console.error("Missing root_plan_id for renewal");
+              Swal.fire(
+                "Lỗi",
+                "Không tìm thấy thông tin gói gốc để gia hạn",
+                "error"
+              );
+            }
+          } else if (data.type === "new" && data.planId) {
+            handleRenew(renewData, "new", data.planId);
+          }
+        }}
+        packages={renewPlans}
+        currentPage={renewCurrentPage}
+        totalPages={renewTotalPages}
+        loading={renewLoading}
+        onLoadPage={loadRenewPlans}
+      />
     </>
   );
 };

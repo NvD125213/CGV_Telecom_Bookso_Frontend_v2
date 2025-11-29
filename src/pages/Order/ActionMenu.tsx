@@ -10,7 +10,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import EditIcon from "@mui/icons-material/Edit";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { CheckCircleOutline } from "@mui/icons-material";
+import { CheckCircleOutline, RotateLeftRounded } from "@mui/icons-material";
 
 interface ActionMenuProps {
   item: any;
@@ -20,6 +20,7 @@ interface ActionMenuProps {
   onDetail?: (item: any) => void;
   onDelete?: (id: string) => void;
   onConfirm?: (id: string) => void;
+  onRenew?: (item: any) => void;
 }
 
 const ActionMenu: React.FC<ActionMenuProps> = ({
@@ -30,6 +31,7 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
   onDetail,
   onDelete,
   onConfirm,
+  onRenew,
 }) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -101,6 +103,18 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
               <CheckCircleOutline fontSize="small" color="info" />
             </ListItemIcon>
             <ListItemText primary="Xác nhận" />
+          </MenuItem>
+        )}
+        {onRenew && (
+          <MenuItem
+            onClick={() => {
+              handleClose();
+              onRenew(item);
+            }}>
+            <ListItemIcon>
+              <RotateLeftRounded fontSize="small" color="inherit" />
+            </ListItemIcon>
+            <ListItemText primary="Gia hạn" />
           </MenuItem>
         )}
         {onDelete &&

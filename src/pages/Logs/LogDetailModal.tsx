@@ -21,6 +21,21 @@ interface LogDetailModalProps {
   log: Logs;
 }
 
+// Format 1: Provider-based pricing
+interface ProviderPriceData {
+  installation_fee?: number;
+  maintenance_fee?: number;
+}
+
+// Format 2: Package-based pricing
+interface PackagePriceData {
+  min?: number;
+  max?: number;
+  price?: number;
+}
+
+type PriceData = ProviderPriceData | PackagePriceData;
+
 const LogDetailModal = ({ log }: LogDetailModalProps) => {
   const [phonePricesExpanded, setPhonePricesExpanded] = useState(true);
   const [phoneListExpanded, setPhoneListExpanded] = useState(true);
@@ -28,7 +43,7 @@ const LogDetailModal = ({ log }: LogDetailModalProps) => {
   // Lazy parse phone prices
   const phonePrices = useMemo(() => {
     try {
-      return JSON.parse(log.price_phone_numbers);
+      return JSON.parse(log.price_phone_numbers) as Record<string, PriceData>;
     } catch {
       return null;
     }
@@ -38,13 +53,32 @@ const LogDetailModal = ({ log }: LogDetailModalProps) => {
     return phonePrices ? Object.entries(phonePrices) : [];
   }, [phonePrices]);
 
+  // Detect format type: Format 1 has installation_fee/maintenance_fee, Format 2 has min/max/price
+  const priceFormat = useMemo(() => {
+    if (!phonePrices || priceEntries.length === 0) return null;
+
+    const firstEntry = priceEntries[0][1];
+
+    // Format 1: {"VIETTEL_1900": {"maintenance_fee": 40.0, "installation_fee": 40.0}}
+    if ("installation_fee" in firstEntry || "maintenance_fee" in firstEntry) {
+      return "provider";
+    }
+
+    // Format 2: {"user_package": {"max": 50, "min": 20, "price": 60000}}
+    if ("min" in firstEntry || "max" in firstEntry || "price" in firstEntry) {
+      return "package";
+    }
+
+    return null;
+  }, [phonePrices, priceEntries]);
+
   const phoneNumbers = useMemo(() => {
     return log.phone_numbers || [];
   }, [log.phone_numbers]);
 
   return (
     <div className="space-y-6">
-      {/* Chi tiết giá theo đầu số */}
+      {/* Chi tiết giá theo đầu số hoặc gói */}
       {phonePrices && (
         <div>
           <button
@@ -59,7 +93,9 @@ const LogDetailModal = ({ log }: LogDetailModalProps) => {
                 color: "#111827",
                 cursor: "pointer",
               }}>
-              Chi tiết giá theo đầu số
+              {priceFormat === "provider"
+                ? "Chi tiết giá theo đầu số"
+                : "Chi tiết gói cước"}
             </Typography>
             <span
               className={`transition-transform ${
@@ -93,59 +129,122 @@ const LogDetailModal = ({ log }: LogDetailModalProps) => {
                         fontWeight: 600,
                         borderBottom: "1px solid #e5e7eb",
                       }}>
-                      Đầu số
+                      {priceFormat === "provider" ? "Đầu số" : "Tên gói"}
                     </TableCell>
-                    <TableCell
-                      align="right"
-                      sx={{
-                        color: "#374151",
-                        fontWeight: 600,
-                        borderBottom: "1px solid #e5e7eb",
-                      }}>
-                      Phí cài đặt
-                    </TableCell>
-                    <TableCell
-                      align="right"
-                      sx={{
-                        color: "#374151",
-                        fontWeight: 600,
-                        borderBottom: "1px solid #e5e7eb",
-                      }}>
-                      Phí duy trì
-                    </TableCell>
+
+                    {priceFormat === "provider" ? (
+                      <>
+                        <TableCell
+                          align="right"
+                          sx={{
+                            color: "#374151",
+                            fontWeight: 600,
+                            borderBottom: "1px solid #e5e7eb",
+                          }}>
+                          Phí cài đặt
+                        </TableCell>
+                        <TableCell
+                          align="right"
+                          sx={{
+                            color: "#374151",
+                            fontWeight: 600,
+                            borderBottom: "1px solid #e5e7eb",
+                          }}>
+                          Phí duy trì
+                        </TableCell>
+                      </>
+                    ) : (
+                      <>
+                        <TableCell
+                          align="right"
+                          sx={{
+                            color: "#374151",
+                            fontWeight: 600,
+                            borderBottom: "1px solid #e5e7eb",
+                          }}>
+                          Tối thiểu
+                        </TableCell>
+                        <TableCell
+                          align="right"
+                          sx={{
+                            color: "#374151",
+                            fontWeight: 600,
+                            borderBottom: "1px solid #e5e7eb",
+                          }}>
+                          Tối đa
+                        </TableCell>
+                        <TableCell
+                          align="right"
+                          sx={{
+                            color: "#374151",
+                            fontWeight: 600,
+                            borderBottom: "1px solid #e5e7eb",
+                          }}>
+                          Giá
+                        </TableCell>
+                      </>
+                    )}
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {priceEntries.map(
-                    ([provider, fees]: [string, any], index) => (
-                      <TableRow
-                        key={provider}
-                        sx={{
-                          backgroundColor:
-                            index % 2 === 0 ? "#fafafa" : "white",
-                          borderBottom: "1px solid #e5e7eb",
-                          "&:hover": { backgroundColor: "#f3f4f6" },
-                        }}>
-                        <TableCell sx={{ color: "#1f2937", fontWeight: 500 }}>
-                          {provider}
-                        </TableCell>
-                        <TableCell align="right" sx={{ color: "#374151" }}>
-                          {fees?.installation_fee
-                            ? `${fees.installation_fee.toLocaleString(
-                                "vi-VN"
-                              )} đ`
-                            : "-"}
-                        </TableCell>
-                        <TableCell align="right" sx={{ color: "#374151" }}>
-                          {fees?.maintenance_fee
-                            ? `${fees.maintenance_fee.toLocaleString(
-                                "vi-VN"
-                              )} đ`
-                            : "-"}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  )}
+                  {priceEntries.map(([key, data]: [string, any], index) => (
+                    <TableRow
+                      key={key}
+                      sx={{
+                        backgroundColor: index % 2 === 0 ? "#fafafa" : "white",
+                        borderBottom: "1px solid #e5e7eb",
+                        "&:hover": { backgroundColor: "#f3f4f6" },
+                      }}>
+                      <TableCell sx={{ color: "#1f2937", fontWeight: 500 }}>
+                        {priceFormat === "package"
+                          ? {
+                              user_package: "Gói người dùng",
+                              call_minutes_package: "Gói phút gọi",
+                              prefix_package_phones: "Gói đầu số",
+                            }[key] || key
+                          : key
+                              .replace(/_/g, " ")
+                              .replace(/\b\w/g, (l) => l.toUpperCase())}
+                      </TableCell>
+
+                      {priceFormat === "provider" ? (
+                        <>
+                          <TableCell align="right" sx={{ color: "#374151" }}>
+                            {data?.installation_fee
+                              ? `${data.installation_fee.toLocaleString(
+                                  "vi-VN"
+                                )} đ`
+                              : "-"}
+                          </TableCell>
+                          <TableCell align="right" sx={{ color: "#374151" }}>
+                            {data?.maintenance_fee
+                              ? `${data.maintenance_fee.toLocaleString(
+                                  "vi-VN"
+                                )} đ`
+                              : "-"}
+                          </TableCell>
+                        </>
+                      ) : (
+                        <>
+                          <TableCell align="right" sx={{ color: "#374151" }}>
+                            {data?.min !== undefined
+                              ? data.min.toLocaleString("vi-VN")
+                              : "-"}
+                          </TableCell>
+                          <TableCell align="right" sx={{ color: "#374151" }}>
+                            {data?.max !== undefined
+                              ? data.max.toLocaleString("vi-VN")
+                              : "-"}
+                          </TableCell>
+                          <TableCell align="right" sx={{ color: "#374151" }}>
+                            {data?.price !== undefined
+                              ? `${data.price.toLocaleString("vi-VN")} đ`
+                              : "-"}
+                          </TableCell>
+                        </>
+                      )}
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </TableContainer>

@@ -12,6 +12,8 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import CheckIcon from "@mui/icons-material/Check";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
+import RotateLeftIcon from "@mui/icons-material/RotateLeft";
+
 import { useTheme } from "../../context/ThemeContext";
 
 interface ActionMenuProps {
@@ -21,6 +23,7 @@ interface ActionMenuProps {
   onDetail?: (item: any) => void;
   onDelete?: (id: string) => void;
   onConfirm?: (id: string) => void;
+  onRenew?: (item: any) => void;
 }
 
 const ActionMenu: React.FC<ActionMenuProps> = ({
@@ -30,6 +33,7 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
   onDetail,
   onDelete,
   onConfirm,
+  onRenew,
 }) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -110,6 +114,18 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
               <DeleteIcon fontSize="small" color="error" />
             </ListItemIcon>
             <ListItemText primary="Xóa" />
+          </MenuItem>
+        )}
+        {onRenew && (
+          <MenuItem
+            onClick={() => {
+              handleClose();
+              onRenew(item);
+            }}>
+            <ListItemIcon>
+              <RotateLeftIcon fontSize="small" color="inherit" />
+            </ListItemIcon>
+            <ListItemText primary="Gia hạn" />
           </MenuItem>
         )}
         {onConfirm && (user.sub === "VANLTT" || user.sub === "HUYLQ") && (

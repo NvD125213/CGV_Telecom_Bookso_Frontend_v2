@@ -620,7 +620,7 @@ export const SubcriptionActionPage = () => {
                 "inline-flex items-center justify-center gap-1 px-4 py-1 rounded-full font-medium text-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-orange-400 min-w-[80px]",
             }
           : {
-              text: "deleted",
+              text: "expired",
               classname:
                 "inline-flex items-center justify-center gap-1 px-4 py-1 rounded-full font-medium text-xs bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500 min-w-[80px]",
             };

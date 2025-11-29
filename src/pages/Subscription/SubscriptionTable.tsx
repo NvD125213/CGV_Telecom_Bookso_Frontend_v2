@@ -36,7 +36,7 @@ const StatusBadge = ({ status }: { status: number }) => {
         };
       case 0:
         return {
-          text: "Deleted",
+          text: "expired",
           className:
             "inline-flex items-center px-2 py-1 rounded-full font-medium text-xs bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-500",
         };
@@ -61,6 +61,7 @@ export const CustomSubscriptionTable = ({
   onDetail,
   onConfirm,
   onReload,
+  onRenew,
   role,
 }: {
   data: any[];
@@ -69,6 +70,7 @@ export const CustomSubscriptionTable = ({
   onDelete?: (id: string | number) => void;
   onDetail?: (item: any) => void;
   onConfirm?: (item: any) => void;
+  onRenew?: (item: any) => void;
   onReload?: () => void;
   role?: number;
 }) => {
@@ -117,17 +119,17 @@ export const CustomSubscriptionTable = ({
     return activeItems.every((item) => item.is_payment == true);
   };
   const formatDate = (date: string | undefined) =>
-      date
-        ? new Date(date).toLocaleString("vi-VN", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: false,
-          })
-        : "-";
+    date
+      ? new Date(date).toLocaleString("vi-VN", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        })
+      : "-";
   return (
     <div className="space-y-3">
       {/* Summary Cards - Compact */}
@@ -338,6 +340,7 @@ export const CustomSubscriptionTable = ({
                                   onEdit={onEdit}
                                   onDetail={onDetail}
                                   onDelete={(id) => onDelete?.(id)}
+                                  onRenew={(item) => onRenew?.(item)}
                                   onConfirm={(item) => onConfirm?.(item)}
                                 />
                               </TableCell>

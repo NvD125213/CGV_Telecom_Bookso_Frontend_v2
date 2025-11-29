@@ -48,6 +48,12 @@ export const subscriptionService = {
   update: async (id: number, data: Partial<SubcriptionData>) => {
     return await axiosInstance.put(`/api/v3/subscription/${id}`, data);
   },
+  reNewSubcription: async (sub_id: any, data: any) => {
+    return await axiosInstance.put(
+      `/api/v3/subscription/renew-subscription/${sub_id}`,
+      data
+    );
+  },
   delete: async (id: number) => {
     return await axiosInstance.delete(`/api/v3/subscription/${id}`);
   },
@@ -113,7 +119,7 @@ export const getQuota = async (
     );
     return response.data;
   } catch (error: any) {
-    console.error("❌ Lỗi khi gọi combo quota:", error);
+    console.error("Lỗi khi gọi combo quota:", error);
     throw error;
   }
 };
