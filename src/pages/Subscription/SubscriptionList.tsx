@@ -297,13 +297,6 @@ const SubsciptionList = () => {
     });
   };
 
-  const currentMonth = useMemo(() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = (now.getMonth() + 1).toString().padStart(2, "0");
-    return `${year}-${month}`;
-  }, []);
-
   const [quotaData, setQuotaData] = useState<any[]>([]);
 
   // FIX: Giờ quotaBody đã là state nên useEffect sẽ chạy đúng
@@ -311,7 +304,10 @@ const SubsciptionList = () => {
     const fetchQuota = async () => {
       if (!quotaBody || quotaBody.length === 0) return;
       try {
-        const data = await getQuota(quotaBody, currentMonth);
+        const data = await getQuota(
+          quotaBody,
+          query.created_month || getCurrentMonth()
+        );
         const filtered = (data.data || []).filter(
           (q: any) =>
             (q.total_call_out || 0) > 0 ||
@@ -324,7 +320,7 @@ const SubsciptionList = () => {
       }
     };
     fetchQuota();
-  }, [quotaBody, currentMonth]);
+  }, [quotaBody, query.created_month]);
 
   // FIX: useMemo để tránh tạo array mới mỗi lần render
   const mapData = useMemo(() => {
@@ -451,8 +447,6 @@ const SubsciptionList = () => {
         contract_code: item.contract_code || "",
         root_plan_id: plan_id, // Luôn có root_plan_id
       };
-
-      console.log("Payload to send:", payload);
 
       const result = await Swal.fire({
         title: "Xác nhận gia hạn",
