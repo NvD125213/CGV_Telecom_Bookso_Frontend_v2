@@ -25,6 +25,8 @@ import { RootState } from "../store";
 import SidebarWidget from "./SidebarWidget";
 import { CiBoxes } from "react-icons/ci";
 import { MdOutlineStarBorder } from "react-icons/md";
+import { IoIosAddCircleOutline } from "react-icons/io";
+import { CiSettings } from "react-icons/ci";
 
 type NavItem = {
   name: string;
@@ -65,8 +67,9 @@ const navItems: NavItem[] = [
     path: "/time-online",
     icon: <RiBaseStationLine />,
   },
+
   {
-    name: "Combo",
+    name: "Gói cố định",
     icon: <CiBoxes />,
     subItems: [
       {
@@ -82,9 +85,25 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    name: "Order",
+    name: "Gói đặt trước",
     icon: <MdOutlineStarBorder />,
-    path: "/order",
+    subItems: [
+      {
+        name: "Đặt số",
+        path: "/order",
+        icon: <IoIosAddCircleOutline />,
+      },
+      {
+        name: "Cài đặt",
+        path: "/setting-order",
+        icon: <CiSettings />,
+      },
+    ],
+  },
+  {
+    name: "Lịch sử gói",
+    path: "/logs",
+    icon: <CiDatabase />,
   },
   {
     name: "Số điện thoại",
@@ -116,11 +135,6 @@ const navItems: NavItem[] = [
       },
     ],
   },
-  {
-    name: "Logs",
-    path: "/logs",
-    icon: <CiDatabase />,
-  },
 ];
 
 const othersItems: NavItem[] = [
@@ -150,7 +164,8 @@ const AppSidebar: React.FC = () => {
             !(
               user?.role !== 1 &&
               (subItem.path == "/upload-file" ||
-                subItem.path == "/limit-booking")
+                subItem.path == "/limit-booking" ||
+                subItem.path == "/setting-order")
             )
         );
       }
@@ -162,7 +177,8 @@ const AppSidebar: React.FC = () => {
         (item.path === "/providers" ||
           item.path === "/type-numbers" ||
           item.path == "/time-online" ||
-          item.path == "/logs")
+          item.path == "/logs" ||
+          item.path == "/setting-order")
       );
     });
 

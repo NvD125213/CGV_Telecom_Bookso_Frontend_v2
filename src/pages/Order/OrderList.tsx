@@ -109,8 +109,6 @@ const CustomOrderTable = ({
 }) => {
   const columns = [
     { key: "customer_name", label: "Tên khách hàng" },
-    { key: "tax_code", label: "Mã số thuế" },
-    { key: "contract_code", label: "Mã hợp đồng" },
     {
       key: "is_payment",
       label: "Thanh toán",
@@ -621,36 +619,7 @@ const OrderList = () => {
                 placeholder="Thứ tự"
               />
             </div>
-            {/* Ngày hết hạn từ */}
-            <div>
-              <Label>Ngày tạo từ</Label>
-              <Input
-                type="datetime-local"
-                value={expiredFrom}
-                onChange={(e) => {
-                  setExpiredFrom(e.target.value);
-                  setQuery({ ...query, created_from: e.target.value });
-                }}
-                className="w-full border border-gray-300 px-3 py-2 rounded-md"
-              />
-            </div>
 
-            {/* Ngày hết hạn đến */}
-            <div>
-              <Label>Ngày tạo đến</Label>
-              <Input
-                type="datetime-local"
-                value={expiredTo}
-                onChange={(e) => {
-                  setExpiredTo(e.target.value);
-                  setQuery({ ...query, created_to: e.target.value });
-                }}
-                className="w-full border border-gray-300 px-3 py-2 rounded-md"
-              />
-            </div>
-            {/* Thứ tự */}
-
-            {/* Sắp xếp theo */}
             <div className="w-full">
               <Label>Sắp xếp theo</Label>
               <Select

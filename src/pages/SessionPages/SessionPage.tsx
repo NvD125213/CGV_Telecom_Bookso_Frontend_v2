@@ -347,6 +347,7 @@ const SessionPage = () => {
           ) : (
             <>
               <ReusableTable
+                showId={false}
                 error={errorData}
                 role={user.role}
                 title="Lịch sử online"

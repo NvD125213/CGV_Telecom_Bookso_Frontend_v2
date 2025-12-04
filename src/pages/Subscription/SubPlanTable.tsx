@@ -17,20 +17,20 @@ interface StatusConfigItem {
 }
 
 const statusConfig = {
-  active: {
+  "Hoạt động": {
     bg: "bg-green-100 dark:bg-green-900/30",
-    text: "text-green-700 dark:text-green-400",
-    label: "active",
+    text: "text-green-700 dark:text-green-400 whitespace-nowrap",
+    label: "Hoạt động",
   },
-  expired: {
+  "Hết hạn": {
     bg: "bg-red-500",
-    text: "text-white",
-    label: "expired",
+    text: "text-white whitespace-nowrap",
+    label: "Hết hạn",
   },
-  pending: {
+  "Chờ duyệt": {
     bg: "bg-warning-100 dark:bg-warning-900/30",
-    text: "text-warning-500",
-    label: "pending",
+    text: "text-warning-500 whitespace-nowrap",
+    label: "Chờ duyệt",
   },
 } satisfies Record<string, StatusConfigItem>;
 
@@ -39,15 +39,15 @@ export type StatusKey = keyof typeof statusConfig;
 export const StatusBadge = React.memo(
   ({ status }: { status: number | string }) => {
     const statusMap: Record<string | number, StatusKey> = {
-      1: "active",
-      2: "pending",
-      0: "expired",
-      active: "active",
-      pending: "pending",
-      expired: "expired",
+      1: "Hoạt động",
+      2: "Chờ duyệt",
+      0: "Hết hạn",
+      "Hoạt động": "Hoạt động",
+      "Chờ duyệt": "Chờ duyệt",
+      "Hết hạn": "Hết hạn",
     };
 
-    const config = statusConfig[statusMap[status] ?? "active"];
+    const config = statusConfig[statusMap[status] ?? "Hoạt động"];
 
     return (
       <span
@@ -89,7 +89,7 @@ export const SubPlanRow = React.memo(
             day: "2-digit",
             hour: "2-digit",
             minute: "2-digit",
-            second: "2-digit",
+            second: "2-digit", // thêm giây
             hour12: false,
           })
         : "-";
@@ -108,92 +108,90 @@ export const SubPlanRow = React.memo(
         transition={{ duration: 0.15 }}
         className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors">
         {/* Dot payment */}
-        <td className="px-6 py-3 text-center">
-          <span className="relative flex h-2.5 w-2.5">
+        <td className="px-3 py-2 text-center">
+          <span className="relative flex h-2 w-2 mx-auto">
             <span
               className={`absolute inset-0 rounded-full animate-ping ${
                 sub.is_payment ? "bg-blue-400" : "bg-red-400"
               } opacity-75`}
             />
             <span
-              className={`relative h-2.5 w-2.5 rounded-full ${
+              className={`relative h-2 w-2 rounded-full ${
                 sub.is_payment ? "bg-blue-500" : "bg-red-500"
               }`}
             />
           </span>
         </td>
 
-        {/* Name + Avatar */}
-        <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 flex-shrink-0 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg flex items-center justify-center text-xs font-semibold">
-              {(sub.name?.[0] || "P").toUpperCase()}
-            </div>
-            <span className="truncate min-w-[120px]">{sub.name || "-"}</span>
-          </div>
+        {/* Name */}
+        <td className="px-3 py-2 text-xs font-medium text-gray-900 dark:text-gray-100">
+          <span className="truncate block">{sub.name || "-"}</span>
+        </td>
+
+        {/* CID */}
+        <td className="px-3 py-2 text-[12px] text-center text-gray-600 dark:text-gray-300">
+          <span className="font-medium">{formatNumberVN(sub.cid)}</span>
         </td>
 
         {/* Minutes */}
-        <td className="px-4 py-3 text-xs text-center text-gray-600 dark:text-gray-300">
-          <span className="font-medium">
-            {formatNumberVN(sub.minutes)} phút
-          </span>
+        <td className="px-3 py-2 text-[12px] text-center text-gray-600 dark:text-gray-300">
+          <span className="font-medium">{formatNumberVN(sub.minutes)}</span>
         </td>
 
         {/* Type */}
-        <td className="px-4 py-3 text-sm text-center min-w-[100px]">
+        <td className="px-3 py-2 text-center">
           {sub.type === "main" ? (
-            <span className="px-2 py-1 text-xs font-medium rounded-full text-blue-700 bg-blue-100 dark:bg-blue-900/30">
-              Gói chính
+            <span className="px-2 py-0.5 text-[12px] font-medium rounded-full text-blue-700 bg-blue-100 dark:bg-blue-900/30 whitespace-nowrap">
+              Chính
             </span>
           ) : (
-            <span className="px-2 py-1 text-xs font-medium rounded-full text-gray-500 bg-gray-100 dark:bg-gray-800/50">
-              Gói phụ
+            <span className="px-2 py-0.5 text-[12px] font-medium rounded-full text-gray-500 bg-gray-100 dark:bg-gray-800/50 whitespace-nowrap">
+              Phụ
             </span>
           )}
         </td>
 
         {/* Status */}
-        <td className="px-4 py-3 text-sm text-center">
+        <td className="px-3 py-2 text-center">
           <StatusBadge status={sub.status} />
         </td>
 
         {/* Price */}
-        <td className="px-4 py-3 text-xs text-center text-gray-600 dark:text-gray-300">
-          <span className="font-medium">Giá: {formatCurrency(sub.price)}</span>
+        <td className="px-3 py-2 text-[12px] text-center text-gray-600 dark:text-gray-300">
+          <span className="font-medium">{formatCurrency(sub.price)}</span>
         </td>
 
         {/* is_payment */}
-        <td className="px-4 py-3 text-sm text-center">
-          <button
-            className={`px-3 py-1 text-xs min-w-[120px] font-medium rounded-full ${
+        <td className="px-3 py-2 text-center">
+          <span
+            className={`inline-block px-2 py-0.5 text-[12px] font-medium rounded-full whitespace-nowrap ${
               sub.is_payment
-                ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
-                : "bg-red-100 text-red-700 hover:bg-red-200"
-            }`}
-            disabled>
+                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30"
+                : "bg-red-100 text-red-700 dark:bg-red-900/30"
+            }`}>
             {sub.is_payment ? "Đã thanh toán" : "Chưa thanh toán"}
-          </button>
+          </span>
         </td>
 
         {/* Deployment info */}
-        <td className="px-4 py-3 text-xs text-center">
-          <span className={`inline-block px-2 py-1 text-[11px] font-medium`}>
+        <td className="px-3 py-2 text-[12px] text-center text-gray-600 dark:text-gray-300">
+          <span className="inline-block">
             {sub.status === 2
-              ? "Chưa triển khai gói"
+              ? "Chưa triển khai"
               : sub.status === 0
-              ? "Gói đã xóa và các số đã được thu hồi"
-              : `Ngày triển khai: ${formatDate(sub.released_at)}
-              `}
+              ? "Đã thu hồi"
+              : formatDate(sub.released_at)}
           </span>
         </td>
 
         {/* Confirm button */}
         {checkPayment === false &&
           (user.sub == "VANLTT" || user.sub == "HUYLQ") && (
-            <td className="px-6 py-3 text-center">
-              <button onClick={onConfirm}>
-                <GiConfirmed className="h-5 w-5 text-blue-500" />
+            <td className="px-3 py-2 text-center">
+              <button
+                onClick={onConfirm}
+                className="hover:bg-blue-50 dark:hover:bg-blue-900/20 p-1 rounded transition-colors">
+                <GiConfirmed className="h-4 w-4 text-blue-500" />
               </button>
             </td>
           )}
@@ -266,7 +264,7 @@ export const SubPlanTable = ({
   );
 
   return (
-    <div className="w-full bg-white dark:bg-gray-900 rounded-lg overflow-hidden px-4 dark:border-gray-800">
+    <div className="w-full dark:from-gray-900 dark:to-gray-800 overflow-hidden pr-8 pl-3">
       <div className="overflow-x-auto">
         {isLoading ? (
           <div className="p-4">
@@ -274,17 +272,38 @@ export const SubPlanTable = ({
           </div>
         ) : mergedPlans?.length ? (
           <table className="w-full text-sm">
-            <thead className="dark:bg-gray-800/50 sticky top-0">
+            <thead className="dark:bg-gray-800/70 sticky top-0 border-b-2 border-gray-300 dark:border-gray-600">
               <tr>
-                <th className="w-5"></th>
-                {Array.from({ length: 7 }).map((_, i) => (
-                  <th
-                    key={i}
-                    className="px-4 text-center font-semibold text-gray-700 dark:text-gray-300 text-xs"></th>
-                ))}
+                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px]"></th>
+                <th className="px-3 py-2 text-left font-semibold text-gray-700 dark:text-gray-300 text-[12px]">
+                  Tên gói
+                </th>
+                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px] w-16">
+                  CID
+                </th>
+                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px] w-20">
+                  Phút
+                </th>
+                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px] w-20">
+                  Loại gói
+                </th>
+                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px] w-24">
+                  Trạng thái
+                </th>
+                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px] w-24">
+                  Giá
+                </th>
+                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px] w-28">
+                  Thanh toán
+                </th>
+                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px] min-w-[160px]">
+                  Triển khai
+                </th>
                 {checkPayment === false &&
                   (user.sub == "VANLTT" || user.sub == "HUYLQ") && (
-                    <th className="px-4 text-center w-20 text-xs font-semibold"></th>
+                    <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px] w-12">
+                      Xác nhận
+                    </th>
                   )}
               </tr>
             </thead>

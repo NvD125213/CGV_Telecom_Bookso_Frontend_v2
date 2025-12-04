@@ -31,7 +31,9 @@ export default function DualProgress({
           </strong>{" "}
           / {total.toLocaleString()}
         </span>
-        <span className="font-medium">{animated.toFixed(1)}%</span>
+        <span className="font-medium dark:text-white">
+          {animated.toFixed(1)}%
+        </span>
       </div>
 
       <div

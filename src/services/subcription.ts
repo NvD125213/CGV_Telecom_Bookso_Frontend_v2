@@ -1,6 +1,6 @@
-// import { instanceStatic } from "../config/apiStatic";
 import axiosInstance from "../config/apiToken";
 import { cleanQuery } from "../helper/cleanQuery";
+import { instance } from "./index";
 
 export interface SubcriptionData {
   customer_name: string;
@@ -31,53 +31,56 @@ export interface SubscriptionItem {
 export const subscriptionService = {
   get: async (params: any) => {
     const cleanedParams = cleanQuery(params);
-    return await axiosInstance.get("/api/v3/subscription", {
+    return await instance.get("/api/v3/subscription", {
       params: cleanedParams,
     });
   },
-  getTotalPrice: async () => {
-    return await axiosInstance.get("/api/v3/subscription/get-total-price");
+  getTotalPrice: async (month_year?: string) => {
+    const params = month_year ? { month_year } : {};
+    return await instance.get("/api/v3/subscription/get-total-price", {
+      params,
+    });
   },
   getById: async (id: number) => {
-    return await axiosInstance.get(`/api/v3/subscription/${id}`);
+    return await instance.get(`/api/v3/subscription/${id}`);
   },
 
   create: async (data: SubcriptionData) => {
-    return await axiosInstance.post("/api/v3/subscription", data);
+    return await instance.post("/api/v3/subscription", data);
   },
   update: async (id: number, data: Partial<SubcriptionData>) => {
-    return await axiosInstance.put(`/api/v3/subscription/${id}`, data);
+    return await instance.put(`/api/v3/subscription/${id}`, data);
   },
   reNewSubcription: async (sub_id: any, data: any) => {
-    return await axiosInstance.put(
+    return await instance.put(
       `/api/v3/subscription/renew-subscription/${sub_id}`,
       data
     );
   },
   delete: async (id: number) => {
-    return await axiosInstance.delete(`/api/v3/subscription/${id}`);
+    return await instance.delete(`/api/v3/subscription/${id}`);
   },
 };
 
 export const subscriptionItemService = {
   get: async (params: any) => {
     const cleanedParams = cleanQuery(params);
-    return await axiosInstance.get("/api/v3/subscription-items", {
+    return await instance.get("/api/v3/subscription-items", {
       params: cleanedParams,
     });
   },
 
   getById: async (id: number) => {
-    return await axiosInstance.get(`/api/v3/subscription-items/${id}`);
+    return await instance.get(`/api/v3/subscription-items/${id}`);
   },
   create: async (data: SubscriptionItem) => {
-    return await axiosInstance.post("/api/v3/subscription-items", data);
+    return await instance.post("/api/v3/subscription-items", data);
   },
   update: async (id: number, data: Partial<SubscriptionItem>) => {
-    return await axiosInstance.put(`/api/v3/subscription-items/${id}`, data);
+    return await instance.put(`/api/v3/subscription-items/${id}`, data);
   },
   delete: async (id: number) => {
-    return await axiosInstance.delete(`/api/v3/subscription-items/${id}`);
+    return await instance.delete(`/api/v3/subscription-items/${id}`);
   },
 };
 
@@ -97,7 +100,7 @@ export const getDetailCombo = async (
     });
     return response.data;
   } catch (error: any) {
-    console.error("❌ Lỗi khi gọi combo detail:", error);
+    console.error("Lỗi khi gọi combo detail:", error);
     throw error;
   }
 };

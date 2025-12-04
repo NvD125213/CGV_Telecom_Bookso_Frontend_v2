@@ -214,7 +214,7 @@ const LogList = () => {
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Danh sách log" />
+      <PageBreadcrumb pageTitle="Danh sách lịch sử combo/order" />
       <ComponentCard>
         {/* Filters Section */}
         <div className="space-y-4 mb-6">
@@ -400,7 +400,7 @@ const LogList = () => {
             error={errorData}
             role={user.role}
             disabledReset={true}
-            title="Danh sách log gói cước"
+            title="Danh sách lịch sử combo/order gói cước"
             data={logs}
             columns={baseColumns}
             disabled={true}

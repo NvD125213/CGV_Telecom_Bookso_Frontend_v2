@@ -10,41 +10,41 @@ import { useApi } from "../../hooks/useApi";
 import DualProgress from "../../components/progress-bar/DualProgress";
 import { formatCurrency } from "../../helper/formatCurrency";
 import ActionMenu from "./ActionMenu";
-import CheckIcon from "@mui/icons-material/Check";
-import CloseIcon from "@mui/icons-material/Close";
 import SubPlanSelect from "./SubPlanDropdown";
 import { useState, Fragment } from "react";
 import { SubPlanTable } from "./SubPlanTable";
 import { ChevronDownIcon } from "../../icons";
 import { motion, AnimatePresence } from "framer-motion";
 // import { formatDate } from "@fullcalendar/core/index.js";
+import PaymentProcess from "./PaymentProcess";
+import { CalendarMonth } from "@mui/icons-material";
 
 const StatusBadge = ({ status }: { status: number }) => {
   const getStatusDisplay = (status: number) => {
     switch (status) {
       case 1:
         return {
-          text: "Active",
+          text: "Hoạt động",
           className:
-            "inline-flex items-center px-2 py-1 rounded-full font-medium text-xs bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500",
+            "inline-flex whitespace-nowrap items-center px-2 py-1 rounded-full font-medium text-xs bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500",
         };
       case 2:
         return {
-          text: "Pending",
+          text: "Chờ duyệt",
           className:
-            "inline-flex items-center px-2 py-1 rounded-full font-medium text-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-500",
+            "inline-flex whitespace-nowrap items-center px-2 py-1 rounded-full font-medium text-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-500",
         };
       case 0:
         return {
-          text: "expired",
+          text: "Hết hạn",
           className:
-            "inline-flex items-center px-2 py-1 rounded-full font-medium text-xs bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-500",
+            "inline-flex whitespace-nowrap items-center px-2 py-1 rounded-full font-medium text-xs bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-500",
         };
       default:
         return {
-          text: "Unknown",
+          text: "Đã thu hồi",
           className:
-            "inline-flex items-center px-2 py-1 rounded-full font-medium text-xs bg-gray-100 text-gray-700 dark:bg-gray-500/20 dark:text-gray-400",
+            "inline-flex whitespace-nowrap items-center px-2 py-1 rounded-full font-medium text-xs bg-gray-100 text-gray-700 dark:bg-gray-500/20 dark:text-gray-400",
         };
     }
   };
@@ -54,7 +54,7 @@ const StatusBadge = ({ status }: { status: number }) => {
 };
 
 export const CustomSubscriptionTable = ({
-  data,
+  dataRaw,
   isLoading,
   onEdit,
   onDelete,
@@ -63,8 +63,10 @@ export const CustomSubscriptionTable = ({
   onReload,
   onRenew,
   role,
+  quotaMonth,
+  onQuotaMonthChange,
 }: {
-  data: any[];
+  dataRaw: any[];
   isLoading: boolean;
   onEdit?: (item: any) => void;
   onDelete?: (id: string | number) => void;
@@ -73,23 +75,36 @@ export const CustomSubscriptionTable = ({
   onRenew?: (item: any) => void;
   onReload?: () => void;
   role?: number;
+  quotaMonth?: string;
+  onQuotaMonthChange?: (value: string) => void;
 }) => {
   const columns = [
-    { key: "customer_name", label: "Khách hàng", width: "w-[180px]" },
-    { key: "total_did", label: "CID", width: "w-[80px]" },
-    { key: "total_minutes", label: "Số phút", width: "w-[100px]" },
-    { key: "progress", label: "Lưu lượng cuộc gọi", width: "w-[250px]" },
-    { key: "total_price", label: "Tổng giá", width: "w-[120px]" },
-    { key: "root_plan_id", label: "Gói chính", width: "w-[100px]" },
-    { key: "is_payment", label: "Thanh toán", width: "w-[90px]" },
-    { key: "released_at", label: "Ngày triển khai", width: "w-[100px]" },
-    { key: "username", label: "Sales", width: "w-[100px]" },
-    { key: "status", label: "Trạng thái", width: "w-[100px]" },
+    { key: "customer_name", label: "Khách hàng" },
+    { key: "username", label: "Sales" },
+    { key: "status", label: "Trạng thái" },
+    { key: "total_did", label: "CID" },
+    { key: "total_minutes", label: "Số phút" },
+    { key: "total_price", label: "Tổng giá" },
+    { key: "progress", label: "Lưu lượng cuộc gọi" },
+    { key: "payment_progress", label: "Thanh toán" },
   ];
 
   const hasActionColumn = onEdit || onDelete;
-  const { data: dataTotalPrice, isLoading: isLoadingTotalPrice } = useApi(() =>
-    subscriptionService.getTotalPrice()
+  const getCurrentMonthYear = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    return `${year}-${month}`;
+  };
+
+  // Xử lý chọn tháng và năm
+  const [selectedMonthYear, setSelectedMonthYear] = useState<string>(
+    getCurrentMonthYear()
+  );
+
+  const { data: dataTotalPrice, isLoading: isLoadingTotalPrice } = useApi(
+    () => subscriptionService.getTotalPrice(selectedMonthYear),
+    [selectedMonthYear]
   );
 
   const [openRows, setOpenRows] = useState<Record<string, boolean>>({});
@@ -130,30 +145,106 @@ export const CustomSubscriptionTable = ({
           hour12: false,
         })
       : "-";
+
+  function calculateUnpaidAmount(item: any) {
+    let unpaid = 0;
+
+    // 1. Main Sub
+    if (
+      item.main_sub &&
+      item.main_sub.is_payment === true &&
+      item.main_sub.status == 1
+    ) {
+      unpaid += item.main_sub.price || 0;
+    }
+
+    // 2. List Sub Plan
+    if (Array.isArray(item.list_sub_plan)) {
+      for (const sub of item.list_sub_plan) {
+        if (sub.is_payment === true && sub.status == 1) {
+          unpaid += sub.price || 0;
+        }
+      }
+    }
+
+    return unpaid;
+  }
+
+  const data = dataRaw.map((item) => {
+    return {
+      ...item,
+      paid_amount: calculateUnpaidAmount(item),
+    };
+  });
+
+  const handleMonthYearChange = (value: string) => {
+    setSelectedMonthYear(value);
+    console.log("Selected month/year:", value);
+  };
+  const formatMonthYear = (value: string | undefined) => {
+    if (!value) return "";
+    const [year, month] = value.split("-");
+    return `${month}/${year}`;
+  };
+
   return (
     <div className="space-y-3">
       {/* Summary Cards - Compact */}
-      <div className="flex gap-2 justify-end">
-        <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-green-300 bg-green-50 dark:bg-green-500/10">
-          <span className="text-xs font-semibold text-green-600 dark:text-green-400 whitespace-nowrap">
-            Tổng doanh thu:
-          </span>
-          <span className="text-sm font-bold text-green-700 dark:text-green-400">
-            {isLoadingTotalPrice
-              ? "..."
-              : formatCurrency(dataTotalPrice?.data.total_price)}
-          </span>
+      <div className="flex gap-2 justify-end items-center">
+        <div className="flex gap-2 justify-end items-center">
+          {/* Tổng doanh thu */}
+          <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-green-300 bg-green-50 dark:bg-green-500/10">
+            <span className="text-xs font-semibold text-green-600 dark:text-green-400 whitespace-nowrap">
+              Tổng doanh thu:
+            </span>
+            <span className="text-sm font-bold text-green-700 dark:text-green-400">
+              {isLoadingTotalPrice
+                ? "..."
+                : formatCurrency(dataTotalPrice?.data.total_price)}
+            </span>
+          </div>
+
+          {/* Chưa thanh toán */}
+          <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-red-300 bg-red-50 dark:bg-red-500/10">
+            <span className="text-xs font-semibold text-red-600 dark:text-red-400 whitespace-nowrap">
+              Chưa thanh toán:
+            </span>
+            <span className="text-sm font-bold text-red-700 dark:text-red-400">
+              {isLoadingTotalPrice
+                ? "..."
+                : formatCurrency(dataTotalPrice?.data.outstanding_amount)}
+            </span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-red-300 bg-red-50 dark:bg-red-500/10">
-          <span className="text-xs font-semibold text-red-600 dark:text-red-400 whitespace-nowrap">
-            Chưa thanh toán:
+        {/* Chọn tháng/năm */}
+        <div className="relative flex items-center px-2 py-2">
+          {/* Icon lịch */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              const input = document.getElementById(
+                "summary-month-year-input"
+              ) as HTMLInputElement;
+              input?.showPicker?.() ?? input?.focus();
+            }}
+            className="flex items-center justify-center p-2 rounded-lg bg-white text-gray-600 hover:bg-gray-50 focus:ring-2 focus:ring-blue-100 dark:bg-gray-800 dark:border dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 transition-all">
+            <CalendarMonth />
+          </button>
+
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            {formatMonthYear(selectedMonthYear)}
           </span>
-          <span className="text-sm font-bold text-red-700 dark:text-red-400">
-            {isLoadingTotalPrice
-              ? "..."
-              : formatCurrency(dataTotalPrice?.data.outstanding_amount)}
-          </span>
+
+          {/* Hidden month input */}
+          <input
+            id="summary-month-year-input"
+            type="month"
+            value={selectedMonthYear}
+            onChange={(e) => handleMonthYearChange(e.target.value)}
+            className="absolute opacity-0 w-0 h-0 pointer-events-none"
+          />
         </div>
       </div>
 
@@ -180,8 +271,57 @@ export const CustomSubscriptionTable = ({
                       <TableCell
                         key={col.key}
                         isHeader
-                        className={`px-3 py-2.5 font-semibold text-gray-700 dark:text-gray-300 text-xs whitespace-nowrap ${col.width}`}>
-                        {col.label}
+                        className={`px-3 py-2.5 font-semibold text-gray-700 dark:text-gray-300 text-xs whitespace-nowrap`}>
+                        {col.key === "progress" ? (
+                          <div className="flex items-center justify-between gap-2">
+                            <span>{col.label}</span>
+                            {quotaMonth !== undefined && onQuotaMonthChange && (
+                              <div className="relative">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const input = document.getElementById(
+                                      "quota-month-input"
+                                    ) as HTMLInputElement;
+                                    if (input) {
+                                      if (input.showPicker) {
+                                        input.showPicker();
+                                      } else {
+                                        input.focus();
+                                      }
+                                    }
+                                  }}
+                                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                                  title="Chọn tháng">
+                                  <svg
+                                    className="w-4 h-4 text-blue-600 dark:text-blue-400"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                    />
+                                  </svg>
+                                </button>
+                                <input
+                                  id="quota-month-input"
+                                  type="month"
+                                  value={quotaMonth}
+                                  onChange={(e) =>
+                                    onQuotaMonthChange(e.target.value)
+                                  }
+                                  className="absolute opacity-0 w-0 h-0"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          col.label
+                        )}
                       </TableCell>
                     ))}
 
@@ -211,7 +351,7 @@ export const CustomSubscriptionTable = ({
                         {columns.map((col) => (
                           <TableCell
                             key={col.key}
-                            className={`px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 ${col.width}`}>
+                            className={`px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400`}>
                             <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-3/4" />
                           </TableCell>
                         ))}
@@ -281,22 +421,24 @@ export const CustomSubscriptionTable = ({
                             {columns.map((col) => (
                               <TableCell
                                 key={col.key}
-                                className={`px-3 py-2.5 text-xs text-gray-600 dark:text-gray-300 ${col.width}`}>
+                                className={`px-3 py-4 text-xs text-gray-600 dark:text-gray-300`}>
                                 {col.key === "customer_name" ? (
                                   <span className="font-medium text-gray-900 dark:text-gray-100">
                                     {item[col.key] || "-"}
                                   </span>
                                 ) : col.key === "status" ? (
                                   <StatusBadge status={item.status} />
-                                ) : col.key === "is_payment" ? (
-                                  <div className="flex justify-center">
-                                    {item[col.key] &&
-                                    checkPayment(item) == true ? (
-                                      <CheckIcon className="w-4 h-4 text-blue-500" />
-                                    ) : (
-                                      <CloseIcon className="w-4 h-4 text-red-500" />
-                                    )}
-                                  </div>
+                                ) : col.key === "payment_progress" ? (
+                                  item.status == "1" ? (
+                                    <PaymentProcess
+                                      current={item.paid_amount}
+                                      total={item.total_price}
+                                    />
+                                  ) : (
+                                    <span className="text-gray-400 text-xs">
+                                      Đã xóa hoặc hết hạn
+                                    </span>
+                                  )
                                 ) : col.key === "total_price" ? (
                                   <span className="font-medium">
                                     {formatCurrency(item[col.key])}

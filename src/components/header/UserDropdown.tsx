@@ -6,7 +6,6 @@ import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../../store";
 import { logout } from "../../store/authSlice";
 import { MdOutlineHistory } from "react-icons/md";
-import { IoSettingsOutline } from "react-icons/io5";
 import ModalSetting from "./ModalSetting";
 
 export default function UserDropdown() {
@@ -16,7 +15,7 @@ export default function UserDropdown() {
   const dispatch = useDispatch();
 
   // Lấy thông tin user từ Redux
-  const user = useSelector((state: RootState) => state.auth.user);
+  const user = useSelector((state: RootState) => state.auth?.user);
 
   function toggleDropdown() {
     setIsOpen(!isOpen);
@@ -105,14 +104,14 @@ export default function UserDropdown() {
               </DropdownItem>
             </li>
 
-            <li>
+            {/* <li>
               <button
                 onClick={openSettings}
                 className="w-full ml-1.25 flex items-center gap-3 px-3 py-2 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">
                 <IoSettingsOutline size={20} />
                 Setting
               </button>
-            </li>
+            </li> */}
           </ul>
           <DropdownItem
             onItemClick={handleSignOut}
@@ -124,7 +123,7 @@ export default function UserDropdown() {
       </div>
 
       {/* Settings Modal */}
-      <ModalSetting open={isSettingsOpen} onClose={closeSettings}  />
+      <ModalSetting open={isSettingsOpen} onClose={closeSettings} />
     </>
   );
 }

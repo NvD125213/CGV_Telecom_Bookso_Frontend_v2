@@ -33,7 +33,8 @@ import SubscriptionList from "./pages/Subscription/SubscriptionList";
 import LogList from "./pages/Logs/LogList";
 import OrderList from "./pages/Order/OrderList";
 // import { OrderActionPage } from "./pages/Order/OrderAction";
-import {OrderActionPage} from "./pages/Order/OrderAction/OrderAction.tsx";
+import { OrderActionPage } from "./pages/Order/OrderAction/OrderAction.tsx";
+import SettingOrder from "./pages/Order/SettingOrder.tsx";
 
 function AppWithInactivityHandler() {
   const { resetInactivityTimer } = useAuth();
@@ -99,6 +100,7 @@ function AppWithInactivityHandler() {
             path="/subscriptions/edit/:id"
             element={<SubcriptionActionPage />}
           />
+          <Route path="/setting-order" element={<SettingOrder />} />
         </Route>
       </Route>
       <Route path="*" element={<NotFound />} />

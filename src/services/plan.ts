@@ -1,6 +1,5 @@
 import { cleanQuery } from "../helper/cleanQuery";
-import axiosInstance from "../config/apiToken";
-// import { instanceStatic } from "../config/apiStatic";
+import { instance } from "./index";
 
 interface PlanData {
   name: string;
@@ -19,22 +18,22 @@ interface PlanData {
 export const planService = {
   get: async (params: any) => {
     const cleanedParams = cleanQuery(params);
-    return await axiosInstance.get("/api/v3/plan", { params: cleanedParams });
+    return await instance.get("/api/v3/plan", { params: cleanedParams });
   },
   getById: async (id: number) => {
-    return await axiosInstance.get(`/api/v3/plan/${id}`);
+    return await instance.get(`/api/v3/plan/${id}`);
   },
   getChildren: async (id: number) => {
-    return await axiosInstance.get(`/api/v3/plan/${id}/children`);
+    return await instance.get(`/api/v3/plan/${id}/children`);
   },
 
   create: async (data: PlanData) => {
-    return await axiosInstance.post("/api/v3/plan", data);
+    return await instance.post("/api/v3/plan", data);
   },
   update: async (id: number, data: PlanData) => {
-    return await axiosInstance.put(`/api/v3/plan/${id}`, data);
+    return await instance.put(`/api/v3/plan/${id}`, data);
   },
   delete: async (id: number) => {
-    return await axiosInstance.delete(`/api/v3/plan/${id}`);
+    return await instance.delete(`/api/v3/plan/${id}`);
   },
 };

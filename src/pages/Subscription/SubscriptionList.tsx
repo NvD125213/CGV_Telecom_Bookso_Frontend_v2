@@ -54,6 +54,14 @@ export interface SubscriptionQuery {
   created_month?: string;
 }
 
+// Tính tháng hiện tại cho created_at filter
+const getCurrentMonth = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = (now.getMonth() + 1).toString().padStart(2, "0");
+  return `${year}-${month}`;
+};
+
 const SubsciptionList = () => {
   const navigate = useNavigate();
   const [subscriptions, setSubscriptions] = useState<SubcriptionData[]>([]);
@@ -63,20 +71,14 @@ const SubsciptionList = () => {
   const isMobile = useIsMobile(768);
   const user = useSelector((state: RootState) => state.auth.user);
 
-  // Tính tháng hiện tại cho created_at filter
-  const getCurrentMonth = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = (now.getMonth() + 1).toString().padStart(2, "0");
-    return `${year}-${month}`;
-  };
+  const [quotaMonth, setQuotaMonth] = useState(getCurrentMonth());
 
   const [query, setQuery] = useQuerySync<SubscriptionQuery>({
     page: 1,
     size: 10,
     order_by: "created_at",
     order_dir: "desc",
-    created_month: getCurrentMonth(), // Mặc định lọc theo created_at trong tháng hiện tại
+    created_month: getCurrentMonth(),
   });
 
   const [pagination, setPagination] = useState({
@@ -104,9 +106,9 @@ const SubsciptionList = () => {
       query.search || ""
     }_${query.status || ""}_${query.root_plan_id || ""}_${
       query.expired_from || ""
-    }_${query.expired_to || ""}_${query.created_month || ""}_${
-      query.auto_renew ?? ""
-    }_${query.is_payment ?? ""}`;
+    }_${query.expired_to || ""}_${query.auto_renew ?? ""}_${
+      query.is_payment ?? ""
+    }_${query.created_month || ""}`;
   }, [
     query.page,
     query.size,
@@ -117,9 +119,9 @@ const SubsciptionList = () => {
     query.root_plan_id,
     query.expired_from,
     query.expired_to,
-    query.created_month,
     query.auto_renew,
     query.is_payment,
+    query.created_month,
   ]);
 
   // FIX: Dùng state thay vì ref để trigger useEffect
@@ -304,10 +306,7 @@ const SubsciptionList = () => {
     const fetchQuota = async () => {
       if (!quotaBody || quotaBody.length === 0) return;
       try {
-        const data = await getQuota(
-          quotaBody,
-          query.created_month || getCurrentMonth()
-        );
+        const data = await getQuota(quotaBody, quotaMonth);
         const filtered = (data.data || []).filter(
           (q: any) =>
             (q.total_call_out || 0) > 0 ||
@@ -320,7 +319,7 @@ const SubsciptionList = () => {
       }
     };
     fetchQuota();
-  }, [quotaBody, query.created_month]);
+  }, [quotaBody, quotaMonth]);
 
   // FIX: useMemo để tránh tạo array mới mỗi lần render
   const mapData = useMemo(() => {
@@ -347,6 +346,7 @@ const SubsciptionList = () => {
             planId: plan.id,
             name: plan.name,
             status: item.status,
+            cid: plan.did_count,
             created_at: item.created_at,
             updated_at: item.updated_at,
             expired: item.expired,
@@ -379,6 +379,7 @@ const SubsciptionList = () => {
         updated_at: sub.updated_at,
         is_payment: sub.is_payment,
         released_at: sub.released_at,
+        cid: sub.total_did,
         note: sub.note || null,
         price: sub.sub_price,
         quantity: sub.quantity || null,
@@ -500,14 +501,15 @@ const SubsciptionList = () => {
     loadRenewPlans(1);
   }, []);
 
+  // Xử lý phần load quota viettel theo từng tháng 1
+
   return (
     <>
       <PageBreadcrumb pageTitle="Danh sách đăng ký gói" />
-
       <ComponentCard>
         <div className="max-w-7xl mx-auto">
           {/* --- Bộ lọc query --- */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 mb-8 p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8 p-4">
             <div className="w-full">
               <Label>Tìm kiếm</Label>
               <Input
@@ -518,6 +520,24 @@ const SubsciptionList = () => {
                 className="w-full border border-gray-300 px-3 py-2 rounded-md"
               />
             </div>
+
+            {/* Tháng tạo */}
+            <div className="w-full">
+              <Label>Thời gian tạo</Label>
+              <Input
+                type="month"
+                value={query.created_month || ""}
+                onChange={(e) =>
+                  setQuery({
+                    ...query,
+                    created_month: e.target.value || undefined,
+                    page: 1,
+                  })
+                }
+                className="w-full border border-gray-300 px-3 py-2 rounded-md"
+              />
+            </div>
+
             {/* Trạng thái thanh toán */}
             <div className="w-full">
               <Label>Trạng thái thanh toán</Label>
@@ -537,49 +557,6 @@ const SubsciptionList = () => {
               />
             </div>
 
-            {/* Tháng tạo */}
-            <div className="w-full">
-              <Label>Thời gian tạo</Label>
-              <Input
-                type="month"
-                value={query.created_month || ""}
-                onChange={(e) =>
-                  setQuery({
-                    ...query,
-                    created_month: e.target.value || undefined,
-                  })
-                }
-                className="w-full border border-gray-300 px-3 py-2 rounded-md"
-                placeholder="Chọn tháng"
-              />
-            </div>
-
-            <div>
-              <Label>Ngày hết hạn từ</Label>
-              <Input
-                type="datetime-local"
-                value={query.expired_from}
-                onChange={(e) => {
-                  setQuery({ ...query, expired_from: e.target.value });
-                }}
-                className="w-full border border-gray-300 px-3 py-2 rounded-md"
-              />
-            </div>
-
-            {/* Ngày hết hạn đến */}
-            <div>
-              <Label>Ngày hết hạn đến</Label>
-              <Input
-                type="datetime-local"
-                value={query.expired_to}
-                onChange={(e) => {
-                  setQuery({ ...query, expired_to: e.target.value });
-                }}
-                className="w-full border border-gray-300 px-3 py-2 rounded-md"
-              />
-            </div>
-            {/* Tìm kiếm */}
-
             {/* Trạng thái */}
             <div className="w-full">
               <Label>Trạng thái</Label>
@@ -587,8 +564,9 @@ const SubsciptionList = () => {
                 options={[
                   { label: "Tất cả", value: "" },
                   { label: "Hoạt động", value: "1" },
-                  { label: "Pending", value: "2" },
+                  { label: "Chờ duyệt", value: "2" },
                   { label: "Hết hạn", value: "0" },
+                  { label: "Đã thu hồi", value: "3" },
                 ]}
                 onChange={(value) => setQuery({ ...query, status: value })}
                 placeholder="Trạng thái"
@@ -615,35 +593,6 @@ const SubsciptionList = () => {
                 placeholder="Chọn gói"
               />
             </div>
-
-            {/* Thứ tự */}
-            <div className="w-full">
-              <Label>Thứ tự</Label>
-              <Select
-                options={[
-                  { label: "Tăng dần", value: "asc" },
-                  { label: "Giảm dần", value: "desc" },
-                ]}
-                onChange={(value) => setQuery({ ...query, order_dir: value })}
-                placeholder="Thứ tự"
-              />
-            </div>
-
-            {/* <div className="w-full">
-              <Label>Sắp xếp theo</Label>
-              <Select
-                options={[
-                  { label: "Ngày tạo", value: "created_at" },
-                  { label: "Ngày cập nhật", value: "updated_at" },
-                  { label: "Tên khách hàng", value: "customer_name" },
-                  { label: "Trạng thái", value: "status" },
-                  { label: "Ngày hết hạn", value: "expired" },
-                ]}
-                value={query.order_by}
-                onChange={(value) => setQuery({ ...query, order_by: value })}
-                placeholder="Chọn cách sắp xếp"
-              />
-            </div> */}
           </div>
 
           {error && <div className="text-red-500 mb-4">{error}</div>}
@@ -655,9 +604,11 @@ const SubsciptionList = () => {
           ) : (
             <>
               <CustomSubscriptionTable
-                data={mapData}
+                dataRaw={mapData}
                 isLoading={loading || isLoadingPlans}
                 role={user.role}
+                quotaMonth={quotaMonth}
+                onQuotaMonthChange={setQuotaMonth}
                 onEdit={(item) => {
                   navigate(`/subscriptions/edit/${item.id}`);
                 }}
