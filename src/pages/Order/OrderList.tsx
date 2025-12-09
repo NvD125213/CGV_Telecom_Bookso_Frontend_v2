@@ -11,21 +11,19 @@ import {
   TableRow,
 } from "../../components/ui/table";
 import { orderServices } from "../../services/order";
-import { configService } from "../../services/config";
-import { getPriceForRange } from "./PriceConfig";
 import { useQuerySync } from "../../hooks/useQueryAsync";
 import Select from "../../components/form/Select";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
 import { useNavigate } from "react-router-dom";
-import Pagination from "../../components/pagination/pagination";
+import { Pagination } from "../../components/common/Pagination";
 import { formatCurrency } from "../../helper/formatCurrency";
 import { IoIosAdd } from "react-icons/io";
 import ActionMenu from "./ActionMenu";
-import { CheckCircleOutline } from "@mui/icons-material";
-import { IoCloseCircleOutline } from "react-icons/io5";
+import DualProgress from "../../components/progress-bar/DualProgress";
 import Swal from "sweetalert2";
 import ModalRenew from "./ModalRenew";
+import { getQuota } from "../../services/subcription";
 
 interface OrderData {
   id: number;
@@ -38,7 +36,7 @@ interface OrderData {
   auto_renew: boolean;
   expired: Date;
   status: number;
-  total_minutes: number;
+  total_minute: number;
   total_user: number;
   total_price?: number;
   items?: any[];
@@ -50,33 +48,33 @@ const StatusBadge = ({ status }: { status: number }) => {
     switch (status) {
       case 1:
         return {
-          text: "active",
+          text: "Hoạt động",
           classname:
-            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500 w-[80px]",
+            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500 px-2 whitespace-nowrap",
         };
       case 2:
         return {
-          text: "pending",
+          text: "Chờ xác nhận",
           classname:
-            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-orange-400 w-[80px]",
+            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-orange-400 px-2 whitespace-nowrap",
         };
       case 3:
         return {
-          text: "deploying",
+          text: "Chờ triển khai",
           classname:
-            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400 w-[80px]",
+            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400 px-2 whitespace-nowrap",
         };
       case 0:
         return {
-          text: "expired",
+          text: "Hết hạn/Hủy",
           classname:
-            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500 w-[80px]",
+            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500 px-2 whitespace-nowrap",
         };
       default:
         return {
           text: "Không xác định",
           classname:
-            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-gray-50 text-gray-600 dark:bg-gray-500/15 dark:text-gray-500 w-[80px]",
+            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-gray-50 text-gray-600 dark:bg-gray-500/15 dark:text-gray-500 px-2 whitespace-nowrap",
         };
     }
   };
@@ -113,32 +111,50 @@ const CustomOrderTable = ({
       key: "is_payment",
       label: "Thanh toán",
     },
+    {
+      key: "did_count",
+      label: "Tổng CID",
+    },
     { key: "total_users", label: "Tổng user" },
     { key: "total_minute", label: "Phút gọi" },
+    { key: "progress", label: "Lưu lượng cuộc gọi" },
     { key: "user_name", label: "Sale" },
     { key: "total_price", label: "Tổng giá" },
+    { key: "created_at", label: "Ngày tạo" },
+    { key: "released_at", label: "Ngày triển khai" },
     { key: "status", label: "Trạng thái" },
   ];
 
   const hasActionColumn = onEdit || onDelete;
   const totalColumnCount = columns.length + 1 + (hasActionColumn ? 1 : 0); // +1 for ID column, +1 for actions
-  const isManyColumns = totalColumnCount > 8;
   const formatNumber = (num: number) =>
     num?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  const formatDate = (date: string | null | undefined) =>
+    date
+      ? new Date(date).toLocaleString("vi-VN", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        })
+      : "-";
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-black">
-      <div className="w-full overflow-x-auto">
-        <div className="min-w-[1000px]">
-          <div className="max-h-[800px] overflow-y-auto dark:bg-black min-w-[900px]">
-            <Table className="dark:text-white">
+    <div className="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-black overflow-hidden">
+      <div className="overflow-x-auto">
+        <div className="inline-block min-w-full">
+          <div className="max-h-[600px] overflow-y-auto dark:bg-black">
+            <Table className="dark:text-white text-sm">
               {/* Table Header */}
-              <TableHeader>
-                <TableRow>
+              <TableHeader className="relative top-0 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+                <TableRow className="hover:bg-transparent">
                   {hideId == false && (
                     <TableCell
                       isHeader
-                      className="px-5 py-3 text-base font-semibold text-gray-500 dark:text-gray-300 text-start">
+                      className="px-3 py-2.5 font-semibold text-gray-700 dark:text-gray-300 text-xs whitespace-nowrap">
                       ID
                     </TableCell>
                   )}
@@ -147,22 +163,18 @@ const CustomOrderTable = ({
                     <TableCell
                       key={`${col.key}-${idx}`}
                       isHeader
-                      className={`px-5 ${
-                        isManyColumns ? "text-[13px]" : "text-sm"
-                      } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 ${
+                      className={`px-3 py-2.5 font-semibold text-gray-700 dark:text-gray-300 text-xs whitespace-nowrap ${
                         col.key === "customer_name"
                           ? "!text-start"
                           : "!text-center"
-                      } `}>
+                      } ${col.key === "progress" ? "min-w-[180px]" : ""}`}>
                       {col.label}
                     </TableCell>
                   ))}
                   {hasActionColumn && (
                     <TableCell
                       isHeader
-                      className={`px-5 ${
-                        isManyColumns ? "text-[13px]" : "text-sm"
-                      } dark:text-gray-300 py-3 text-base font-semibold text-gray-500 text-start`}>
+                      className="px-3 py-2.5 font-semibold text-gray-700 dark:text-gray-300 text-xs !text-center">
                       Hành động
                     </TableCell>
                   )}
@@ -173,31 +185,25 @@ const CustomOrderTable = ({
               <TableBody>
                 {isLoading ? (
                   Array.from({ length: 5 }).map((_, index) => (
-                    <TableRow key={index}>
+                    <TableRow
+                      key={index}
+                      className="border-b border-gray-100 dark:border-gray-800">
                       {hideId == false && (
-                        <TableCell className="px-5 py-3">
-                          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                        <TableCell className="px-3 py-2.5">
+                          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-3/4"></div>
                         </TableCell>
                       )}
 
                       {columns.map((col) => (
                         <TableCell
                           key={col.key}
-                          className={`px-5 py-3 text-sm text-gray-500 dark:text-gray-300 ${
-                            col.key === "customer_name"
-                              ? "!text-start"
-                              : "!text-center"
-                          } ${isManyColumns ? "text-[13px]" : "text-sm"}`}>
-                          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                          className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">
+                          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-3/4"></div>
                         </TableCell>
                       ))}
                       {hasActionColumn && (
-                        <TableCell
-                          className={`flex gap-2 px-5 py-3 ${
-                            isManyColumns ? "text-[13px]" : "text-sm"
-                          }`}>
-                          <div className="h-6 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                          <div className="h-6 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                        <TableCell className="px-3 py-2.5 w-[80px]">
+                          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-1/2 mx-auto"></div>
                         </TableCell>
                       )}
                     </TableRow>
@@ -206,24 +212,22 @@ const CustomOrderTable = ({
                   <TableRow>
                     <TableCell
                       colSpan={totalColumnCount}
-                      className="py-12 text-center">
-                      <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
+                      className="py-12 !text-center">
+                      <div className="flex flex-col items-center gap-2 text-gray-500 dark:text-gray-400">
                         <svg
-                          className="w-16 h-16 mb-4 text-gray-300 dark:text-gray-600"
+                          className="w-12 h-12 text-gray-300 dark:text-gray-600"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24">
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            strokeWidth={1}
+                            strokeWidth={1.5}
                             d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                           />
                         </svg>
-                        <p className="text-lg font-medium mb-2">
-                          Không có dữ liệu
-                        </p>
-                        <p className="text-sm">
+                        <p className="text-sm font-medium">Không có dữ liệu</p>
+                        <p className="text-xs">
                           Không tìm thấy order nào phù hợp với bộ lọc hiện tại
                         </p>
                       </div>
@@ -231,35 +235,61 @@ const CustomOrderTable = ({
                   </TableRow>
                 ) : (
                   data.map((item) => (
-                    <TableRow key={item.id}>
+                    <TableRow
+                      key={item.id}
+                      className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors">
                       {hideId == false && (
-                        <TableCell
-                          className={`px-5 dark:text-gray-300 py-3 ${
-                            isManyColumns ? "text-[13px]" : "text-sm"
-                          }`}>
+                        <TableCell className="px-3 py-4 text-xs text-gray-600 dark:text-gray-300">
                           {item.id}
                         </TableCell>
                       )}
                       {columns.map((col) => (
                         <TableCell
                           key={col.key}
-                          className={`px-5 py-3 text-sm text-gray-500 dark:text-gray-300 ${
+                          className={`px-3 py-4 text-xs text-gray-600 dark:text-gray-300 ${
                             col.key === "customer_name"
                               ? "!text-start"
                               : "!text-center"
-                          } ${isManyColumns ? "text-[13px]" : "text-sm"} `}>
+                          } ${col.key === "progress" ? "min-w-[150px]" : ""}`}>
                           {col.key === "status" ? (
                             <StatusBadge status={item.status} />
                           ) : col.key === "total_price" ? (
-                            formatCurrency(item[col.key])
+                            <span className="font-medium">
+                              {formatCurrency(item[col.key])}
+                            </span>
                           ) : col.key === "is_payment" ? (
                             item.is_payment ? (
-                              <CheckCircleOutline className="w-5 h-5 text-green-500 mx-auto" />
+                              <div className="text-green-500 border-green-500 border px-2 py-1 rounded-full text-[10px] bg-green-50 whitespace-nowrap">
+                                Đã thanh toán
+                              </div>
                             ) : (
-                              <IoCloseCircleOutline className="w-5 h-5 text-red-500 mx-auto" />
+                              <div className="text-red-500 border-red-500 border px-2 py-1 rounded-full text-[10px] bg-red-50 whitespace-nowrap">
+                                Chưa thanh toán
+                              </div>
                             )
+                          ) : col.key === "released_at" ? (
+                            <div>{formatDate(item.released_at)}</div>
+                          ) : col.key === "created_at" ? (
+                            <div>{formatDate(item.created_at)}</div>
                           ) : col.key === "total_minute" ? (
                             formatNumber(item.total_minute)
+                          ) : col.key === "progress" ? (
+                            item.currentProgress > 0 ? (
+                              <DualProgress
+                                barClassName="h-2"
+                                labelClassName="text-xs"
+                                total={item.totalProgress}
+                                current={item.currentProgress}
+                              />
+                            ) : (
+                              <span className="text-gray-400 text-xs">
+                                Không có dữ liệu
+                              </span>
+                            )
+                          ) : col.key === "customer_name" ? (
+                            <span className="font-medium text-gray-900 dark:text-gray-100">
+                              {item[col.key] || "-"}
+                            </span>
                           ) : (
                             item[col.key] || "-"
                           )}
@@ -267,10 +297,7 @@ const CustomOrderTable = ({
                       ))}
 
                       {hasActionColumn && (
-                        <TableCell
-                          className={`px-5 py-3 min-w-[120px] ${
-                            isManyColumns ? "text-[13px]" : "text-sm"
-                          } sticky right-0 bg-white dark:bg-black z-10 shadow-[-2px_0_4px_rgba(0,0,0,0.05)]`}>
+                        <TableCell className="px-3 py-2.5 w-[80px] !text-center">
                           <ActionMenu
                             item={item}
                             role={role}
@@ -295,6 +322,14 @@ const CustomOrderTable = ({
   );
 };
 
+// Tính tháng hiện tại cho quota
+const getCurrentMonth = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = (now.getMonth() + 1).toString().padStart(2, "0");
+  return `${year}-${month}`;
+};
+
 export interface OrderQuery {
   page: number;
   size: number;
@@ -313,10 +348,6 @@ const OrderList = () => {
   const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading] = useState(false);
   const user = useSelector((state: RootState) => state.auth.user);
-
-  const [expiredFrom, setExpiredFrom] = useState<string>("");
-  const [expiredTo, setExpiredTo] = useState<string>("");
-
   const [query, setQuery] = useQuerySync<OrderQuery>({
     page: 1,
     size: 10,
@@ -358,12 +389,28 @@ const OrderList = () => {
     query.created_to,
   ]);
 
+  // ===== QUOTA STATES =====
+  const [quotaMonth, setQuotaMonth] = useState(getCurrentMonth());
+  const [quotaBody, setQuotaBody] = useState<any[]>([]);
+  const [quotaData, setQuotaData] = useState<any[]>([]);
+
   const fetchOrders = async () => {
     setLoading(true);
     try {
       const result = await orderServices.get(query);
-      setOrders(result.data?.items || []);
+      const items = result.data?.items || [];
+      setOrders(items);
       setPagination(result.data?.meta);
+
+      // Extract slide_users cho quota API (tương tự SubscriptionList)
+      const listAccount =
+        items
+          ?.filter((order: any) => (order.slide_users?.length || 0) > 0)
+          ?.map((item: any) => ({
+            sub_Id: item.id,
+            list_account: Object.values(item.slide_users || {}),
+          })) || [];
+      setQuotaBody(listAccount);
     } catch (err: any) {
       console.error("Fetch orders failed:", err.response?.data);
       setError(err.response?.data?.detail || "Có lỗi xảy ra");
@@ -385,10 +432,31 @@ const OrderList = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryKey]);
 
+  // ===== FETCH QUOTA DATA =====
+  useEffect(() => {
+    const fetchQuotaData = async () => {
+      if (!quotaBody || quotaBody.length === 0) return;
+      try {
+        const data = await getQuota(quotaBody, quotaMonth);
+        const filtered = (data.data || []).filter(
+          (q: any) =>
+            (q.total_call_out || 0) > 0 ||
+            (q.total_call_in || 0) > 0 ||
+            (q.total_sms || 0) > 0
+        );
+        setQuotaData(filtered);
+      } catch (err) {
+        console.error("Fetch quota failed:", err);
+      }
+    };
+    fetchQuotaData();
+  }, [quotaBody, quotaMonth]);
+
   // Xử lý dữ liệu để hiển thị đúng format
   const processedData =
     orders?.map((item: OrderData) => {
-      // Tính total_price
+      // Lookup quota cho order này
+      const quota = quotaData?.find((q: any) => q.sub_Id === item.id);
 
       return {
         ...item,
@@ -398,7 +466,9 @@ const OrderList = () => {
         total_price: item.total_price,
         total_user: item.total_user,
         status: item.status,
-        total_minutes: item.total_minutes,
+        total_minutes: item.total_minute,
+        currentProgress: quota?.total_call_out || 0,
+        totalProgress: item.total_minute || 0,
       };
     }) || [];
 
@@ -569,6 +639,9 @@ const OrderList = () => {
     }
   };
 
+  const handlePaginationChange = (page: number, size: number) => {
+    setQuery({ ...query, page, size });
+  };
   return (
     <>
       <PageBreadcrumb pageTitle="Danh sách order số" />
@@ -583,7 +656,7 @@ const OrderList = () => {
       <ComponentCard>
         <div className="max-w-7xl mx-auto">
           {/* --- Bộ lọc query --- */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8 p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8 p-4">
             <div className="w-full">
               <Label>Tìm kiếm</Label>
               <Input
@@ -601,8 +674,8 @@ const OrderList = () => {
                 options={[
                   { label: "Tất cả", value: "" },
                   { label: "Hoạt động", value: "1" },
-                  { label: "Pending", value: "2" },
-                  { label: "Hết hạn", value: "0" },
+                  { label: "Chờ duyệt", value: "2" },
+                  { label: "Hết hạn/Hủy", value: "0" },
                 ]}
                 onChange={(value) => setQuery({ ...query, status: value })}
                 placeholder="Trạng thái"
@@ -658,27 +731,7 @@ const OrderList = () => {
                 setOpenModalRenew(true);
               }}
             />
-            <div className="mt-6">
-              <Pagination
-                limit={query.size}
-                offset={query.page - 1}
-                totalPages={pagination.pages || 1}
-                onPageChange={(limit, offset) => {
-                  setQuery({
-                    ...query,
-                    size: limit,
-                    page: offset + 1,
-                  });
-                }}
-                onLimitChange={(limit) => {
-                  setQuery({
-                    ...query,
-                    size: limit,
-                    page: 1,
-                  });
-                }}
-              />
-            </div>{" "}
+            <Pagination data={pagination} onChange={handlePaginationChange} />
           </>
         </div>
       </ComponentCard>

@@ -4,7 +4,11 @@ import { useSelector } from "react-redux";
 import { RootState } from "../../store";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useIsMobile } from "../../hooks/useScreenSize";
-import { subscriptionService, getQuota } from "../../services/subcription";
+import {
+  subscriptionService,
+  getQuota,
+  getDetailCombo,
+} from "../../services/subcription";
 import { useApi } from "../../hooks/useApi";
 import { useQuerySync } from "../../hooks/useQueryAsync";
 import { planService } from "../../services/plan";
@@ -170,7 +174,16 @@ const SubsciptionList = () => {
   const { data: plansData, isLoading: isLoadingPlans } = useApi(() =>
     planService.get({
       size: 100,
-      page: 1, // nếu API yêu cầu cả `page`
+      page: 1,
+    })
+  );
+
+  const { data: rootPlansData, isLoading: isLoadingRootPlans } = useApi(() =>
+    planService.get({
+      size: 100,
+      page: 1,
+      is_root: true,
+      status: 1,
     })
   );
 
@@ -196,12 +209,10 @@ const SubsciptionList = () => {
           ? planPriceMap[item.root_plan_id] || 0
           : 0;
         const items = item.items || [];
-        const itemsTotal = items
-          .filter((i) => i.status == 1)
-          .reduce((sum: number, item: any) => {
-            const price = item.price_override_vnd || 0;
-            return sum + price;
-          }, 0);
+        const itemsTotal = items.reduce((sum: number, item: any) => {
+          const price = item.price_override_vnd || 0;
+          return sum + price;
+        }, 0);
         const totalPrice = planPrice + itemsTotal;
 
         return {
@@ -301,7 +312,6 @@ const SubsciptionList = () => {
 
   const [quotaData, setQuotaData] = useState<any[]>([]);
 
-  // FIX: Giờ quotaBody đã là state nên useEffect sẽ chạy đúng
   useEffect(() => {
     const fetchQuota = async () => {
       if (!quotaBody || quotaBody.length === 0) return;
@@ -342,7 +352,7 @@ const SubsciptionList = () => {
           if (!plan) return null;
 
           return {
-            id: item.id, // dùng sub item id để đảm bảo unique
+            id: item.id,
             planId: plan.id,
             name: plan.name,
             status: item.status,
@@ -355,14 +365,19 @@ const SubsciptionList = () => {
             note: item.note,
             quantity: item.quantity,
             price: item.price_override_vnd,
-            minutes: plan.minutes || 0, // Thêm minutes riêng cho từng plan
+            minutes: plan.minutes || 0,
           };
         })
         .filter(Boolean);
 
       // Chỉ cộng minutes và did_count cho các sub có status == 1
       sub.items.forEach((item: any) => {
-        if (item.status == 1) {
+        if (
+          item.status == 1 ||
+          item.status == 2 ||
+          item.status == 3 ||
+          item.status == 0
+        ) {
           const plan = plansMap.get(item.plan_id);
           if (plan) {
             totalPlanMinutes += plan.minutes || 0;
@@ -439,14 +454,14 @@ const SubsciptionList = () => {
   const handleRenew = async (
     item: any,
     type: "renew" | "new",
-    plan_id: number // Bắt buộc phải có plan_id
+    plan_id: number
   ) => {
     try {
       const payload: any = {
         customer_name: item.customer_name || "",
         tax_code: item.tax_code || "",
         contract_code: item.contract_code || "",
-        root_plan_id: plan_id, // Luôn có root_plan_id
+        root_plan_id: plan_id,
       };
 
       const result = await Swal.fire({
@@ -501,7 +516,129 @@ const SubsciptionList = () => {
     loadRenewPlans(1);
   }, []);
 
-  // Xử lý phần load quota viettel theo từng tháng 1
+  // Load quota viettel theo tháng
+  const CACHE_TIME = 5 * 60 * 1000;
+  const CACHE_KEY = "viettelCIDCache";
+
+  const [viettelCID, setViettelCID] = useState<any>([]);
+  // Filter out invalid slide_users (like "-" or empty strings)
+  const slideUsers = mapData
+    .map((item) => item.slide_users)
+    .filter((slide) => slide && slide !== "-" && slide.trim() !== "");
+
+  // Check nếu đang xem tháng hiện tại
+  const isCurrentMonth =
+    query.created_month === getCurrentMonth() || !query.created_month;
+
+  // Hàm fetch 1 slide duy nhất - luôn dùng tháng hiện tại
+  const fetchDetailCombo = async (slideUser: string) => {
+    try {
+      const res = await getDetailCombo(slideUser, getCurrentMonth());
+      return {
+        slide: slideUser,
+        viettelCID: res?.data?.cids_vt ?? 0,
+      };
+    } catch (e) {
+      return {
+        slide: slideUser,
+        viettelCID: null,
+      };
+    }
+  };
+
+  const loadViettelCID = async () => {
+    // Chỉ fetch khi đang xem tháng hiện tại
+    if (!isCurrentMonth) {
+      console.log("Đang xem tháng cũ, không cần fetch viettelCID");
+      setViettelCID([]);
+      return;
+    }
+
+    const cacheRaw = localStorage.getItem(CACHE_KEY);
+    const now = Date.now();
+
+    let cache = {
+      data: {} as any,
+      timestamp: 0,
+    };
+
+    if (cacheRaw) {
+      cache = JSON.parse(cacheRaw);
+    }
+
+    const isCacheExpired = now - cache.timestamp > CACHE_TIME;
+
+    // TRƯỜNG HỢP 1: Cache đã hết hạn → Load lại TOÀN BỘ
+    if (isCacheExpired && cache.timestamp > 0) {
+      console.log("Cache hết hạn, load lại TOÀN BỘ slides");
+
+      const tasks = slideUsers.map((slide) => fetchDetailCombo(slide));
+      const newData = await Promise.all(tasks);
+
+      const updatedCache = {
+        data: Object.fromEntries(newData.map((item) => [item.slide, item])),
+        timestamp: now,
+      };
+
+      localStorage.setItem(CACHE_KEY, JSON.stringify(updatedCache));
+      setViettelCID(Object.values(updatedCache.data));
+      return;
+    }
+
+    // TRƯỜNG HỢP 2: Cache còn hạn → Chỉ fetch slide MỚI chưa có trong cache
+    const newSlides = slideUsers.filter((slide) => !cache.data[slide]);
+
+    if (newSlides.length === 0) {
+      console.log("Dùng cache hoàn toàn, không có slide mới");
+      setViettelCID(Object.values(cache.data));
+      return;
+    }
+
+    console.log("Fetch API cho slides MỚI:", newSlides);
+
+    // Fetch chỉ slide mới
+    const tasks = newSlides.map((slide) => fetchDetailCombo(slide));
+    const newData = await Promise.all(tasks);
+
+    // Cập nhật cache: GIỮ NGUYÊN timestamp cũ, chỉ thêm slide mới
+    const updatedCache = {
+      data: {
+        ...cache.data,
+        ...Object.fromEntries(newData.map((item) => [item.slide, item])),
+      },
+      timestamp: cache.timestamp || now,
+    };
+
+    localStorage.setItem(CACHE_KEY, JSON.stringify(updatedCache));
+    setViettelCID(Object.values(updatedCache.data));
+  };
+
+  useEffect(() => {
+    loadViettelCID();
+
+    // Thiết lập interval để check cache mỗi phút (chỉ khi xem tháng hiện tại)
+    const intervalId = setInterval(() => {
+      if (!isCurrentMonth) return; // Skip nếu đang xem tháng cũ
+
+      const cacheRaw = localStorage.getItem(CACHE_KEY);
+      if (cacheRaw) {
+        const cache = JSON.parse(cacheRaw);
+        const now = Date.now();
+        const isCacheExpired = now - cache.timestamp > CACHE_TIME;
+
+        if (isCacheExpired) {
+          console.log("Cache đã hết hạn, tự động load lại...");
+          loadViettelCID();
+        }
+      }
+    }, 60 * 1000); // Check mỗi 1 phút
+
+    // Cleanup interval khi component unmount
+    return () => {
+      clearInterval(intervalId);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slideUsers.length, isCurrentMonth]); // Re-run khi số lượng slideUsers hoặc isCurrentMonth thay đổi
 
   return (
     <>
@@ -579,7 +716,7 @@ const SubsciptionList = () => {
               <Select
                 options={[
                   { label: "Tất cả gói", value: "" },
-                  ...(plansData?.data?.items?.map((plan: any) => ({
+                  ...(rootPlansData?.data?.items?.map((plan: any) => ({
                     label: plan.name,
                     value: plan.id.toString(),
                   })) || []),
@@ -604,6 +741,7 @@ const SubsciptionList = () => {
           ) : (
             <>
               <CustomSubscriptionTable
+                viettelCID={isCurrentMonth ? viettelCID : undefined}
                 dataRaw={mapData}
                 isLoading={loading || isLoadingPlans}
                 role={user.role}

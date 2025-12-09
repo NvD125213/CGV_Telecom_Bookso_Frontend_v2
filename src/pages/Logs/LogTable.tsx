@@ -9,15 +9,15 @@ import { subscriptionService } from "../../services/subcription";
 import { useApi } from "../../hooks/useApi";
 import DualProgress from "../../components/progress-bar/DualProgress";
 import { formatCurrency } from "../../helper/formatCurrency";
-import ActionMenu from "./ActionMenu";
-import SubPlanSelect from "./SubPlanDropdown";
+import SubPlanSelect from "../Subscription/SubPlanDropdown";
 import { useState, Fragment } from "react";
-import { SubPlanTable } from "./SubPlanTable";
+import { SubPlanTable } from "./SubLog";
 import { ChevronDownIcon } from "../../icons";
 import { motion, AnimatePresence } from "framer-motion";
 // import { formatDate } from "@fullcalendar/core/index.js";
-import PaymentProcess from "./PaymentProcess";
+import PaymentProcess from "../Subscription/PaymentProcess";
 import { CalendarMonth } from "@mui/icons-material";
+import LogMenu from "./LogMenu";
 
 const StatusBadge = ({ status }: { status: number }) => {
   const getStatusDisplay = (status: number) => {
@@ -40,12 +40,6 @@ const StatusBadge = ({ status }: { status: number }) => {
           className:
             "inline-flex whitespace-nowrap items-center px-2 py-1 rounded-full font-medium text-xs bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-500",
         };
-      case 3:
-        return {
-          text: "Đã xóa",
-          className:
-            "inline-flex whitespace-nowrap items-center px-2 py-1 rounded-full font-medium text-xs bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-500",
-        };
       default:
         return {
           text: "Đã thu hồi",
@@ -59,25 +53,77 @@ const StatusBadge = ({ status }: { status: number }) => {
   return <span className={statusDisplay.className}>{statusDisplay.text}</span>;
 };
 
-export const CustomSubscriptionTable = ({
-  dataRaw,
-  viettelCID,
+// Component để hiển thị loại log
+export const LogTypeBadge = ({
+  is_order,
+  is_subscription,
+  is_subscription_items,
+}: {
+  is_order?: boolean;
+  is_subscription?: boolean;
+  is_subscription_items?: boolean;
+}) => {
+  const getLogTypes = () => {
+    const types: { text: string; className: string }[] = [];
+
+    if (is_order) {
+      types.push({
+        text: "Gói đặt trước",
+        className:
+          "inline-flex whitespace-nowrap items-center px-2 py-1 rounded-full font-medium text-xs bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-500",
+      });
+    }
+
+    if (is_subscription) {
+      types.push({
+        text: "Gói cố định",
+        className:
+          "inline-flex whitespace-nowrap items-center px-2 py-1 rounded-full font-medium text-xs bg-purple-50 text-purple-600 dark:bg-purple-500/15 dark:text-purple-500",
+      });
+    }
+
+    if (is_subscription_items) {
+      types.push({
+        text: "Gói mở rộng",
+        className:
+          "inline-flex whitespace-nowrap items-center px-2 py-1 rounded-full font-medium text-xs bg-orange-50 text-orange-600 dark:bg-orange-500/15 dark:text-orange-500",
+      });
+    }
+
+    return types;
+  };
+
+  const logTypes = getLogTypes();
+
+  if (logTypes.length === 0) {
+    return (
+      <span className="inline-flex whitespace-nowrap items-center px-2 py-1 rounded-full font-medium text-xs bg-gray-100 text-gray-500 dark:bg-gray-500/15 dark:text-gray-400">
+        Không xác định
+      </span>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {logTypes.map((type, index) => (
+        <span key={index} className={type.className}>
+          {type.text}
+        </span>
+      ))}
+    </div>
+  );
+};
+
+export const CustomLogTable = ({
+  rawData,
   isLoading,
-  onEdit,
-  onDelete,
   onDetail,
-  onConfirm,
-  onReload,
-  onRenew,
-  role,
   quotaMonth,
   onQuotaMonthChange,
 }: {
-  dataRaw: any[];
+  rawData: any[];
   viettelCID?: any[];
   isLoading: boolean;
-  onEdit?: (item: any) => void;
-  onDelete?: (id: string | number) => void;
   onDetail?: (item: any) => void;
   onConfirm?: (item: any) => void;
   onRenew?: (item: any) => void;
@@ -88,16 +134,17 @@ export const CustomSubscriptionTable = ({
 }) => {
   const columns = [
     { key: "customer_name", label: "Khách hàng" },
-    { key: "username", label: "Sales" },
-    { key: "status", label: "Trạng thái" },
-    { key: "total_did", label: viettelCID ? "VT_CID / CID" : "CID" },
+    { key: "log_type", label: "Định dạng" },
+    { key: "name_sale", label: "Sales" },
+    { key: "total_cid", label: "CID" },
     { key: "total_minutes", label: "Số phút" },
     { key: "created_at", label: "Ngày tạo" },
+    { key: "payment_at", label: "Ngày thanh toán" },
     { key: "progress", label: "Lưu lượng cuộc gọi" },
     { key: "payment_progress", label: "Thanh toán" },
   ];
 
-  const hasActionColumn = onEdit || onDelete;
+  const hasActionColumn = onDetail;
   const getCurrentMonthYear = () => {
     const now = new Date();
     const year = now.getFullYear();
@@ -118,7 +165,7 @@ export const CustomSubscriptionTable = ({
   const [openRows, setOpenRows] = useState<Record<string, boolean>>({});
 
   const toggleRow = (id: string, subListPlan: any) => {
-    if (subListPlan.list_sub_plan.length === 0) return;
+    if (!subListPlan?.children || subListPlan.children.length === 0) return;
     setOpenRows((prev) => ({
       ...prev,
       [id]: !prev[id],
@@ -130,17 +177,6 @@ export const CustomSubscriptionTable = ({
     return value.toLocaleString("vi-VN");
   };
 
-  const checkPayment = (data: any) => {
-    const { main_sub, list_sub_plan } = data;
-
-    // Filter status = 0
-    const activeItems = [main_sub, ...(list_sub_plan || [])].filter(
-      (item) => item.status !== 0
-    );
-
-    // trả về bool
-    return activeItems.every((item) => item.is_payment == true);
-  };
   const formatDate = (date: string | undefined) =>
     date
       ? new Date(date).toLocaleString("vi-VN", {
@@ -154,46 +190,6 @@ export const CustomSubscriptionTable = ({
         })
       : "-";
 
-  function calculateUnpaidAmount(item: any) {
-    let unpaid = 0;
-
-    // 1. Main Sub
-    if (
-      item.main_sub &&
-      item.main_sub.is_payment === true &&
-      item.main_sub.status == 1
-    ) {
-      unpaid += item.main_sub.price || 0;
-    }
-
-    // 2. List Sub Plan
-    if (Array.isArray(item.list_sub_plan)) {
-      for (const sub of item.list_sub_plan) {
-        if (sub.is_payment === true && sub.status == 1) {
-          unpaid += sub.price || 0;
-        }
-      }
-    }
-
-    return unpaid;
-  }
-
-  const data = dataRaw.map((item) => {
-    // lookup 2 mảng
-    let map;
-    if (viettelCID) {
-      map = new Map(viettelCID.map((item) => [item.slide, item.viettelCID]));
-    }
-
-    const key = item.slide_users || item.slide;
-
-    return {
-      ...item,
-      paid_amount: calculateUnpaidAmount(item),
-      viettelCID: map?.get(key.trim()) ?? null,
-    };
-  });
-
   const handleMonthYearChange = (value: string) => {
     setSelectedMonthYear(value);
   };
@@ -203,6 +199,77 @@ export const CustomSubscriptionTable = ({
 
     return `Tháng ${Number(month)}, ${year}`;
   };
+
+  // Tính tổng số is_payment true, tổng số is_payment, giá của từng cái
+
+  const data = rawData.map((item: any) => {
+    // Convert total_price cha
+    const parentPrice =
+      typeof item.total_price === "string"
+        ? Number(item.total_price.replace(/[^\d]/g, "")) // xoá ký tự . ₫
+        : item.total_price || 0;
+
+    // Convert total_minutes cha
+    const parentMinutes =
+      typeof item.total_minutes === "string"
+        ? Number(item.total_minutes.replace(/[^\d]/g, "")) // "10.000" -> 10000
+        : item.total_minutes || 0;
+
+    // Check nếu có children
+    const hasChildren = item.children && item.children.length > 0;
+
+    // Nếu không có children, chỉ dùng giá trị của cha
+    if (!hasChildren) {
+      return {
+        ...item,
+        total_price_payment: parentPrice,
+        total_price_paymented: item.is_payment ? parentPrice : 0,
+        total_quota_used: item.quota_used || 0,
+        total_minutes_all: parentMinutes,
+      };
+    }
+
+    // Có children - tính tổng
+    // Tổng total_price children
+    const childrenTotal = item.children.reduce((acc: number, sub: any) => {
+      return acc + (sub.total_price || 0);
+    }, 0);
+
+    // Tổng total_price children đã thanh toán
+    const childrenPaid = item.children.reduce((acc: number, sub: any) => {
+      return acc + (sub.is_payment === true ? sub.total_price || 0 : 0);
+    }, 0);
+
+    // Tổng quota_used của cha + children
+    const totalQuotaUsed =
+      (item.quota_used || 0) +
+      item.children.reduce(
+        (acc: number, sub: any) => acc + (sub.quota_used || 0),
+        0
+      );
+
+    // Tổng total_minutes cha + children
+    const totalMinutes =
+      parentMinutes +
+      item.children.reduce(
+        (acc: number, sub: any) => acc + (sub.total_minutes || 0),
+        0
+      );
+
+    // Tổng tiền
+    const totalPayment = parentPrice + childrenTotal;
+
+    // Tổng tiền đã thanh toán
+    const totalPaymented = (item.is_payment ? parentPrice : 0) + childrenPaid;
+
+    return {
+      ...item,
+      total_price_payment: totalPayment,
+      total_price_paymented: totalPaymented,
+      total_quota_used: totalQuotaUsed,
+      total_minutes_all: totalMinutes,
+    };
+  });
 
   return (
     <div className="space-y-3">
@@ -223,7 +290,6 @@ export const CustomSubscriptionTable = ({
             ) as HTMLInputElement;
             input?.showPicker?.() ?? input?.focus();
           }}>
-          {/* Icon lịch */}
           <button
             type="button"
             onClick={(e) => {
@@ -288,10 +354,10 @@ export const CustomSubscriptionTable = ({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.15 }}>
-        <div className="overflow-x-auto">
-          <div className="inline-block min-w-full">
+        <div className="w-full">
+          <div className="w-full">
             <div className="max-h-[600px] overflow-y-auto dark:bg-black">
-              <Table className="dark:text-white text-sm">
+              <Table className="w-full dark:text-white text-sm">
                 {/* Header */}
                 <TableHeader className="relative top-0 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
                   <TableRow className="hover:bg-transparent">
@@ -305,10 +371,10 @@ export const CustomSubscriptionTable = ({
                       <TableCell
                         key={col.key}
                         isHeader
-                        className={`px-3 py-2.5 font-semibold text-gray-700 dark:text-gray-300 text-xs whitespace-nowrap ${
+                        className={`px-3 py-2.5 font-semibold text-gray-700 dark:text-gray-300 text-xs whitespace-nowrap !text-center ${
                           col.key === "progress" ||
                           col.key === "payment_progress"
-                            ? "min-w-[200px]"
+                            ? "min-w-[150px]"
                             : ""
                         }`}>
                         {col.key === "progress" ? (
@@ -367,7 +433,7 @@ export const CustomSubscriptionTable = ({
                     {hasActionColumn && (
                       <TableCell
                         isHeader
-                        className="px-3 py-2.5 font-semibold text-gray-700 dark:text-gray-300 text-xs !text-center">
+                        className="px-3 py-2.5 font-semibold text-gray-700 dark:text-gray-300 text-xs text-center w-[100px]">
                         Hành động
                       </TableCell>
                     )}
@@ -408,7 +474,7 @@ export const CustomSubscriptionTable = ({
                       transition={{ duration: 0.3 }}>
                       <TableCell
                         colSpan={columns.length + (hasActionColumn ? 2 : 1)}
-                        className="py-12 !text-center">
+                        className="py-12 text-center">
                         <motion.div
                           className="flex flex-col items-center gap-2 text-gray-500 dark:text-gray-400"
                           initial={{ opacity: 0, scale: 0.9 }}
@@ -446,7 +512,7 @@ export const CustomSubscriptionTable = ({
                             transition={{ duration: 0.2 }}
                             layout>
                             <TableCell className="px-4 py-2.5 w-6">
-                              {item.list_sub_plan.length > 0 && (
+                              {item.children?.length > 0 && (
                                 <motion.div
                                   animate={{
                                     rotate: openRows[item.id] ? 180 : 0,
@@ -463,12 +529,24 @@ export const CustomSubscriptionTable = ({
                                 className={`px-3 py-4 text-xs text-gray-600 dark:text-gray-300 ${
                                   col.key === "progress" ||
                                   col.key === "payment_progress"
-                                    ? "min-w-[200px]"
+                                    ? "min-w-[150px]"
                                     : ""
                                 }`}>
                                 {col.key === "customer_name" ? (
                                   <span className="font-medium text-gray-900 dark:text-gray-100">
                                     {item[col.key] || "-"}
+                                  </span>
+                                ) : col.key === "log_type" ? (
+                                  <LogTypeBadge
+                                    is_order={item.is_order}
+                                    is_subscription={item.is_subscription}
+                                    is_subscription_items={
+                                      item.is_subscription_items
+                                    }
+                                  />
+                                ) : col.key === "payment_at" ? (
+                                  <span className="font-medium">
+                                    {formatDate(item[col.key])}
                                   </span>
                                 ) : col.key === "created_at" ? (
                                   <span className="font-medium">
@@ -477,16 +555,11 @@ export const CustomSubscriptionTable = ({
                                 ) : col.key === "status" ? (
                                   <StatusBadge status={item.status} />
                                 ) : col.key === "payment_progress" ? (
-                                  item.status == "1" ? (
-                                    <PaymentProcess
-                                      current={item.paid_amount}
-                                      total={item.total_price}
-                                    />
-                                  ) : (
-                                    <span className="text-gray-400 text-xs">
-                                      Đã xóa hoặc hết hạn
-                                    </span>
-                                  )
+                                  <PaymentProcess
+                                    className="!text-center !text-[11px]"
+                                    current={item.total_price_paymented}
+                                    total={item.total_price_payment}
+                                  />
                                 ) : col.key === "total_price" ? (
                                   <span className="font-medium">
                                     {formatCurrency(item[col.key])}
@@ -497,11 +570,9 @@ export const CustomSubscriptionTable = ({
                                   </span>
                                 ) : col.key === "total_did" ? (
                                   <span className="font-medium">
-                                    {viettelCID && item.viettelCID != null
-                                      ? item.viettelCID +
-                                        " / " +
-                                        formatNumberVN(item[col.key])
-                                      : formatNumberVN(item[col.key])}
+                                    {item.viettelCID +
+                                      " / " +
+                                      formatNumberVN(item[col.key])}
                                   </span>
                                 ) : col.key === "total_minutes" ? (
                                   formatNumberVN(item[col.key])
@@ -510,12 +581,12 @@ export const CustomSubscriptionTable = ({
                                     subPlans={item.list_sub_plan}
                                   />
                                 ) : col.key === "progress" ? (
-                                  item.currentProgress > 0 ? (
+                                  item.total_minutes_all > 0 ? (
                                     <DualProgress
                                       barClassName="h-2"
                                       labelClassName="text-xs"
-                                      total={item.totalProgress}
-                                      current={item.currentProgress}
+                                      total={item.total_minutes_all}
+                                      current={item.total_quota_used}
                                     />
                                   ) : (
                                     <span className="text-gray-400 text-xs">
@@ -530,22 +601,13 @@ export const CustomSubscriptionTable = ({
 
                             {hasActionColumn && (
                               <TableCell
-                                className="px-3 py-2.5 w-[80px] !text-center"
+                                className="px-3 py-2.5 w-[80px] text-center"
                                 onClick={(e) => e.stopPropagation()}>
-                                <ActionMenu
-                                  item={item}
-                                  role={role}
-                                  onEdit={onEdit}
-                                  onDetail={onDetail}
-                                  onDelete={(id) => onDelete?.(id)}
-                                  onRenew={(item) => onRenew?.(item)}
-                                  onConfirm={(item) => onConfirm?.(item)}
-                                />
+                                <LogMenu item={item} onDetail={onDetail} />
                               </TableCell>
                             )}
                           </motion.tr>
 
-                          {/* Expanded Row */}
                           <AnimatePresence>
                             {openRows[item.id] && (
                               <motion.tr
@@ -565,10 +627,8 @@ export const CustomSubscriptionTable = ({
                                   className="p-0">
                                   <div className="py-2">
                                     <SubPlanTable
-                                      subPlans={item.list_sub_plan}
-                                      mainSub={item.main_sub}
-                                      checkPayment={checkPayment(item)}
-                                      onReload={onReload}
+                                      parentItem={item}
+                                      onDetail={onDetail}
                                     />
                                   </div>
                                 </TableCell>

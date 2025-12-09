@@ -25,7 +25,7 @@ export default function DualProgress({
     <div className={`w-full space-y-1.5 ${className}`}>
       <div
         className={`flex justify-between text-sm text-gray-700 ${labelClassName}`}>
-        <span className="dark:text-white">
+        <span className={`dark:text-white ${labelClassName}`}>
           <strong className="dark:text-white">
             {label.length > 0 && `${label}: `} {current.toLocaleString()}
           </strong>{" "}

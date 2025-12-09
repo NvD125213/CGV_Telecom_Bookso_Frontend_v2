@@ -35,6 +35,7 @@ import OrderList from "./pages/Order/OrderList";
 // import { OrderActionPage } from "./pages/Order/OrderAction";
 import { OrderActionPage } from "./pages/Order/OrderAction/OrderAction.tsx";
 import SettingOrder from "./pages/Order/SettingOrder.tsx";
+import LogDetail from "./pages/Logs/LogDetail";
 
 function AppWithInactivityHandler() {
   const { resetInactivityTimer } = useAuth();
@@ -96,6 +97,7 @@ function AppWithInactivityHandler() {
           <Route path="/limit-booking" element={<LimitBooking />} />
           <Route path="/time-online" element={<SessionPage />} />
           <Route path="/logs" element={<LogList />} />
+          <Route path="/logs/:id" element={<LogDetail />} />
           <Route
             path="/subscriptions/edit/:id"
             element={<SubcriptionActionPage />}

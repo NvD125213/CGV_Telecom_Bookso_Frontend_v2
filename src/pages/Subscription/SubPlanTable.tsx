@@ -184,6 +184,10 @@ export const SubPlanRow = React.memo(
           </span>
         </td>
 
+        {/* Created_at */}
+        <td className="px-3 py-2 text-[12px] text-center text-gray-600 dark:text-gray-300">
+          <span className="inline-block">{formatDate(sub.created_at)}</span>
+        </td>
         {/* Confirm button */}
         {checkPayment === false &&
           (user.sub == "VANLTT" || user.sub == "HUYLQ") && (
@@ -262,9 +266,8 @@ export const SubPlanTable = ({
     },
     [onReload]
   );
-
   return (
-    <div className="w-full dark:from-gray-900 dark:to-gray-800 overflow-hidden pr-8 pl-3">
+    <div className="w-full dark:from-gray-900 dark:to-gray-800 overflow-hidden pr-8 pl-2">
       <div className="overflow-x-auto">
         {isLoading ? (
           <div className="p-4">
@@ -278,26 +281,29 @@ export const SubPlanTable = ({
                 <th className="px-3 py-2 text-left font-semibold text-gray-700 dark:text-gray-300 text-[12px]">
                   Tên gói
                 </th>
-                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px] w-16">
+                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px]">
                   CID
                 </th>
-                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px] w-20">
+                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px]">
                   Phút
                 </th>
-                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px] w-20">
+                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px]">
                   Loại gói
                 </th>
-                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px] w-24">
+                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px]">
                   Trạng thái
                 </th>
-                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px] w-24">
+                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px]">
                   Giá
                 </th>
-                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px] w-28">
+                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px]">
                   Thanh toán
                 </th>
-                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px] min-w-[160px]">
+                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px]">
                   Triển khai
+                </th>
+                <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-300 text-[12px]">
+                  Ngày tạo
                 </th>
                 {checkPayment === false &&
                   (user.sub == "VANLTT" || user.sub == "HUYLQ") && (

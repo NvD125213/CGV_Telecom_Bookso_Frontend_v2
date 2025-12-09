@@ -20,6 +20,7 @@ const defaultForm: OrderForm = {
   quantity: 1,
   total_users: 0,
   total_minute: 0,
+  price_minute_over: 0,
   total_price: 0,
   outbound_did_by_route: {},
   slide_users: [],
@@ -29,9 +30,9 @@ const defaultForm: OrderForm = {
 export const OrderActionPage = () => {
   // ===== ROUTING & AUTH =====
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const location = useLocation();
-
+  const navigate = useNavigate();
   // ===== DETERMINE PAGE MODE =====
   const isHavingID = Boolean(id);
   const isEdit = location.pathname.includes(`/order/edit/${id}`);
@@ -43,18 +44,23 @@ export const OrderActionPage = () => {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [totalPrice, setTotalPrice] = useState(0);
-  const [activeTab, setActiveTab] = useState<'info' | 'chart'>('info');
+  const [activeTab, setActiveTab] = useState<"info" | "chart">("info");
 
   // ===== FETCH ORDER DETAIL =====
-  const { data: dataOrderDetail } =
-    useApi(async () => {
-      if (!isHavingID || !id) return null;
-      return await orderServices.getByID(Number(id));
-    }, [id, isHavingID]);
+  const { data: dataOrderDetail } = useApi(async () => {
+    if (!isHavingID || !id) return null;
+    return await orderServices.getByID(Number(id));
+  }, [id, isHavingID]);
 
   // ===== CURRENCY FIELDS =====
   const { currencyFields, handleCurrencyChange } = useCurrencyFields<OrderForm>(
-    { quantity: "", total_minute: "", total_users: "", total_price: "" },
+    {
+      quantity: "",
+      total_minute: "",
+      total_users: "",
+      total_price: "",
+      price_minute_over: "",
+    },
     handleChange
   );
 
@@ -87,6 +93,7 @@ export const OrderActionPage = () => {
       handleCurrencyChange("total_minute", data?.total_minute);
       handleCurrencyChange("total_users", data?.total_users);
       handleCurrencyChange("total_price", data?.total_price);
+      handleCurrencyChange("price_minute_over", data?.price_minute_over);
     } else if (isHavingID && stateData && !dataOrderDetail?.data) {
       setForm({
         ...defaultForm,
@@ -95,16 +102,22 @@ export const OrderActionPage = () => {
       handleCurrencyChange("total_minute", stateData?.total_minute);
       handleCurrencyChange("total_users", stateData?.total_users);
       handleCurrencyChange("total_price", stateData?.total_price);
+      handleCurrencyChange("price_minute_over", stateData?.price_minute_over);
     } else if (!isHavingID) {
       setForm(defaultForm);
     }
   }, [isHavingID, dataOrderDetail, location.state]);
 
   // Lấy giá của config service
-  const { data: dataConfigOrder} = useApi(() => configService.getConfigByKey("price_order"));
+  const { data: dataConfigOrder } = useApi(() =>
+    configService.getConfigByKey("price_order")
+  );
 
   // Extract price config từ API
   const priceConfig = dataConfigOrder?.data?.value || null;
+
+  // State for minimum price per minute
+  const [minPricePerMinute, setMinPricePerMinute] = useState(0);
 
   // ===== CALCULATE TOTAL PRICE & AUTO SET =====
   useEffect(() => {
@@ -120,17 +133,25 @@ export const OrderActionPage = () => {
       form.total_minute,
       priceConfig.call_minutes_package || []
     );
+
+    // Lưu giá tối thiểu/phút để validate
+    setMinPricePerMinute(minutePrice);
+
     const userPrice = getPriceForRange(
-      form.total_users, 
+      form.total_users,
       priceConfig.user_package || []
     );
     const cidPrice = getPriceForRange(
-      total_cid, 
+      total_cid,
       priceConfig.prefix_package_phones || []
     );
 
+    // Sử dụng giá user nhập, nếu không có thì dùng giá từ config
+    const effectivePricePerMinute =
+      form.price_minute_over > 0 ? form.price_minute_over : minutePrice;
+
     const calculatedTotal =
-      (form.total_minute * minutePrice +
+      (form.total_minute * effectivePricePerMinute +
         form.total_users * userPrice +
         total_cid * cidPrice) *
       form.quantity;
@@ -140,10 +161,10 @@ export const OrderActionPage = () => {
     form.quantity,
     form.total_minute,
     form.total_users,
+    form.price_minute_over,
     form.outbound_did_by_route,
     priceConfig,
   ]);
-
 
   // ===== AUTO SET TOTAL_PRICE FROM CALCULATED TOTAL =====
   useEffect(() => {
@@ -161,19 +182,18 @@ export const OrderActionPage = () => {
       errors.customer_name = "Tên khách hàng không được để trống";
     }
 
-    if (!form.total_minute) {
-      errors.total_minute = "Tổng số phút không được để trống";
-    }
-
-    if (!form.total_users) {
-      errors.total_users = "Tổng số user không được để trống";
-    }
-
     if (
       !form.outbound_did_by_route ||
       form.outbound_did_by_route.length === 0
     ) {
       errors.outbound_did_by_route = "Lựa chọn 1 nhà cung cấp để đặt số";
+    }
+
+    // Validate giá/phút phải >= giá tối thiểu từ config
+    if (form.price_minute_over < minPricePerMinute) {
+      errors.price_minute_over = `Giá phút gọi/phút phải lớn hơn hoặc bằng ${new Intl.NumberFormat(
+        "vi-VN"
+      ).format(minPricePerMinute)}₫`;
     }
 
     // Validate giá
@@ -201,6 +221,7 @@ export const OrderActionPage = () => {
       const submitForm = {
         ...form,
         total_price: form.total_price || totalPrice,
+        price_minute_over: form.price_minute_over || 0,
       };
 
       if (isHavingID && isEdit) {
@@ -272,25 +293,27 @@ export const OrderActionPage = () => {
             showCancelButton: true,
             confirmButtonText: '<i class="fa fa-ban"></i> Xác nhận từ chối',
             cancelButtonText: '<i class="fa fa-arrow-left"></i> Quay lại',
-            confirmButtonColor: '#dc2626',
-            cancelButtonColor: '#6b7280',
-            width: '600px',
-            padding: '2em',
+            confirmButtonColor: "#dc2626",
+            cancelButtonColor: "#6b7280",
+            width: "600px",
+            padding: "2em",
             customClass: {
-              container: 'swal-high-zindex',
-              popup: 'swal-rejection-popup',
-              confirmButton: 'swal-rejection-confirm',
-              cancelButton: 'swal-rejection-cancel'
+              container: "swal-high-zindex",
+              popup: "swal-rejection-popup",
+              confirmButton: "swal-rejection-confirm",
+              cancelButton: "swal-rejection-cancel",
             },
             didOpen: () => {
               // Set z-index
-              const swalContainer = document.querySelector('.swal-high-zindex') as HTMLElement;
+              const swalContainer = document.querySelector(
+                ".swal-high-zindex"
+              ) as HTMLElement;
               if (swalContainer) {
-                swalContainer.style.zIndex = '1400';
+                swalContainer.style.zIndex = "1400";
               }
-              
+
               // Custom styling
-              const style = document.createElement('style');
+              const style = document.createElement("style");
               style.innerHTML = `
                 .swal-rejection-popup {
                   border-radius: 12px !important;
@@ -315,31 +338,35 @@ export const OrderActionPage = () => {
                 }
               `;
               document.head.appendChild(style);
-              
+
               // Focus textarea
-              const textarea = document.getElementById('reason') as HTMLTextAreaElement;
+              const textarea = document.getElementById(
+                "reason"
+              ) as HTMLTextAreaElement;
               if (textarea) {
                 setTimeout(() => textarea.focus(), 100);
               }
             },
             preConfirm: () => {
-              const textarea = document.getElementById("reason") as HTMLTextAreaElement;
+              const textarea = document.getElementById(
+                "reason"
+              ) as HTMLTextAreaElement;
               const value = textarea.value.trim();
-              
+
               if (!value) {
                 Swal.showValidationMessage(
                   '<i class="fa fa-exclamation-circle"></i> Vui lòng nhập lý do từ chối!'
                 );
                 return false;
               }
-              
+
               if (value.length < 10) {
                 Swal.showValidationMessage(
                   '<i class="fa fa-exclamation-circle"></i> Lý do phải có ít nhất 10 ký tự!'
                 );
                 return false;
               }
-              
+
               return value;
             },
           });
@@ -365,6 +392,7 @@ export const OrderActionPage = () => {
           navigate("/order");
         }
       } else {
+        console.log("submitForm", submitForm);
         const result = await orderServices.create(submitForm as any);
         if (result.status === 201) {
           Swal.fire("Thành công", "Tạo order thành công", "success");
@@ -381,7 +409,6 @@ export const OrderActionPage = () => {
     }
   }
 
-
   return (
     <>
       <PageBreadcrumb
@@ -394,31 +421,53 @@ export const OrderActionPage = () => {
           <div className="mb-6 border-b border-gray-200">
             <nav className="flex gap-4">
               <button
-                onClick={() => setActiveTab('info')}
+                onClick={() => setActiveTab("info")}
                 className={`
                   px-4 py-3 font-medium text-sm border-b-2 transition-colors
-                  ${activeTab === 'info' 
-                    ? 'border-indigo-600 text-indigo-600' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ${
+                    activeTab === "info"
+                      ? "border-indigo-600 text-indigo-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                   }
                 `}>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 inline mr-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
                 Thông tin Order
               </button>
-              
+
               <button
-                onClick={() => setActiveTab('chart')}
+                onClick={() => setActiveTab("chart")}
                 className={`
                   px-4 py-3 font-medium text-sm border-b-2 transition-colors
-                  ${activeTab === 'chart' 
-                    ? 'border-indigo-600 text-indigo-600' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ${
+                    activeTab === "chart"
+                      ? "border-indigo-600 text-indigo-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                   }
                 `}>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 inline mr-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  />
                 </svg>
                 Mã trượt & Biểu đồ
                 <span className="ml-2 bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full text-xs">
@@ -430,7 +479,7 @@ export const OrderActionPage = () => {
         )}
 
         {/* Tab Content: Order Info */}
-        {activeTab === 'info' && (
+        {activeTab === "info" && (
           <OrderInfo
             form={form}
             formErrors={formErrors}
@@ -442,17 +491,14 @@ export const OrderActionPage = () => {
             isDetail={isDetail}
             isEdit={isEdit}
             isCreate={isCreate}
+            minPricePerMinute={minPricePerMinute}
           />
         )}
 
         {/* Tab Content: Chart */}
-        {activeTab === 'chart' && (
-          <OrderChart
-            form={form}
-            handleChange={handleChange as any}
-          />
+        {activeTab === "chart" && (
+          <OrderChart form={form} handleChange={handleChange as any} />
         )}
-      
       </ComponentCard>
     </>
   );

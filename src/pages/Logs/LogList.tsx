@@ -2,35 +2,15 @@ import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  lazy,
-  Suspense,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { logPackageService } from "../../services/log";
-import ReusableTable from "../../components/common/ReusableTable";
 import { useQuerySync } from "../../hooks/useQueryAsync";
-import Select from "../../components/form/Select";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
-import Pagination from "../../components/pagination/pagination";
-import { MdErrorOutline } from "react-icons/md";
 import { debounce } from "lodash";
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  Typography,
-  IconButton,
-} from "@mui/material";
-import { Close as CloseIcon } from "@mui/icons-material";
-
-const LogDetailModal = lazy(() =>
-  import("./LogDetailModal").then((m) => ({ default: m.default }))
-);
+import { CustomLogTable } from "./LogTable";
+import { useNavigate } from "react-router";
+import { Pagination } from "../../components/common/Pagination";
 
 interface Logs {
   id: number;
@@ -77,11 +57,19 @@ const LogList = () => {
   const [logs, setLogs] = useState<Logs[]>([]);
   const [loading, setLoading] = useState(false);
   const [errorData, setErrorData] = useState("");
+  const navigate = useNavigate();
   const user = useSelector((state: RootState) => state.auth.user);
 
   const [query, setQuery] = useQuerySync<LogQuery>({
     page: 1,
     size: 10,
+  });
+
+  const [pagination, setPagination] = useState({
+    page: query.page,
+    size: query.size,
+    total: 0,
+    pages: 1,
   });
 
   const [search, setSearch] = useState({
@@ -93,24 +81,6 @@ const LogList = () => {
     name_plan: "",
     phone: "",
   });
-
-  const [total, setTotal] = useState(0);
-  const [pages, setPages] = useState(0);
-  const [selectedLog, setSelectedLog] = useState<Logs | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const formatVnd = (value: number | string | undefined) => {
-    const num = Number(value) || 0;
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(num);
-  };
-
-  const formatMinutes = (value: number | string | undefined) => {
-    const num = Number(value) || 0;
-    return new Intl.NumberFormat("vi-VN").format(num);
-  };
 
   const fetchLogs = useCallback(async (filters: LogQuery) => {
     try {
@@ -125,13 +95,9 @@ const LogList = () => {
       const res = await logPackageService.get(filter);
       const data: Logs[] = res.data?.items || [];
 
-      setTotal(res.data?.meta.total || 1);
-      setPages(res.data?.meta.pages || 1);
       setLogs(
         data.map((item) => ({
           ...item,
-          total_price: formatVnd(item.total_price),
-          total_minutes: formatMinutes(item.total_minutes),
           type: item.is_subscription
             ? "Gói chính"
             : item.is_subscription_items
@@ -142,6 +108,8 @@ const LogList = () => {
           price_phone_numbers: JSON.stringify(item.price_phone_numbers),
         }))
       );
+
+      setPagination(res.data?.meta);
     } catch (error: any) {
       console.error("Lỗi khi lấy log:", error);
       setErrorData(
@@ -174,42 +142,11 @@ const LogList = () => {
     fetchLogs(query);
   }, [query, fetchLogs]);
 
-  const handleChangeType = (value: string) => {
-    setQuery({ ...query, type: value, page: 1 });
-  };
-
   const handleInputChange = (key: keyof LogQuery, value: string) => {
     setQuery({ ...query, [key]: value, page: 1 });
   };
-
-  const logTypeOptions = [
-    { label: "Tất cả", value: "" },
-    { label: "Gói chính", value: "subscription" },
-    { label: "Gói phụ", value: "subscription_item" },
-    { label: "Order", value: "order" },
-  ];
-
-  const baseColumns: { key: keyof Logs | "type"; label: string }[] = [
-    { key: "name_plan", label: "Tên gói" },
-    { key: "name_sale", label: "Sale" },
-    { key: "customer_name", label: "Khách hàng" },
-    { key: "contract_code", label: "Mã hợp đồng" },
-    { key: "tax_code", label: "Mã số thuế" },
-    { key: "total_cid", label: "Tổng CID" },
-    { key: "total_minutes", label: "Tổng phút" },
-    { key: "total_users", label: "Tổng người dùng" },
-    { key: "total_price", label: "Tổng tiền" },
-    { key: "type", label: "Loại" },
-  ];
-
-  const openModal = (log: Logs) => {
-    setSelectedLog(log);
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setSelectedLog(null);
-    setIsModalOpen(false);
+  const handlePaginationChange = (page: number, size: number) => {
+    setQuery({ ...query, page, size });
   };
 
   return (
@@ -235,36 +172,6 @@ const LogList = () => {
                 value={search.name_plan || ""}
                 onChange={(e) =>
                   setSearch({ ...search, name_plan: e.target.value })
-                }
-              />
-            </div>
-          </div>
-
-          {/* Date Range Row */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Từ ngày</Label>
-              <Input
-                type="datetime-local"
-                value={query.created_from || ""}
-                onChange={(e) =>
-                  handleInputChange(
-                    "created_from",
-                    new Date(e.target.value).toISOString()
-                  )
-                }
-              />
-            </div>
-            <div>
-              <Label>Đến ngày</Label>
-              <Input
-                type="datetime-local"
-                value={query.created_to || ""}
-                onChange={(e) =>
-                  handleInputChange(
-                    "created_to",
-                    new Date(e.target.value).toISOString()
-                  )
                 }
               />
             </div>
@@ -303,192 +210,28 @@ const LogList = () => {
               />
             </div>
             <div>
-              <Label>Nhân viên bán</Label>
+              <Label>Nhân viên sale</Label>
               <Input
                 placeholder="Tìm kiếm theo nhân viên bán"
                 value={query.name_sale || ""}
                 onChange={(e) => handleInputChange("name_sale", e.target.value)}
               />
             </div>
-            <div>
-              <Label>Số điện thoại</Label>
-              <Input
-                placeholder="Tìm kiếm theo số điện thoại"
-                value={search.phone}
-                onChange={(e) =>
-                  setSearch({ ...search, phone: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <Label>Loại logs</Label>
-              <Select
-                options={logTypeOptions}
-                value={query.type || ""}
-                onChange={handleChangeType}
-                className="w-full"
-              />
-            </div>
-            <div>
-              <Label>Thứ tự</Label>
-              <Select
-                options={[
-                  { label: "Tăng dần", value: "asc" },
-                  { label: "Giảm dần", value: "desc" },
-                ]}
-                value={query.order_dir}
-                onChange={(value) => handleInputChange("order_dir", value)}
-                className="w-full"
-              />
-            </div>
-            <div>
-              <Label>Sắp xếp theo</Label>
-              <Select
-                options={[
-                  { label: "Tên gói", value: "name_plan" },
-                  { label: "Mã hợp đồng", value: "contract_code" },
-                  { label: "Mã số thuế", value: "tax_code" },
-                  { label: "Tổng giá", value: "total_price" },
-                  { label: "Ngày tạo", value: "created_at" },
-                  { label: "Ngày cập nhật", value: "updated_at" },
-                ]}
-                value={query.order_by}
-                onChange={(value) => handleInputChange("order_by", value)}
-                className="w-full"
-              />
-            </div>
           </div>
         </div>
 
-        {/* Table Content */}
-        {loading && (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-500">
-            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-            <p>Đang tải dữ liệu...</p>
-          </div>
-        )}
-        {errorData && (
-          <div className="flex flex-col items-center justify-center py-10 text-center">
-            <MdErrorOutline size={48} className="mb-3 text-red-500" />
-            <p className="text-lg font-medium text-red-600">{errorData}</p>
-          </div>
-        )}
-        {!loading && !errorData && logs.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-500">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-12 w-12 mb-3 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1.5}>
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 13h6m-3-3v6m9-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <p className="text-lg font-medium">Không có dữ liệu</p>
-            <p className="text-sm text-gray-400">
-              Hãy thử thay đổi bộ lọc hoặc tìm kiếm khác.
-            </p>
-          </div>
-        )}
-        {!loading && !errorData && logs.length > 0 && (
-          <ReusableTable
-            showId={false}
-            error={errorData}
-            role={user.role}
-            disabledReset={true}
-            title="Danh sách lịch sử combo/order gói cước"
-            data={logs}
-            columns={baseColumns}
-            disabled={true}
-            onDetail={(record) => openModal(record)}
+        <>
+          <CustomLogTable
+            rawData={logs}
             isLoading={loading}
+            role={user.role}
+            onDetail={(item) => {
+              navigate(`/logs/${item.id}`, { state: item });
+            }}
           />
-        )}
-
-        {/* Pagination */}
-        {pages > 1 && (
-          <div className="mt-6">
-            <Pagination
-              limit={query.size}
-              offset={query.page - 1}
-              totalPages={pages || 1}
-              onPageChange={(limit, offset) => {
-                setQuery({
-                  ...query,
-                  size: limit,
-                  page: offset + 1,
-                });
-              }}
-              onLimitChange={(limit) => {
-                setQuery({
-                  ...query,
-                  size: limit,
-                  page: 1,
-                });
-              }}
-            />
-          </div>
-        )}
+          <Pagination data={pagination} onChange={handlePaginationChange} />
+        </>
       </ComponentCard>
-
-      {/* Modal with Lazy Loading */}
-      <Dialog
-        open={isModalOpen}
-        onClose={closeModal}
-        maxWidth="lg"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: "8px",
-            backgroundColor: "#ffffff",
-          },
-        }}>
-        <DialogTitle
-          sx={{
-            bgcolor: "#f9fafb",
-            pb: 1.5,
-            borderBottom: "1px solid #e5e7eb",
-          }}>
-          <div className="flex justify-between items-center">
-            <Typography variant="h6" sx={{ fontWeight: 600, color: "#1f2937" }}>
-              Chi tiết log gói:{" "}
-              <Typography
-                component="span"
-                sx={{ color: "#2563eb", fontWeight: 600 }}>
-                {selectedLog?.name_plan}
-              </Typography>
-            </Typography>
-            <IconButton onClick={closeModal} sx={{ color: "#9ca3af" }}>
-              <CloseIcon />
-            </IconButton>
-          </div>
-        </DialogTitle>
-
-        <DialogContent
-          dividers
-          sx={{
-            backgroundColor: "#ffffff",
-            padding: "24px",
-            "&::-webkit-scrollbar": { width: "6px" },
-            "&::-webkit-scrollbar-thumb": {
-              backgroundColor: "#d1d5db",
-              borderRadius: "4px",
-            },
-          }}>
-          <Suspense
-            fallback={
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-              </div>
-            }>
-            {selectedLog && <LogDetailModal log={selectedLog} />}
-          </Suspense>
-        </DialogContent>
-      </Dialog>
     </>
   );
 };

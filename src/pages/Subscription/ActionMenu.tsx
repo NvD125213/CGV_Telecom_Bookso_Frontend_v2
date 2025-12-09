@@ -90,8 +90,15 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
             <ListItemText primary="Chỉnh sửa" />
           </MenuItem>
         )} */}
-
-        {onDetail && (
+        {item.status == 3 && (
+          <MenuItem
+            onClick={() => {
+              handleClose();
+            }}>
+            <ListItemText primary="Không có thao tác" />
+          </MenuItem>
+        )}
+        {onDetail && item.status !== 3 && (
           <MenuItem
             onClick={() => {
               handleClose();
@@ -104,7 +111,7 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
           </MenuItem>
         )}
 
-        {onDelete && (
+        {onDelete && item.status !== 3 && (
           <MenuItem
             onClick={() => {
               handleClose();
@@ -116,7 +123,7 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
             <ListItemText primary="Xóa" />
           </MenuItem>
         )}
-        {onRenew && (
+        {onRenew && item.status !== 3 && (
           <MenuItem
             onClick={() => {
               handleClose();
@@ -128,18 +135,20 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
             <ListItemText primary="Gia hạn" />
           </MenuItem>
         )}
-        {onConfirm && (user.sub === "VANLTT" || user.sub === "HUYLQ") && (
-          <MenuItem
-            onClick={() => {
-              handleClose();
-              onConfirm(item);
-            }}>
-            <ListItemIcon>
-              <CheckIcon fontSize="small" color="error" />
-            </ListItemIcon>
-            <ListItemText primary="Xác nhận" />
-          </MenuItem>
-        )}
+        {onConfirm &&
+          item.status !== 3 &&
+          (user.sub === "VANLTT" || user.sub === "HUYLQ") && (
+            <MenuItem
+              onClick={() => {
+                handleClose();
+                onConfirm(item);
+              }}>
+              <ListItemIcon>
+                <CheckIcon fontSize="small" color="error" />
+              </ListItemIcon>
+              <ListItemText primary="Xác nhận" />
+            </MenuItem>
+          )}
       </Menu>
     </div>
   );

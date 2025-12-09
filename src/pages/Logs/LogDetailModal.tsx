@@ -119,6 +119,7 @@ const LogDetailModal = ({ log }: LogDetailModalProps) => {
                   backgroundColor: "#cbd5e1",
                   borderRadius: "4px",
                 },
+                boxShadow: "none",
               }}>
               <Table size="small" stickyHeader>
                 <TableHead sx={{ backgroundColor: "#f3f4f6" }}>
@@ -290,6 +291,7 @@ const LogDetailModal = ({ log }: LogDetailModalProps) => {
                 "&::-webkit-scrollbar-thumb": {
                   backgroundColor: "#cbd5e1",
                 },
+                boxShadow: "none",
               }}>
               <Table size="small" stickyHeader>
                 <TableHead sx={{ backgroundColor: "#f3f4f6" }}>

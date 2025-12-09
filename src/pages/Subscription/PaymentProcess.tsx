@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 interface CylinderUsageProps {
   current: number; // Đã thanh toán
   total: number; // Tổng
+  className?: string;
 }
 
 const formatCurrencyVN = (value: number = 0) => {
@@ -12,6 +13,7 @@ const formatCurrencyVN = (value: number = 0) => {
 export default function HorizontalCylinderUsage({
   current,
   total,
+  className,
 }: CylinderUsageProps) {
   const percent = useMemo(() => {
     if (!total || total === 0) return 0;
@@ -42,12 +44,14 @@ export default function HorizontalCylinderUsage({
   return (
     <div className="w-full space-y-1">
       {/* Tiêu đề */}
-      <div className="flex justify-between text-xs font-medium text-gray-700 dark:text-gray-300">
+      <div
+        className={`flex justify-between text-xs font-medium text-gray-700 dark:text-gray-300 ${className}`}>
         <span>Thanh toán:</span>
         <span className="font-bold">{formatCurrencyVN(current)}</span>
       </div>
 
-      <div className="flex justify-between text-xs font-medium text-gray-700 dark:text-gray-300">
+      <div
+        className={`flex justify-between text-xs font-medium text-gray-700 dark:text-gray-300 ${className}`}>
         <span>Tổng tiền:</span>
         <span className="font-bold">{formatCurrencyVN(total)}</span>
       </div>
