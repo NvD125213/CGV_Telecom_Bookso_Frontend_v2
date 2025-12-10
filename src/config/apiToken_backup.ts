@@ -1,6 +1,7 @@
 import axios from "axios";
 import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
+import toast from "react-hot-toast";
 
 interface JWTPayload {
   exp: number;
@@ -21,6 +22,7 @@ function decodeToken(token: string): JWTPayload | null {
   }
 }
 
+// Hàm check refresh token còn hạn > 5 phút
 function isRefreshTokenStillValid(): boolean {
   const refreshToken = Cookies.get("refreshToken");
   if (!refreshToken) return false;
@@ -31,8 +33,7 @@ function isRefreshTokenStillValid(): boolean {
   const now = Math.floor(Date.now() / 1000);
   const refreshRemaining = decoded.exp - now;
 
-  // Thời gian kiểm tra hiệu lực còn lại là 10 phút (600 giây)
-  return refreshRemaining > 10 * 60;
+  return refreshRemaining > 5 * 60;
 }
 
 // Hàm logout và redirect
@@ -55,16 +56,6 @@ axiosInstance.interceptors.request.use(
   async (config) => {
     const token = Cookies.get("token");
     if (token) {
-      // Check refresh token còn hạn không (User requested feature)
-      if (!isRefreshTokenStillValid()) {
-        if (!isAlertShown) {
-          isAlertShown = true;
-          alert("Phiên đăng nhập đã hết hạn. Đăng nhập lại để tiếp tục!");
-          logoutAndRedirect();
-        }
-        throw new Error("Session expired due to invalid refresh token");
-      }
-
       config.headers.Authorization = `Bearer ${token}`;
     }
     if (resetTimerFn) resetTimerFn();
@@ -87,7 +78,10 @@ axiosInstance.interceptors.response.use(
 
       // Check refresh token còn hạn không
       if (!isRefreshTokenStillValid()) {
-        alert("Phiên đăng nhập đã hết hạn. Đăng nhập lại để tiếp tục!");
+        toast("Phiên đăng nhập đã hết hạn. Đăng nhập lại để tiếp tục!", {
+          icon: "⚠️",
+          style: { background: "#fef3c7", color: "#92400e" },
+        });
         logoutAndRedirect();
         return Promise.reject(err);
       }

@@ -276,7 +276,16 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
     }
   };
 
-  const safeData = data?.phone_numbers ?? [];
+  const safeData =
+    data?.phone_numbers.map((item: any) => ({
+      ...item,
+      installation_fee:
+        item.type_name === "SODEP" ? "Liên hệ" : item.installation_fee,
+      maintenance_fee:
+        item.type_name === "SODEP" ? "Liên hệ" : item.maintenance_fee,
+      vanity_number_fee:
+        item.type_name === "SODEP" ? "Liên hệ" : item.vanity_number_fee,
+    })) ?? [];
 
   // Handle Book Number
   const getIds = (data: any) => {

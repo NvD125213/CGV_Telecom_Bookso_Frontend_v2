@@ -66,7 +66,13 @@ const StatusBadge = ({ status }: { status: number }) => {
         };
       case 0:
         return {
-          text: "Hết hạn/Hủy",
+          text: "Hết hạn",
+          classname:
+            "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500 px-2 whitespace-nowrap",
+        };
+      case 4:
+        return {
+          text: "Đã xóa",
           classname:
             "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500 px-2 whitespace-nowrap",
         };

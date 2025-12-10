@@ -104,7 +104,11 @@ const LogDetail = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <Label>Tên khách hàng</Label>
-            <Input value={item.customer_name} disabledWhite={true} />
+            <Input
+              value={item.customer_name}
+              disabledWhite={true}
+              placeholder="Chưa có tên khách hàng"
+            />
           </div>
 
           <div>
@@ -113,11 +117,17 @@ const LogDetail = () => {
               type="text"
               value={item.contract_code}
               disabledWhite={true}
+              placeholder="Chưa có mã hợp đồng"
             />
           </div>
           <div>
             <Label>Mã số thuế</Label>
-            <Input type="text" value={item.tax_code} disabledWhite={true} />
+            <Input
+              type="text"
+              value={item.tax_code}
+              disabledWhite={true}
+              placeholder="Chưa có mã số thuế"
+            />
           </div>
 
           {item.type === "Order" && (
@@ -127,18 +137,29 @@ const LogDetail = () => {
                 type="text"
                 value={item.price_per_minute}
                 disabledWhite={true}
+                placeholder="Chưa có giá phút gọi/phút"
               />
             </div>
           )}
           {(item.type === "Gói chính" || item.type === "Gói phụ") && (
             <div>
               <Label>Loại gói</Label>
-              <Input type="text" value={item.name_plan} disabledWhite={true} />
+              <Input
+                type="text"
+                value={item.name_plan}
+                disabledWhite={true}
+                placeholder="Chưa có loại gói"
+              />
             </div>
           )}
           <div>
             <Label>Tên sale</Label>
-            <Input type="text" value={item.name_sale} disabledWhite={true} />
+            <Input
+              type="text"
+              value={item.name_sale}
+              disabledWhite={true}
+              placeholder="Chưa có tên sale"
+            />
           </div>
           <div>
             <Label>Tổng CID</Label>
@@ -146,6 +167,7 @@ const LogDetail = () => {
               type="text"
               value={formatNumber(item.total_cid)}
               disabledWhite={true}
+              placeholder="Chưa có tổng CID"
             />
           </div>
           <div>
@@ -159,6 +181,7 @@ const LogDetail = () => {
                 value={formatNumber(Number(item.total_minutes))}
                 disabledWhite
                 className="pr-28 rounded-lg"
+                placeholder="Chưa có tổng phút gọi"
               />
 
               <div
@@ -181,6 +204,7 @@ const LogDetail = () => {
                 value={formatNumber(Number(item.total_users))}
                 disabledWhite
                 className="pr-28 rounded-lg"
+                placeholder="Chưa có tổng người dùng"
               />
 
               <div

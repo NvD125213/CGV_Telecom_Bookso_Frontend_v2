@@ -17,7 +17,6 @@ import { ChevronDownIcon } from "../../icons";
 import { motion, AnimatePresence } from "framer-motion";
 // import { formatDate } from "@fullcalendar/core/index.js";
 import PaymentProcess from "./PaymentProcess";
-import { CalendarMonth } from "@mui/icons-material";
 
 const StatusBadge = ({ status }: { status: number }) => {
   const getStatusDisplay = (status: number) => {
@@ -71,7 +70,6 @@ export const CustomSubscriptionTable = ({
   onRenew,
   role,
   quotaMonth,
-  onQuotaMonthChange,
 }: {
   dataRaw: any[];
   viettelCID?: any[];
@@ -105,14 +103,10 @@ export const CustomSubscriptionTable = ({
     return `${year}-${month}`;
   };
 
-  // Xử lý chọn tháng và năm
-  const [selectedMonthYear, setSelectedMonthYear] = useState<string>(
-    getCurrentMonthYear()
-  );
-
   const { data: dataTotalPrice, isLoading: isLoadingTotalPrice } = useApi(
-    () => subscriptionService.getTotalPrice(selectedMonthYear),
-    [selectedMonthYear]
+    () =>
+      subscriptionService.getTotalPrice(quotaMonth || getCurrentMonthYear()),
+    [quotaMonth]
   );
 
   const [openRows, setOpenRows] = useState<Record<string, boolean>>({});
@@ -133,14 +127,11 @@ export const CustomSubscriptionTable = ({
   const checkPayment = (data: any) => {
     const { main_sub, list_sub_plan } = data;
 
-    // Filter status = 0
-    const activeItems = [main_sub, ...(list_sub_plan || [])].filter(
-      (item) => item.status !== 0
-    );
+    const allItems = [main_sub, ...(list_sub_plan || [])];
 
-    // trả về bool
-    return activeItems.every((item) => item.is_payment == true);
+    return allItems.every((item) => item.is_payment === true);
   };
+
   const formatDate = (date: string | undefined) =>
     date
       ? new Date(date).toLocaleString("vi-VN", {
@@ -158,18 +149,14 @@ export const CustomSubscriptionTable = ({
     let unpaid = 0;
 
     // 1. Main Sub
-    if (
-      item.main_sub &&
-      item.main_sub.is_payment === true &&
-      item.main_sub.status == 1
-    ) {
+    if (item.main_sub && item.main_sub.is_payment === true) {
       unpaid += item.main_sub.price || 0;
     }
 
     // 2. List Sub Plan
     if (Array.isArray(item.list_sub_plan)) {
       for (const sub of item.list_sub_plan) {
-        if (sub.is_payment === true && sub.status == 1) {
+        if (sub.is_payment === true) {
           unpaid += sub.price || 0;
         }
       }
@@ -194,66 +181,11 @@ export const CustomSubscriptionTable = ({
     };
   });
 
-  const handleMonthYearChange = (value: string) => {
-    setSelectedMonthYear(value);
-  };
-  const formatMonthYear = (value: string | undefined) => {
-    if (!value) return "";
-    const [year, month] = value.split("-");
-
-    return `Tháng ${Number(month)}, ${year}`;
-  };
-
   return (
     <div className="space-y-3">
       {/* Summary Cards - Compact */}
       <div className="flex gap-2 justify-end items-center">
         {/* Chọn tháng/năm */}
-        <div
-          className="
-            relative flex items-center gap-2 px-3
-            bg-white dark:bg-gray-800
-            border border-gray-200 dark:border-gray-600
-            rounded-lg
-            transition-all cursor-pointer select-none
-          "
-          onClick={() => {
-            const input = document.getElementById(
-              "summary-month-year-input"
-            ) as HTMLInputElement;
-            input?.showPicker?.() ?? input?.focus();
-          }}>
-          {/* Icon lịch */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              const input = document.getElementById(
-                "summary-month-year-input"
-              ) as HTMLInputElement;
-              input?.showPicker?.() ?? input?.focus();
-            }}
-            className="
-              flex items-center justify-center w-9 h-9
-              text-gray-600 dark:text-gray-300
-              hover:bg-gray-100 dark:hover:bg-gray-600
-            ">
-            <CalendarMonth />
-          </button>
-          {/* Text hiển thị tháng */}
-          <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
-            {formatMonthYear(selectedMonthYear) || "Chọn tháng"}
-          </span>
-
-          {/* Hidden month input */}
-          <input
-            id="summary-month-year-input"
-            type="month"
-            value={selectedMonthYear}
-            onChange={(e) => handleMonthYearChange(e.target.value)}
-            className="absolute opacity-0 w-0 h-0 pointer-events-none"
-          />
-        </div>
 
         <div className="flex gap-2 justify-end items-center">
           {/* Tổng doanh thu */}
@@ -311,56 +243,7 @@ export const CustomSubscriptionTable = ({
                             ? "min-w-[200px]"
                             : ""
                         }`}>
-                        {col.key === "progress" ? (
-                          <div className="flex items-center justify-between gap-2">
-                            <span>{col.label}</span>
-                            {quotaMonth !== undefined && onQuotaMonthChange && (
-                              <div className="relative">
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    const input = document.getElementById(
-                                      "quota-month-input"
-                                    ) as HTMLInputElement;
-                                    if (input) {
-                                      if (input.showPicker) {
-                                        input.showPicker();
-                                      } else {
-                                        input.focus();
-                                      }
-                                    }
-                                  }}
-                                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-                                  title="Chọn tháng">
-                                  <svg
-                                    className="w-4 h-4 text-blue-600 dark:text-blue-400"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                    />
-                                  </svg>
-                                </button>
-                                <input
-                                  id="quota-month-input"
-                                  type="month"
-                                  value={quotaMonth}
-                                  onChange={(e) =>
-                                    onQuotaMonthChange(e.target.value)
-                                  }
-                                  className="absolute opacity-0 w-0 h-0"
-                                />
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          col.label
-                        )}
+                        {col.key === "progress" ? col.label : col.label}
                       </TableCell>
                     ))}
 
@@ -426,9 +309,12 @@ export const CustomSubscriptionTable = ({
                               d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                             />
                           </svg>
-                          <p className="text-sm font-medium">No data found</p>
+                          <p className="text-sm font-medium">
+                            Không tìm thấy dữ liệu
+                          </p>
                           <p className="text-xs">
-                            No subscriptions match the current filter
+                            Không tìm thấy dữ liệu phù hợp, đổi bộ lọc để tìm
+                            kiếm
                           </p>
                         </motion.div>
                       </TableCell>
@@ -477,16 +363,10 @@ export const CustomSubscriptionTable = ({
                                 ) : col.key === "status" ? (
                                   <StatusBadge status={item.status} />
                                 ) : col.key === "payment_progress" ? (
-                                  item.status == "1" ? (
-                                    <PaymentProcess
-                                      current={item.paid_amount}
-                                      total={item.total_price}
-                                    />
-                                  ) : (
-                                    <span className="text-gray-400 text-xs">
-                                      Đã xóa hoặc hết hạn
-                                    </span>
-                                  )
+                                  <PaymentProcess
+                                    current={item.paid_amount}
+                                    total={item.total_price}
+                                  />
                                 ) : col.key === "total_price" ? (
                                   <span className="font-medium">
                                     {formatCurrency(item[col.key])}
@@ -510,7 +390,7 @@ export const CustomSubscriptionTable = ({
                                     subPlans={item.list_sub_plan}
                                   />
                                 ) : col.key === "progress" ? (
-                                  item.currentProgress > 0 ? (
+                                  item.totalProgress > 0 ? (
                                     <DualProgress
                                       barClassName="h-2"
                                       labelClassName="text-xs"

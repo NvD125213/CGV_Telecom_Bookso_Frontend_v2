@@ -16,7 +16,6 @@ import { ChevronDownIcon } from "../../icons";
 import { motion, AnimatePresence } from "framer-motion";
 // import { formatDate } from "@fullcalendar/core/index.js";
 import PaymentProcess from "../Subscription/PaymentProcess";
-import { CalendarMonth } from "@mui/icons-material";
 import LogMenu from "./LogMenu";
 
 const StatusBadge = ({ status }: { status: number }) => {
@@ -119,6 +118,8 @@ export const CustomLogTable = ({
   isLoading,
   onDetail,
   quotaMonth,
+  total_revenue,
+  total_unpaid,
   onQuotaMonthChange,
 }: {
   rawData: any[];
@@ -130,6 +131,8 @@ export const CustomLogTable = ({
   onReload?: () => void;
   role?: number;
   quotaMonth?: string;
+  total_revenue?: string;
+  total_unpaid?: string;
   onQuotaMonthChange?: (value: string) => void;
 }) => {
   const columns = [
@@ -145,22 +148,6 @@ export const CustomLogTable = ({
   ];
 
   const hasActionColumn = onDetail;
-  const getCurrentMonthYear = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    return `${year}-${month}`;
-  };
-
-  // Xử lý chọn tháng và năm
-  const [selectedMonthYear, setSelectedMonthYear] = useState<string>(
-    getCurrentMonthYear()
-  );
-
-  const { data: dataTotalPrice, isLoading: isLoadingTotalPrice } = useApi(
-    () => subscriptionService.getTotalPrice(selectedMonthYear),
-    [selectedMonthYear]
-  );
 
   const [openRows, setOpenRows] = useState<Record<string, boolean>>({});
 
@@ -189,16 +176,6 @@ export const CustomLogTable = ({
           hour12: false,
         })
       : "-";
-
-  const handleMonthYearChange = (value: string) => {
-    setSelectedMonthYear(value);
-  };
-  const formatMonthYear = (value: string | undefined) => {
-    if (!value) return "";
-    const [year, month] = value.split("-");
-
-    return `Tháng ${Number(month)}, ${year}`;
-  };
 
   // Tính tổng số is_payment true, tổng số is_payment, giá của từng cái
 
@@ -271,56 +248,18 @@ export const CustomLogTable = ({
     };
   });
 
+  // format VND
+  const formatCurrency = (value: any) => {
+    return value.toLocaleString("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    });
+  };
+
   return (
     <div className="space-y-3">
       {/* Summary Cards - Compact */}
       <div className="flex gap-2 justify-end items-center">
-        {/* Chọn tháng/năm */}
-        <div
-          className="
-            relative flex items-center gap-2 px-3
-            bg-white dark:bg-gray-800
-            border border-gray-200 dark:border-gray-600
-            rounded-lg
-            transition-all cursor-pointer select-none
-          "
-          onClick={() => {
-            const input = document.getElementById(
-              "summary-month-year-input"
-            ) as HTMLInputElement;
-            input?.showPicker?.() ?? input?.focus();
-          }}>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              const input = document.getElementById(
-                "summary-month-year-input"
-              ) as HTMLInputElement;
-              input?.showPicker?.() ?? input?.focus();
-            }}
-            className="
-              flex items-center justify-center w-9 h-9
-              text-gray-600 dark:text-gray-300
-              hover:bg-gray-100 dark:hover:bg-gray-600
-            ">
-            <CalendarMonth />
-          </button>
-          {/* Text hiển thị tháng */}
-          <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
-            {formatMonthYear(selectedMonthYear) || "Chọn tháng"}
-          </span>
-
-          {/* Hidden month input */}
-          <input
-            id="summary-month-year-input"
-            type="month"
-            value={selectedMonthYear}
-            onChange={(e) => handleMonthYearChange(e.target.value)}
-            className="absolute opacity-0 w-0 h-0 pointer-events-none"
-          />
-        </div>
-
         <div className="flex gap-2 justify-end items-center">
           {/* Tổng doanh thu */}
           <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-green-300 bg-green-50 dark:bg-green-500/10">
@@ -328,9 +267,7 @@ export const CustomLogTable = ({
               Tổng doanh thu:
             </span>
             <span className="text-sm font-bold text-green-700 dark:text-green-400">
-              {isLoadingTotalPrice
-                ? "..."
-                : formatCurrency(dataTotalPrice?.data.total_price)}
+              {formatCurrency(total_revenue)}
             </span>
           </div>
 
@@ -340,9 +277,7 @@ export const CustomLogTable = ({
               Chưa thanh toán:
             </span>
             <span className="text-sm font-bold text-red-700 dark:text-red-400">
-              {isLoadingTotalPrice
-                ? "..."
-                : formatCurrency(dataTotalPrice?.data.outstanding_amount)}
+              {formatCurrency(total_unpaid)}
             </span>
           </div>
         </div>
@@ -492,9 +427,12 @@ export const CustomLogTable = ({
                               d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                             />
                           </svg>
-                          <p className="text-sm font-medium">No data found</p>
+                          <p className="text-sm font-medium">
+                            Không tìm thấy dữ liệu
+                          </p>
                           <p className="text-xs">
-                            No subscriptions match the current filter
+                            Không tìm thấy dữ liệu phù hợp, đổi bộ lọc để tìm
+                            kiếm
                           </p>
                         </motion.div>
                       </TableCell>

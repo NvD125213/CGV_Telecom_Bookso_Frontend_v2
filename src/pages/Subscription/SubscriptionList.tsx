@@ -75,7 +75,7 @@ const SubsciptionList = () => {
   const isMobile = useIsMobile(768);
   const user = useSelector((state: RootState) => state.auth.user);
 
-  const [quotaMonth, setQuotaMonth] = useState(getCurrentMonth());
+  // const [quotaMonth, setQuotaMonth] = useState(getCurrentMonth());
 
   const [query, setQuery] = useQuerySync<SubscriptionQuery>({
     page: 1,
@@ -139,7 +139,10 @@ const SubsciptionList = () => {
 
       const listAccount =
         result.data?.items
-          ?.filter((sub: any) => (sub.slide_users?.length || 0) > 0)
+          ?.filter(
+            (sub: any) =>
+              sub.slide_users && Object.keys(sub.slide_users).length > 0
+          )
           ?.map((item: any) => ({
             sub_Id: item.id,
             list_account: item.slide_users || [],
@@ -273,6 +276,14 @@ const SubsciptionList = () => {
   };
 
   const handleConfirmPayment = async (item: any) => {
+    if (item.is_payment) {
+      Swal.fire({
+        icon: "info",
+        title: "Đã thanh toán",
+        text: "Gói này đã được thanh toán trước đó !",
+      });
+      return; // Dừng hàm, không tiếp tục xác nhận
+    }
     Swal.fire({
       title: "Xác nhận thanh toán",
       text: `Bạn có chắc chắn muốn xác nhận thanh toán gói cho khách hàng ${item.customer_name} không?`,
@@ -310,26 +321,26 @@ const SubsciptionList = () => {
     });
   };
 
+  // const [quotaMonth, setQuotaMonth] = useState(getCurrentMonth());
+
   const [quotaData, setQuotaData] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchQuota = async () => {
       if (!quotaBody || quotaBody.length === 0) return;
       try {
-        const data = await getQuota(quotaBody, quotaMonth);
-        const filtered = (data.data || []).filter(
-          (q: any) =>
-            (q.total_call_out || 0) > 0 ||
-            (q.total_call_in || 0) > 0 ||
-            (q.total_sms || 0) > 0
+        const data = await getQuota(
+          quotaBody,
+          query.created_month || getCurrentMonth()
         );
-        setQuotaData(filtered);
+        // Remove filter to ensure we assume 0 usage if data exists but is 0
+        setQuotaData(data.data || []);
       } catch (err) {
         console.error(err);
       }
     };
     fetchQuota();
-  }, [quotaBody, quotaMonth]);
+  }, [quotaBody, query.created_month]);
 
   // FIX: useMemo để tránh tạo array mới mỗi lần render
   const mapData = useMemo(() => {
@@ -745,8 +756,14 @@ const SubsciptionList = () => {
                 dataRaw={mapData}
                 isLoading={loading || isLoadingPlans}
                 role={user.role}
-                quotaMonth={quotaMonth}
-                onQuotaMonthChange={setQuotaMonth}
+                quotaMonth={query.created_month || getCurrentMonth()}
+                onQuotaMonthChange={(val) =>
+                  setQuery({
+                    ...query,
+                    created_month: val,
+                    page: 1,
+                  })
+                }
                 onEdit={(item) => {
                   navigate(`/subscriptions/edit/${item.id}`);
                 }}

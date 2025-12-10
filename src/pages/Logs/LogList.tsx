@@ -11,6 +11,7 @@ import { debounce } from "lodash";
 import { CustomLogTable } from "./LogTable";
 import { useNavigate } from "react-router";
 import { Pagination } from "../../components/common/Pagination";
+import Select from "../../components/form/Select";
 
 interface Logs {
   id: number;
@@ -48,15 +49,17 @@ interface LogQuery {
   is_subscription?: boolean;
   is_subscription_items?: boolean;
   is_order?: boolean;
-  type?: string;
   created_from?: string;
   created_to?: string;
+  month_year?: string;
 }
 
 const LogList = () => {
   const [logs, setLogs] = useState<Logs[]>([]);
   const [loading, setLoading] = useState(false);
   const [errorData, setErrorData] = useState("");
+  const [total_revenue, setTotalRevenue] = useState("");
+  const [total_unpaid, setTotalUnpaid] = useState("");
   const navigate = useNavigate();
   const user = useSelector((state: RootState) => state.auth.user);
 
@@ -85,14 +88,7 @@ const LogList = () => {
   const fetchLogs = useCallback(async (filters: LogQuery) => {
     try {
       setLoading(true);
-      const { type, ...filter } = filters;
-
-      if (type === "subscription") filter.is_subscription = true;
-      else if (type === "subscription_item")
-        filter.is_subscription_items = true;
-      else if (type === "order") filter.is_order = true;
-
-      const res = await logPackageService.get(filter);
+      const res = await logPackageService.get(filters);
       const data: Logs[] = res.data?.items || [];
 
       setLogs(
@@ -110,6 +106,8 @@ const LogList = () => {
       );
 
       setPagination(res.data?.meta);
+      setTotalRevenue(res.data?.total_revenue);
+      setTotalUnpaid(res.data?.total_unpaid);
     } catch (error: any) {
       console.error("Lỗi khi lấy log:", error);
       setErrorData(
@@ -145,8 +143,37 @@ const LogList = () => {
   const handleInputChange = (key: keyof LogQuery, value: string) => {
     setQuery({ ...query, [key]: value, page: 1 });
   };
+
   const handlePaginationChange = (page: number, size: number) => {
     setQuery({ ...query, page, size });
+  };
+
+  const handleTypeChange = (value: string) => {
+    const newQuery = { ...query, page: 1 };
+
+    // Xóa tất cả các flag cũ
+    delete newQuery.is_subscription;
+    delete newQuery.is_subscription_items;
+    delete newQuery.is_order;
+
+    // Set flag mới dựa trên value được chọn
+    if (value === "subscription") {
+      newQuery.is_subscription = true;
+    } else if (value === "subscription_item") {
+      newQuery.is_subscription_items = true;
+    } else if (value === "order") {
+      newQuery.is_order = true;
+    }
+
+    setQuery(newQuery);
+  };
+
+  // Tính toán giá trị hiển thị cho select dựa trên query
+  const getTypeValue = () => {
+    if (query.is_subscription) return "subscription";
+    if (query.is_subscription_items) return "subscription_item";
+    if (query.is_order) return "order";
+    return "";
   };
 
   return (
@@ -156,7 +183,7 @@ const LogList = () => {
         {/* Filters Section */}
         <div className="space-y-4 mb-6">
           {/* Search Row */}
-          <div className="grid gap-4 grid-cols-2">
+          <div className="grid gap-4 grid-cols-4">
             <div>
               <Label>Tìm kiếm</Label>
               <Input
@@ -173,6 +200,33 @@ const LogList = () => {
                 onChange={(e) =>
                   setSearch({ ...search, name_plan: e.target.value })
                 }
+              />
+            </div>
+            <div className="w-full">
+              <Label>Tháng tạo</Label>
+              <Input
+                type="month"
+                value={query.month_year || ""}
+                onChange={(e) =>
+                  setQuery({
+                    ...query,
+                    month_year: e.target.value || undefined,
+                    page: 1,
+                  })
+                }
+                className="w-full border border-gray-300 px-3 py-2 rounded-md"
+              />
+            </div>
+            <div className="w-full">
+              <Label>Loại</Label>
+              <Select
+                value={getTypeValue()}
+                onChange={handleTypeChange}
+                options={[
+                  { value: "", label: "Tất cả" },
+                  { value: "subscription", label: "Gói cố định" },
+                  { value: "order", label: "Gói trả trước" },
+                ]}
               />
             </div>
           </div>
@@ -225,6 +279,8 @@ const LogList = () => {
             rawData={logs}
             isLoading={loading}
             role={user.role}
+            total_revenue={total_revenue}
+            total_unpaid={total_unpaid}
             onDetail={(item) => {
               navigate(`/logs/${item.id}`, { state: item });
             }}
