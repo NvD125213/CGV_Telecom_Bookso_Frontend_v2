@@ -360,7 +360,6 @@ export const SubcriptionActionPage = () => {
         setItems(response.data?.items || []);
       } catch (error: any) {
         console.error("Lỗi khi tải subscription items:", error);
-        Swal.fire("Lỗi", "Không thể tải danh sách gói bổ sung", "error");
       } finally {
         setItemsLoading(false);
       }
