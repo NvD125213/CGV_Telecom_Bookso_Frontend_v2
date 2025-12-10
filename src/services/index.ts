@@ -1,4 +1,4 @@
 import axiosInstance from "../config/apiToken";
 import { instanceStatic } from "../config/apiStatic";
 
-export const instance = instanceStatic;
+export const instance = axiosInstance;
