@@ -48,80 +48,81 @@ export default function SignInForm() {
   };
 
   return (
-    <div className="flex flex-col flex-1">
-      <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
-        <div>
-          <div className="mb-5 sm:mb-8">
-            <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
-              Đăng nhập
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Nhập tên đăng nhập và mật khẩu để đăng nhập
-            </p>
-          </div>
-          {apiError && (
-            <div className="mb-4 text-sm text-red-500 ">Lỗi: {apiError}</div>
-          )}
+    <div className="flex flex-col flex-1 w-full overflow-y-auto lg:w-1/2 no-scrollbar">
+      <div className="flex flex-col flex-1 w-full max-w-lg mx-auto px-4 sm:px-2 lg:px-0 py-8">
+        <div className="flex-1 flex items-center">
+          <div className="w-full">
+            <div className="mb-5 sm:mb-15">
+              <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md text-center">
+                ĐĂNG NHẬP
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                Chào mừng đến với hệ thống book số của CGV Telecom
+              </p>
+            </div>
+            {apiError && (
+              <div className="mb-4 text-sm text-red-500 ">Lỗi: {apiError}</div>
+            )}
 
-          <Formik
-            initialValues={{
-              username: "",
-              password: "",
-            }}
-            validationSchema={SignInSchema}
-            onSubmit={handleSubmit}>
-            {({ isSubmitting }) => (
-              <Form>
-                <div className="space-y-6">
-                  {/* Email */}
-                  <div>
-                    <Label>
-                      Tên đăng nhập <span className="text-error-500">*</span>
-                    </Label>
-                    <Field
-                      name="username"
-                      type="text"
-                      placeholder="Enter your username..."
-                      as={Input}
-                    />
-                    <ErrorMessage
-                      name="username"
-                      component="div"
-                      className="text-red-500 text-sm mt-1"
-                    />
-                  </div>
-
-                  {/* Password */}
-                  <div>
-                    <Label>
-                      Mật khẩu <span className="text-error-500">*</span>
-                    </Label>
-                    <div className="relative">
+            <Formik
+              initialValues={{
+                username: "",
+                password: "",
+              }}
+              validationSchema={SignInSchema}
+              onSubmit={handleSubmit}>
+              {({ isSubmitting }) => (
+                <Form>
+                  <div className="space-y-6">
+                    {/* Email */}
+                    <div>
+                      <Label>
+                        Tên đăng nhập <span className="text-error-500">*</span>
+                      </Label>
                       <Field
-                        name="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Enter your password..."
+                        name="username"
+                        type="text"
+                        placeholder="Enter your username..."
                         as={Input}
                       />
-                      <span
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2">
-                        {showPassword ? (
-                          <EyeIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
-                        ) : (
-                          <EyeCloseIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
-                        )}
-                      </span>
+                      <ErrorMessage
+                        name="username"
+                        component="div"
+                        className="text-red-500 text-sm mt-1"
+                      />
                     </div>
-                    <ErrorMessage
-                      name="password"
-                      component="div"
-                      className="text-red-500 text-sm mt-1"
-                    />
-                  </div>
 
-                  {/* Remember me & Forgot Password */}
-                  {/* <div className="flex items-center justify-between">
+                    {/* Password */}
+                    <div>
+                      <Label>
+                        Mật khẩu <span className="text-error-500">*</span>
+                      </Label>
+                      <div className="relative">
+                        <Field
+                          name="password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Enter your password..."
+                          as={Input}
+                        />
+                        <span
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2">
+                          {showPassword ? (
+                            <EyeIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
+                          ) : (
+                            <EyeCloseIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
+                          )}
+                        </span>
+                      </div>
+                      <ErrorMessage
+                        name="password"
+                        component="div"
+                        className="text-red-500 text-sm mt-1"
+                      />
+                    </div>
+
+                    {/* Remember me & Forgot Password */}
+                    {/* <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Checkbox
                         checked={isChecked}
@@ -138,31 +139,35 @@ export default function SignInForm() {
                     </Link>
                   </div> */}
 
-                  {/* Submit Button */}
-                  <div>
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      size="sm"
-                      disabled={isSubmitting}>
-                      {isSubmitting ? "Đang xử lý..." : "Đăng nhập"}
-                    </Button>
+                    {/* Submit Button */}
+                    <div>
+                      <Button
+                        type="submit"
+                        className="w-full"
+                        size="sm"
+                        disabled={isSubmitting}>
+                        {isSubmitting ? "Đang xử lý..." : "Đăng nhập"}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </Form>
-            )}
-          </Formik>
-          {/* Navigate to SignUpForm */}
-          {/* <div className="mt-5">
-            <p className="text-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
-              Không có tài khoản?{" "}
-              <Link
-                to="/signup"
-                className="text-brand-500 hover:text-brand-600 dark:text-brand-400">
-                Đăng ký
-              </Link>
-            </p>
-          </div> */}
+                </Form>
+              )}
+            </Formik>
+            {/* Navigate to SignUpForm */}
+            {/* <div className="mt-5">
+              <p className="text-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
+                Không có tài khoản?{" "}
+                <Link
+                  to="/signup"
+                  className="text-brand-500 hover:text-brand-600 dark:text-brand-400">
+                  Đăng ký
+                </Link>
+              </p>
+            </div> */}
+          </div>
+        </div>
+        <div className="mt-8 pt-4 text-xs text-center text-gray-500 border-t border-gray-200 dark:text-gray-400 dark:border-gray-800">
+          Designed by CGV Telecom Development Team
         </div>
       </div>
     </div>

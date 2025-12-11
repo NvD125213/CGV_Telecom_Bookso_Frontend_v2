@@ -18,14 +18,14 @@ export default function AuthLayout({
                 hueShift={30}
                 speed={1.5}
                 scanlineIntensity={0.1}
-                warpAmount={1}
+                warpAmount={5}
               />
             </div>
-            <div className="absolute top-10 z-20 text-white">
+            <div className="absolute top-1/2 -translate-y-1/2 z-20 text-white transform">
               <TrueFocus
                 words={[
                   "https://bookso.cgvtelecom.vn/Logo/Logo_company_darkmode.png",
-                  ["Công nghệ", "Viễn thông", "Toàn cầu"],
+                  ["Công nghệ", "Viễn thông", "Toàn cầu", "3CX", "AutoCall"],
                 ]}
                 manualMode={false}
                 blurAmount={5}
@@ -36,11 +36,11 @@ export default function AuthLayout({
                 rotationIntervalForRotatingText={5000} // 5s cho mỗi chữ trong RotatingText
               />
             </div>
-            <img
+            {/* <img
               src={"/Logo/AI_Call_Center.png"}
               alt="AI Call Center"
               className="relative z-10 w-[120%] max-w-none mr-8"
-            />
+            /> */}
           </div>
         </div>
       </div>
