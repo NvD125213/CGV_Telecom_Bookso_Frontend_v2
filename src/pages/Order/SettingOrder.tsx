@@ -274,7 +274,7 @@ const SettingOrder: React.FC = () => {
   // ---- Tab content ----
   const renderContent = () => (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-      {renderTable("Gói user", userPackage, setUserPackage)}
+      {renderTable("Gói người dùng", userPackage, setUserPackage)}
       {renderTable("Gói phút gọi", callMinutesPackage, setCallMinutesPackage)}
       {renderTable("Gói đầu số", prefixPackagePhones, setPrefixPackagePhones)}
     </Box>
@@ -316,7 +316,7 @@ const SettingOrder: React.FC = () => {
   useEffect(() => {
     if (dataSettingOrder) {
       try {
-        // Gói user - với fallback về mảng rỗng
+        // Gói người dùng - với fallback về mảng rỗng
         if (Array.isArray(dataSettingOrder.value.user_package)) {
           setUserPackage({
             rows: dataSettingOrder.value.user_package.map(

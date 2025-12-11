@@ -210,9 +210,18 @@ function PhoneNumbers() {
           updated_at: phone.updated_at ? formatDate(phone.updated_at) : "0",
           created_at: phone.created_at ? formatDate(phone.created_at) : "0",
           released_at: phone.released_at ? formatDate(phone.released_at) : "0",
-          installation_fee: formatNumber(phone?.installation_fee),
-          maintenance_fee: formatNumber(phone?.maintenance_fee),
-          vanity_number_fee: formatNumber(phone?.vanity_number_fee),
+          installation_fee:
+            phone.type_name == "SODEP"
+              ? "Liên hệ"
+              : formatNumber(phone?.installation_fee),
+          maintenance_fee:
+            phone.type_name == "SODEP"
+              ? "Liên hệ"
+              : formatNumber(phone?.maintenance_fee),
+          vanity_number_fee:
+            phone.type_name == "SODEP"
+              ? "Liên hệ"
+              : formatNumber(phone?.vanity_number_fee),
         })
       );
 

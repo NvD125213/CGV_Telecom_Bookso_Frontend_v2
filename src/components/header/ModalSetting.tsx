@@ -99,7 +99,7 @@ const ModalSetting: React.FC<ModalSettingProps> = ({ open, onClose }) => {
     if (showValidation) {
       setShowValidation(false);
     }
-    
+
     setTable({
       rows: table.rows.map((r) =>
         r.id === id ? { ...r, [field]: formatNumber(value) } : r
@@ -108,15 +108,20 @@ const ModalSetting: React.FC<ModalSettingProps> = ({ open, onClose }) => {
   };
 
   // Helper function để kiểm tra field có invalid không
-  const isFieldInvalid = (row: PackageRow, field: "min" | "max" | "price", rowIndex: number, totalRows: number) => {
+  const isFieldInvalid = (
+    row: PackageRow,
+    field: "min" | "max" | "price",
+    rowIndex: number,
+    totalRows: number
+  ) => {
     if (!showValidation) return false;
-    
+
     const isLastRow = rowIndex === totalRows - 1;
-    
+
     if (field === "min" && !row.min) return true;
     if (field === "max" && !isLastRow && !row.max) return true;
     if (field === "price" && !row.price) return true;
-    
+
     return false;
   };
 
@@ -147,7 +152,6 @@ const ModalSetting: React.FC<ModalSettingProps> = ({ open, onClose }) => {
             <tbody className="bg-white divide-y divide-gray-100">
               {table.rows.map((row, rowIndex) => (
                 <tr key={row.id}>
-
                   <td className="px-4 py-2">
                     <input
                       value={row.min}
@@ -167,8 +171,15 @@ const ModalSetting: React.FC<ModalSettingProps> = ({ open, onClose }) => {
                       }`}
                       placeholder="Nhập giá nhỏ nhất trong khoảng"
                     />
-                    {isFieldInvalid(row, "min", rowIndex, table.rows.length) && (
-                      <p className="text-red-500 text-xs mt-1">Vui lòng nhập giá trị Min</p>
+                    {isFieldInvalid(
+                      row,
+                      "min",
+                      rowIndex,
+                      table.rows.length
+                    ) && (
+                      <p className="text-red-500 text-xs mt-1">
+                        Vui lòng nhập giá trị Min
+                      </p>
                     )}
                   </td>
 
@@ -191,8 +202,15 @@ const ModalSetting: React.FC<ModalSettingProps> = ({ open, onClose }) => {
                       }`}
                       placeholder="Nhập giá trị lớn nhất trong khoảng"
                     />
-                    {isFieldInvalid(row, "max", rowIndex, table.rows.length) && (
-                      <p className="text-red-500 text-xs mt-1">Vui lòng nhập giá trị Max</p>
+                    {isFieldInvalid(
+                      row,
+                      "max",
+                      rowIndex,
+                      table.rows.length
+                    ) && (
+                      <p className="text-red-500 text-xs mt-1">
+                        Vui lòng nhập giá trị Max
+                      </p>
                     )}
                   </td>
 
@@ -209,14 +227,26 @@ const ModalSetting: React.FC<ModalSettingProps> = ({ open, onClose }) => {
                         )
                       }
                       className={`w-full px-2 py-1 border rounded-md text-sm ${
-                        isFieldInvalid(row, "price", rowIndex, table.rows.length)
+                        isFieldInvalid(
+                          row,
+                          "price",
+                          rowIndex,
+                          table.rows.length
+                        )
                           ? "border-red-500 border-2"
                           : ""
                       }`}
                       placeholder="Nhập giá"
                     />
-                    {isFieldInvalid(row, "price", rowIndex, table.rows.length) && (
-                      <p className="text-red-500 text-xs mt-1">Vui lòng nhập giá trị Giá</p>
+                    {isFieldInvalid(
+                      row,
+                      "price",
+                      rowIndex,
+                      table.rows.length
+                    ) && (
+                      <p className="text-red-500 text-xs mt-1">
+                        Vui lòng nhập giá trị Giá
+                      </p>
                     )}
                   </td>
 
@@ -250,7 +280,7 @@ const ModalSetting: React.FC<ModalSettingProps> = ({ open, onClose }) => {
   // ---- Tab content ----
   const renderContent = () => (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-      {renderTable("Gói user", userPackage, setUserPackage)}
+      {renderTable("Gói người dùng", userPackage, setUserPackage)}
       {renderTable("Gói phút gọi", callMinutesPackage, setCallMinutesPackage)}
       {renderTable("Gói đầu số", prefixPackagePhones, setPrefixPackagePhones)}
     </Box>
@@ -258,19 +288,25 @@ const ModalSetting: React.FC<ModalSettingProps> = ({ open, onClose }) => {
 
   // Fetch config data
   const [dataSettingOrder, setDataSettingOrder] = useState<any>(null);
-  const { data: settingOrder, isLoading: isLoadingSettingOrder, error: errorSettingOrder, refetch } =
-    useApi(() => configService.getConfig());
+  const {
+    data: settingOrder,
+    isLoading: isLoadingSettingOrder,
+    error: errorSettingOrder,
+    refetch,
+  } = useApi(() => configService.getConfig());
 
   // Load dữ liệu từ API khi settingOrder thay đổi
   useEffect(() => {
-    if (settingOrder?.status == 200) {     
+    if (settingOrder?.status == 200) {
       // Lấy items array
       const items = settingOrder.data?.items;
-      
+
       if (Array.isArray(items) && items.length > 0) {
         // Tìm item có key = "price_order"
-        const priceOrderConfig = items.find((item: any) => item.key === "price_order");
-        
+        const priceOrderConfig = items.find(
+          (item: any) => item.key === "price_order"
+        );
+
         if (priceOrderConfig && priceOrderConfig.value) {
           setDataSettingOrder(priceOrderConfig);
         } else {
@@ -286,15 +322,26 @@ const ModalSetting: React.FC<ModalSettingProps> = ({ open, onClose }) => {
   useEffect(() => {
     if (dataSettingOrder) {
       try {
-        // Gói user - với fallback về mảng rỗng
+        // Gói người dùng - với fallback về mảng rỗng
         if (Array.isArray(dataSettingOrder.value.user_package)) {
           setUserPackage({
-            rows: dataSettingOrder.value.user_package.map((item: any, index: number) => ({
-              id: index + 1,
-              min: item.min !== null && item.min !== undefined ? formatNumber(item.min.toString()) : "",
-              max: item.max !== null && item.max !== undefined ? formatNumber(item.max.toString()) : "",
-              price: item.price !== null && item.price !== undefined ? formatNumber(item.price.toString()) : "",
-            })),
+            rows: dataSettingOrder.value.user_package.map(
+              (item: any, index: number) => ({
+                id: index + 1,
+                min:
+                  item.min !== null && item.min !== undefined
+                    ? formatNumber(item.min.toString())
+                    : "",
+                max:
+                  item.max !== null && item.max !== undefined
+                    ? formatNumber(item.max.toString())
+                    : "",
+                price:
+                  item.price !== null && item.price !== undefined
+                    ? formatNumber(item.price.toString())
+                    : "",
+              })
+            ),
           });
         } else {
           setUserPackage({ rows: [] });
@@ -303,12 +350,23 @@ const ModalSetting: React.FC<ModalSettingProps> = ({ open, onClose }) => {
         // Gói phút gọi - với fallback về mảng rỗng
         if (Array.isArray(dataSettingOrder.value.call_minutes_package)) {
           setCallMinutesPackage({
-            rows: dataSettingOrder.value.call_minutes_package.map((item: any, index: number) => ({
-              id: index + 1,
-              min: item.min !== null && item.min !== undefined ? formatNumber(item.min.toString()) : "",
-              max: item.max !== null && item.max !== undefined ? formatNumber(item.max.toString()) : "",
-              price: item.price !== null && item.price !== undefined ? formatNumber(item.price.toString()) : "",
-            })),
+            rows: dataSettingOrder.value.call_minutes_package.map(
+              (item: any, index: number) => ({
+                id: index + 1,
+                min:
+                  item.min !== null && item.min !== undefined
+                    ? formatNumber(item.min.toString())
+                    : "",
+                max:
+                  item.max !== null && item.max !== undefined
+                    ? formatNumber(item.max.toString())
+                    : "",
+                price:
+                  item.price !== null && item.price !== undefined
+                    ? formatNumber(item.price.toString())
+                    : "",
+              })
+            ),
           });
         } else {
           setCallMinutesPackage({ rows: [] });
@@ -317,12 +375,23 @@ const ModalSetting: React.FC<ModalSettingProps> = ({ open, onClose }) => {
         // Gói đầu số - với fallback về mảng rỗng
         if (Array.isArray(dataSettingOrder.value.prefix_package_phones)) {
           setPrefixPackagePhones({
-            rows: dataSettingOrder.value.prefix_package_phones.map((item: any, index: number) => ({
-              id: index + 1,
-              min: item.min !== null && item.min !== undefined ? formatNumber(item.min.toString()) : "",
-              max: item.max !== null && item.max !== undefined ? formatNumber(item.max.toString()) : "",
-              price: item.price !== null && item.price !== undefined ? formatNumber(item.price.toString()) : "",
-            })),
+            rows: dataSettingOrder.value.prefix_package_phones.map(
+              (item: any, index: number) => ({
+                id: index + 1,
+                min:
+                  item.min !== null && item.min !== undefined
+                    ? formatNumber(item.min.toString())
+                    : "",
+                max:
+                  item.max !== null && item.max !== undefined
+                    ? formatNumber(item.max.toString())
+                    : "",
+                price:
+                  item.price !== null && item.price !== undefined
+                    ? formatNumber(item.price.toString())
+                    : "",
+              })
+            ),
           });
         } else {
           setPrefixPackagePhones({ rows: [] });
@@ -344,11 +413,13 @@ const ModalSetting: React.FC<ModalSettingProps> = ({ open, onClose }) => {
     const validatePackage = (rows: PackageRow[]) => {
       return rows.map((row, index) => {
         const isLastRow = index === rows.length - 1;
-        
+
         // Remove commas và convert to number
-        const minValue = row.min ? parseInt(row.min.replace(/,/g, '')) : null;
-        const maxValue = row.max ? parseInt(row.max.replace(/,/g, '')) : null;
-        const priceValue = row.price ? parseInt(row.price.replace(/,/g, '')) : null;
+        const minValue = row.min ? parseInt(row.min.replace(/,/g, "")) : null;
+        const maxValue = row.max ? parseInt(row.max.replace(/,/g, "")) : null;
+        const priceValue = row.price
+          ? parseInt(row.price.replace(/,/g, ""))
+          : null;
 
         // Validation
         if (!row.min || minValue === null) hasErrors = true;
@@ -383,41 +454,43 @@ const ModalSetting: React.FC<ModalSettingProps> = ({ open, onClose }) => {
       prefix_package_phones: prefixPackagePhonesData,
     };
 
-    if(settingsData && hasErrors === false){
+    if (settingsData && hasErrors === false) {
       Swal.fire({
-        icon: 'warning',
-        title: 'Cập nhật setting cho order',
+        icon: "warning",
+        title: "Cập nhật setting cho order",
         html: '<p style="font-size: 15px; color: #555;">Bạn có chắc chắn muốn cập nhật setting cho order này?<br/><span style="color: #e74c3c; font-weight: 500;">Các thay đổi sẽ ảnh hưởng đến các order được tạo trong tương lai!</span></p>',
         showConfirmButton: true,
         confirmButtonText: '<i class="fa fa-check"></i> Xác nhận',
         showCancelButton: true,
         cancelButtonText: '<i class="fa fa-times"></i> Hủy',
-        confirmButtonColor: '#28a745',
-        cancelButtonColor: '#dc3545',
+        confirmButtonColor: "#28a745",
+        cancelButtonColor: "#dc3545",
         reverseButtons: true,
-        width: '500px',
-        padding: '2em',
+        width: "500px",
+        padding: "2em",
         backdrop: `
           rgba(0,0,0,0.6)
           left top
           no-repeat 
         `,
         customClass: {
-          container: 'swal-high-zindex',
-          popup: 'swal-custom-popup',
-          title: 'swal-custom-title',
-          confirmButton: 'swal-custom-confirm-btn',
-          cancelButton: 'swal-custom-cancel-btn'
+          container: "swal-high-zindex",
+          popup: "swal-custom-popup",
+          title: "swal-custom-title",
+          confirmButton: "swal-custom-confirm-btn",
+          cancelButton: "swal-custom-cancel-btn",
         },
         didOpen: () => {
           // Set z-index cao hơn MUI Dialog (1300)
-          const swalContainer = document.querySelector('.swal-high-zindex') as HTMLElement;
+          const swalContainer = document.querySelector(
+            ".swal-high-zindex"
+          ) as HTMLElement;
           if (swalContainer) {
-            swalContainer.style.zIndex = '1400';
+            swalContainer.style.zIndex = "1400";
           }
-          
+
           // Custom styling
-          const style = document.createElement('style');
+          const style = document.createElement("style");
           style.innerHTML = `
             .swal-custom-popup {
               border-radius: 15px !important;
@@ -454,23 +527,28 @@ const ModalSetting: React.FC<ModalSettingProps> = ({ open, onClose }) => {
             }
           `;
           document.head.appendChild(style);
-        }
+        },
       }).then(async (result) => {
         if (result.isConfirmed) {
-          const response = await configService.updateConfig(dataSettingOrder.id, { 
-            key: "price_order",
-            value: settingsData 
-          });
-          if(response.status === 200){
-            Swal.fire("Thành công", "Cập nhật setting cho order thành công !", "success");            
+          const response = await configService.updateConfig(
+            dataSettingOrder.id,
+            {
+              key: "price_order",
+              value: settingsData,
+            }
+          );
+          if (response.status === 200) {
+            Swal.fire(
+              "Thành công",
+              "Cập nhật setting cho order thành công !",
+              "success"
+            );
             await refetch();
             onClose();
           }
         }
       });
     }
-
-    
   };
 
   return (
@@ -537,11 +615,11 @@ const ModalSetting: React.FC<ModalSettingProps> = ({ open, onClose }) => {
                 color: "#c33",
               }}>
               <Typography variant="body2" fontWeight={600}>
-                ⚠️ {errorSettingOrder?.message || "Không thể tải dữ liệu cài đặt"}
+                ⚠️{" "}
+                {errorSettingOrder?.message || "Không thể tải dữ liệu cài đặt"}
               </Typography>
             </Box>
           )}
-
 
           {/* Loading State */}
           {isLoadingSettingOrder && !errorSettingOrder && (
@@ -562,13 +640,10 @@ const ModalSetting: React.FC<ModalSettingProps> = ({ open, onClose }) => {
         <Button onClick={onClose} variant="outline">
           Hủy
         </Button>
-        <Button onClick={handleSave}>
-          Lưu
-        </Button>
+        <Button onClick={handleSave}>Lưu</Button>
       </DialogActions>
     </Dialog>
   );
 };
 
 export default ModalSetting;
-
