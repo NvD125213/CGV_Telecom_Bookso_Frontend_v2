@@ -181,6 +181,8 @@ export const CustomSubscriptionTable = ({
     };
   });
 
+  console.log(">>> data", data);
+
   return (
     <div className="space-y-3">
       {/* Summary Cards - Compact */}

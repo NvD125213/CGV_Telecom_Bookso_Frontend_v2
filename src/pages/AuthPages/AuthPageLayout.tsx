@@ -21,11 +21,17 @@ export default function AuthLayout({
                 warpAmount={5}
               />
             </div>
-            <div className="absolute top-1/2 -translate-y-1/2 z-20 text-white transform">
+            <div className="absolute top-1/2 -translate-y-1/2 z-20 text-white transform w-full px-15">
               <TrueFocus
                 words={[
                   "https://bookso.cgvtelecom.vn/Logo/Logo_company_darkmode.png",
-                  ["Công nghệ", "Viễn thông", "Toàn cầu", "3CX", "AutoCall"],
+                  [
+                    "Contact Center",
+                    "Voice Brandname",
+                    "Tổng đài 3CX",
+                    "Zalo Cloud",
+                    "Kho số đẹp",
+                  ],
                 ]}
                 manualMode={false}
                 blurAmount={5}

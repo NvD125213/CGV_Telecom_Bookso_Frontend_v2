@@ -45,12 +45,17 @@ const TrueFocus: React.FC<TrueFocusProps> = ({
   // Calculate max width for each RotatingText to prevent layout shift
   // Use a hidden DOM element instead of canvas to properly measure text with accents
   const calculateMaxWidth = (texts: string[]): number => {
+    // Keep font size in sync with on-screen clamp(24px, 2.5vw, 40px)
+    const preferred =
+      typeof window !== "undefined" ? window.innerWidth * 0.025 : 32;
+    const fontSizePx = Math.min(40, Math.max(24, preferred));
+
     // Create a temporary hidden element to measure text width accurately
     const measureElement = document.createElement("span");
     measureElement.style.position = "absolute";
     measureElement.style.visibility = "hidden";
     measureElement.style.whiteSpace = "nowrap";
-    measureElement.style.fontSize = "2.5rem";
+    measureElement.style.fontSize = `${fontSizePx}px`;
     measureElement.style.fontWeight = "700";
     measureElement.style.fontFamily =
       "-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
@@ -73,17 +78,22 @@ const TrueFocus: React.FC<TrueFocusProps> = ({
     return maxWidth + 20;
   };
 
-  // Pre-calculate widths for all RotatingText items
-  const rotatingTextWidths = useRef<Map<number, number>>(new Map());
+  // Pre-calculate widths for all RotatingText items (reactive to resize)
+  const [rotatingTextWidths, setRotatingTextWidths] = useState<number[]>([]);
 
-  useEffect(() => {
+  const recomputeRotatingWidths = React.useCallback(() => {
+    const widths: number[] = [];
     words.forEach((item, index) => {
       if (Array.isArray(item)) {
-        const width = calculateMaxWidth(item);
-        rotatingTextWidths.current.set(index, width);
+        widths[index] = calculateMaxWidth(item);
       }
     });
+    setRotatingTextWidths(widths);
   }, [words]);
+
+  useEffect(() => {
+    recomputeRotatingWidths();
+  }, [recomputeRotatingWidths]);
 
   const [focusRect, setFocusRect] = useState<FocusRect>({
     x: 0,
@@ -127,8 +137,7 @@ const TrueFocus: React.FC<TrueFocusProps> = ({
     currentIndex,
   ]);
 
-  // When currentIndex changes, update focus box to measure active element
-  useEffect(() => {
+  const updateFocusRect = React.useCallback(() => {
     const el = itemRefs.current[currentIndex];
     if (!el || !containerRef.current) return;
 
@@ -141,6 +150,11 @@ const TrueFocus: React.FC<TrueFocusProps> = ({
       width: rect.width,
       height: rect.height,
     });
+  }, [currentIndex]);
+
+  // When currentIndex changes, update focus box to measure active element
+  useEffect(() => {
+    updateFocusRect();
 
     // Only reset rotating blocks when currentIndex actually changes (not on every render)
     // IMPORTANT: Do NOT include 'words' in dependency array to avoid unnecessary resets
@@ -164,8 +178,19 @@ const TrueFocus: React.FC<TrueFocusProps> = ({
       });
       prevIndexRef.current = currentIndex;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex]); // Removed 'words' from dependencies to prevent unnecessary resets
+  }, [currentIndex, updateFocusRect, words]);
+
+  // Recompute widths and focus rect on resize so font clamp + measurements stay in sync
+  useEffect(() => {
+    const handleResize = () => {
+      recomputeRotatingWidths();
+      updateFocusRect();
+    };
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [recomputeRotatingWidths, updateFocusRect]);
 
   // Called by RotatingText when it reaches last sub-text (optional behavior to advance parent)
   // Note: This is disabled when using auto-advance mode because TrueFocus already calculates
@@ -190,65 +215,68 @@ const TrueFocus: React.FC<TrueFocusProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative flex gap-3 justify-center items-center flex-wrap"
+      className="relative flex gap-3 justify-center items-center flex-nowrap w-full"
       style={{ userSelect: "none" }}>
       {words.map((item, index) => {
         const isActive = index === currentIndex;
 
-        // Normal string word
-        if (typeof item === "string") {
-          // Check if string starts with "https" - render as image
-          if (item.startsWith("https")) {
-            return (
-              <img
-                key={index}
-                ref={(el) => {
-                  itemRefs.current[index] = el;
-                }}
-                onMouseEnter={() => handleMouseEnter(index)}
-                src={item}
-                alt=""
-                className="cursor-pointer select-none object-contain"
-                style={{
-                  filter: isActive ? `blur(0px)` : `blur(${blurAmount}px)`,
-                  transition: `filter ${animationDuration}s ease`,
-                  maxHeight: "2.5rem", // Match text size approximately
-                }}
-              />
-            );
-          }
-
-          // Regular text string
+        // --- IMAGE (40%) ---
+        if (typeof item === "string" && item.startsWith("https")) {
           return (
-            <span
+            <div
               key={index}
+              className="basis-1/2 flex justify-center items-center"
               ref={(el) => {
                 itemRefs.current[index] = el;
               }}
-              onMouseEnter={() => handleMouseEnter(index)}
-              className="text-[2.5rem] font-bold cursor-pointer select-none"
-              style={{
-                filter: isActive ? `blur(0px)` : `blur(${blurAmount}px)`,
-                transition: `filter ${animationDuration}s ease`,
-              }}>
-              {item}
-            </span>
+              onMouseEnter={() => handleMouseEnter(index)}>
+              <img
+                src={item}
+                alt=""
+                className="w-full object-contain cursor-pointer select-none"
+                style={{
+                  filter: isActive ? `blur(0px)` : `blur(${blurAmount}px)`,
+                  transition: `filter ${animationDuration}s ease`,
+                }}
+              />
+            </div>
           );
         }
 
-        // RotatingText block
+        // --- TEXT (30%) ---
+        if (typeof item === "string") {
+          return (
+            <div
+              key={index}
+              className="basis-1/2 flex justify-center items-center"
+              ref={(el) => {
+                itemRefs.current[index] = el;
+              }}
+              onMouseEnter={() => handleMouseEnter(index)}>
+              <span
+                className="text-[clamp(1.5rem,2.5vw,2.5rem)] font-bold cursor-pointer select-none leading-tight text-center w-full"
+                style={{
+                  filter: isActive ? `blur(0px)` : `blur(${blurAmount}px)`,
+                  transition: `filter ${animationDuration}s ease`,
+                }}>
+                {item}
+              </span>
+            </div>
+          );
+        }
+
+        // --- ROTATING TEXT (30%) ---
         if (Array.isArray(item)) {
-          const isActiveForRotating = isActive; // pass to RotatingText as auto
-          const maxWidth = rotatingTextWidths.current.get(index) || 0;
+          const maxWidth = rotatingTextWidths[index] || 0;
 
           return (
             <div
               key={index}
+              className="basis-1/2 flex justify-center items-center"
               ref={(el) => {
                 itemRefs.current[index] = el;
               }}
               onMouseEnter={() => handleMouseEnter(index)}
-              className="inline-flex items-center justify-center"
               style={{
                 filter: isActive ? `blur(0px)` : `blur(${blurAmount}px)`,
                 transition: `filter ${animationDuration}s ease`,
@@ -259,21 +287,19 @@ const TrueFocus: React.FC<TrueFocusProps> = ({
                   rotatingRefs.current[index] = r;
                 }}
                 texts={item}
-                auto={isActiveForRotating} // only auto-rotate when focused
+                auto={isActive}
                 rotationInterval={rotationIntervalForRotatingText}
                 loop={true}
                 onNext={
                   manualMode
                     ? (subIndex) => {
-                        // Only handle in manual mode
                         if (subIndex === item.length - 1) {
                           handleSubTextLast(index);
                         }
                       }
-                    : undefined // In auto mode, let TrueFocus handle timing
+                    : undefined
                 }
-                // optional styling passthrough - center align text
-                mainClassName="text-[2.5rem] font-bold inline-flex justify-center items-center"
+                mainClassName="text-[clamp(1.5rem,2.5vw,2.5rem)] font-bold inline-flex justify-center items-center leading-tight text-center w-full"
               />
             </div>
           );

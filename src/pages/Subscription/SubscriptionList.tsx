@@ -383,12 +383,7 @@ const SubsciptionList = () => {
 
       // Chỉ cộng minutes và did_count cho các sub có status == 1
       sub.items.forEach((item: any) => {
-        if (
-          item.status == 1 ||
-          item.status == 2 ||
-          item.status == 3 ||
-          item.status == 0
-        ) {
+        if (item.status == 1 || item.status == 3 || item.status == 0) {
           const plan = plansMap.get(item.plan_id);
           if (plan) {
             totalPlanMinutes += plan.minutes || 0;

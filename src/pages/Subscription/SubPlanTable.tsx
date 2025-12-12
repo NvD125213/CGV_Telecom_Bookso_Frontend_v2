@@ -267,7 +267,7 @@ export const SubPlanTable = ({
     [onReload]
   );
   return (
-    <div className="w-full dark:from-gray-900 dark:to-gray-800 overflow-hidden pr-8 pl-2">
+    <div className="w-full dark:from-gray-900 dark:to-gray-800 overflow-hidden pr-8 pl-6">
       <div className="overflow-x-auto">
         {isLoading ? (
           <div className="p-4">
