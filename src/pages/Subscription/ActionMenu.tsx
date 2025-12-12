@@ -111,7 +111,7 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
           </MenuItem>
         )}
 
-        {onDelete && item.status !== 3 && (
+        {onDelete && item.status == 2 && (
           <MenuItem
             onClick={() => {
               handleClose();
