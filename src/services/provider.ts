@@ -38,13 +38,13 @@ export const getProviderById = async (id: string) => {
 
 // Create new provider
 export const createProvider = async (data: IProvider) => {
-  const res = await axiosInstance.post("/api/v2/provider", data);
+  const res = await instance.post("/api/v2/provider", data);
   return res;
 };
 
 // Update provider by id
 export const updateProvider = async (id: string, data: IProvider) => {
-  const res = await axiosInstance.put(
+  const res = await instance.put(
     `/api/v2/provider/provider-by-id?provider_id=${id}`,
     data
   );
@@ -54,7 +54,7 @@ export const updateProvider = async (id: string, data: IProvider) => {
 // Delete provider by id
 export const deleteProvider = async (id: string) => {
   try {
-    const res = await axiosInstance.delete(`/api/v2/provider/${id}`);
+    const res = await instance.delete(`/api/v2/provider/${id}`);
     return res.data;
   } catch (error: any) {
     if (error.status == 400) {

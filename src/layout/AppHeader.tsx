@@ -8,8 +8,13 @@ import UserDropdown from "../components/header/UserDropdown";
 import { getTimeOnlineByUser } from "../services/report";
 import { useSelector } from "react-redux";
 import { RootState } from "../store";
-import { useLocation } from "react-router";
-import { CiSettings } from "react-icons/ci";
+
+declare global {
+  interface Window {
+    CGVSDK?: any;
+    makeCall?: (phoneNumber: string) => void;
+  }
+}
 
 const timeStringToSeconds = (timeStr: string): number => {
   const [h, m, s] = timeStr.split(":").map(Number);
@@ -77,6 +82,73 @@ const AppHeader: React.FC = () => {
   useEffect(() => {
     handleGetTimeOnlineByUser();
   }, [user]);
+
+  // useEffect(() => {
+  //   const initSdk = () => {
+  //     (function () {
+  //       const OriginalWebSocket = window.WebSocket;
+  //       const PatchedWebSocket = function (
+  //         url: string | URL,
+  //         protocols?: string | string[]
+  //       ) {
+  //         const wsInstance = new OriginalWebSocket(url, protocols);
+  //         wsInstance.addEventListener("message", function (event) {
+  //           const lines = event.data.split("\r\n");
+  //           const statusLine = lines[0];
+  //           const statusCode = parseInt(statusLine.split(" ")[1]);
+
+  //           if (statusCode >= 400 && statusCode < 600) {
+  //             console.log("SIP Error:", statusLine);
+  //             console.log("Full SIP message:", event.data);
+  //           }
+  //         });
+  //         return wsInstance;
+  //       } as unknown as typeof window.WebSocket;
+
+  //       window.WebSocket = PatchedWebSocket;
+  //     })();
+
+  //     setTimeout(() => {
+  //       const sdkOptions = {
+  //         enableWidget: true,
+  //         sipOnly: true,
+  //         sipDomain: "tradeint.vn",
+  //         wsServer: "wss://cgvcall.mobilesip.vn:7444",
+  //         sipPassword: "Agent@2025",
+  //       };
+
+  //       const cgvSdkInstance = new window.CGVSDK(
+  //         "tradeint.vn",
+  //         "xxx",
+  //         "100",
+  //         {},
+  //         sdkOptions
+  //       );
+
+  //       window.makeCall = function (phoneNumber: string) {
+  //         cgvSdkInstance.call(phoneNumber, {
+  //           extraHeaders: ["x-PROCESS-ID: 123"],
+  //         });
+  //       };
+  //     }, 5000);
+  //   };
+
+  //   (function (a, b) {
+  //     const s = document.createElement("script");
+  //     s.type = "text/javascript";
+  //     s.async = true;
+  //     s.onload = () => {
+  //       if (window.CGVSDK) window.CGVSDK.k = a;
+  //       b();
+  //     };
+  //     s.src = "https://sdk.telesip.vn/public/cgvsdk.v1.js";
+  //     const x = document.getElementsByTagName("script")[0];
+  //     x.parentNode?.insertBefore(s, x);
+  //   })("your_api_key", () => {
+  //     console.log("CGV SDK Loaded");
+  //     initSdk();
+  //   });
+  // }, []);
 
   useEffect(() => {
     intervalRef.current = setInterval(() => {

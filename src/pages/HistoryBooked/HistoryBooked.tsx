@@ -11,7 +11,11 @@ import { useSearchParams } from "react-router-dom";
 import Select from "../../components/form/Select";
 import { IoCaretBackCircleOutline } from "react-icons/io5";
 import Swal from "sweetalert2";
-import { getPhoneByID, revokeNumberForSale } from "../../services/phoneNumber";
+import {
+  getPhoneByID,
+  revokeAllNumber,
+  revokeNumberForSale,
+} from "../../services/phoneNumber";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../store";
 import { resetSelectedIds } from "../../store/selectedPhoneSlice";
@@ -27,6 +31,7 @@ import SwitchablePicker, {
 import clsx from "clsx";
 import FloatingActionPanel from "../../components/common/FloatingActionPanel";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+import { MdOutlineSelectAll } from "react-icons/md";
 
 const getColumns = (status: string) => {
   const columns: {
@@ -84,6 +89,7 @@ const HistoryBooked = () => {
   const selectedIdsFromStore = useSelector(
     (state: RootState) => state.selectedPhone.selectedIds
   );
+  const user = useSelector((state: RootState) => state.auth.user);
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<IHistoryBooked[]>([]);
   const [loading, setLoading] = useState(false);
@@ -304,6 +310,54 @@ const HistoryBooked = () => {
     }
   };
 
+  // xử lý revoke all số
+  const handleRevokeAllNumber = async () => {
+    const confirmResult = await Swal.fire({
+      title: "Xác nhận thu hồi",
+      text: "Bạn có chắc muốn thu hồi toàn bộ các số đang được đặt hay không?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Xác nhận",
+      cancelButtonText: "Hủy",
+      confirmButtonColor: "#d33",
+    });
+
+    if (!confirmResult.isConfirmed) return;
+
+    try {
+      // show loading
+      Swal.fire({
+        title: "Đang thu hồi...",
+        text: "Vui lòng chờ trong giây lát",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
+      const res = await revokeAllNumber();
+
+      if (res?.status === 200) {
+        Swal.fire({
+          icon: "success",
+          title: "Thu hồi thành công",
+          text: "Đã thu hồi toàn bộ số đang được đặt",
+        });
+
+        // 🔄 reload lại danh sách số
+        fetchData?.(); // RTK Query
+        // hoặc fetchNumbers();
+      }
+    } catch (error: any) {
+      Swal.close();
+      Swal.fire({
+        icon: "error",
+        title: "Thu hồi thất bại",
+        text: error?.response.data.detail || "Có lỗi xảy ra, vui lòng thử lại",
+      });
+    }
+  };
+
   // Xử lý dữ liệu cho TableMobile
   const convertToMobileData = (data: IHistoryBooked[]): LabelValueItem[][] => {
     return data.map((item) => {
@@ -378,7 +432,7 @@ const HistoryBooked = () => {
         {status === "booked" && (
           <div
             className={clsx(
-              isMobile ? "block" : "flex items-end justify-end gap-2 py-2 px-2"
+              isMobile ? "block" : "flex items-end justify-end gap-2"
             )}>
             <button
               onClick={handleRevoke}
@@ -386,6 +440,14 @@ const HistoryBooked = () => {
               <IoCaretBackCircleOutline size={22} />
               Thu hồi
             </button>
+            {user.role == 1 && user.sub == "HUYLQ" && (
+              <button
+                onClick={handleRevokeAllNumber}
+                className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+                <MdOutlineSelectAll size={22} />
+                Thu hồi toàn bộ
+              </button>
+            )}
           </div>
         )}
       </FloatingActionPanel>

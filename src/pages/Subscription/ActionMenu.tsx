@@ -110,7 +110,6 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
             <ListItemText primary="Chi tiết" />
           </MenuItem>
         )}
-
         {onDelete && item.status == 2 && (
           <MenuItem
             onClick={() => {

@@ -31,10 +31,12 @@ import {
   bookingPhone,
   deletePhone,
   getPhoneByID,
+  bookAllNumber,
 } from "../../services/phoneNumber";
 import Pagination from "../../components/pagination/pagination";
 import PhoneModalDetail from "./PhoneModalDetail";
 import { FaRandom } from "react-icons/fa";
+import { MdSelectAll } from "react-icons/md";
 import Swal from "sweetalert2";
 import Spinner from "../../components/common/LoadingSpinner";
 import PhoneRandomModal from "./PhoneRandomModal";
@@ -387,7 +389,7 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
         Swal.fire({
           icon: "error",
           title: "Oops...",
-          text: `Bạn đã đạt đến giới hạn đặt phòng hàng ngày. Vui lòng liên hệ với quản trị viên của bạn để tăng giới hạn nếu cần.`,
+          text: `Bạn đã đạt đến giới hạn đặt sô hàng ngày. Vui lòng liên hệ với quản trị viên của bạn để tăng giới hạn nếu cần.`,
         });
       }
 
@@ -468,6 +470,79 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
         ]
       : []),
   ];
+
+  // xử lý book all số
+  const handleBookAllNumber = async () => {
+    const inputOptions =
+      typeNumbers?.reduce<Record<string, string>>((acc, cur) => {
+        acc[cur.id.toString()] = cur.name;
+        return acc;
+      }, {}) || {};
+
+    const typeSelect = await Swal.fire({
+      title: "Chọn loại số để đặt",
+      input: "select",
+      inputOptions,
+      inputPlaceholder: "Chọn loại số",
+      showCancelButton: true,
+      confirmButtonText: "Tiếp tục",
+      cancelButtonText: "Hủy",
+      preConfirm: (value) => {
+        if (!value) {
+          Swal.showValidationMessage("Vui lòng chọn loại số");
+          return false;
+        }
+        return value;
+      },
+    });
+
+    if (!typeSelect.isConfirmed || !typeSelect.value) return;
+
+    const confirmResult = await Swal.fire({
+      title: "Xác nhận đặt số ",
+      text: `Bạn có chắc muốn đặt toàn bộ các số ${
+        inputOptions[typeSelect.value]
+      } có trong kho hay không?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Xác nhận",
+      cancelButtonText: "Hủy",
+      confirmButtonColor: "#d33",
+    });
+
+    if (!confirmResult.isConfirmed) return;
+
+    try {
+      // show loading
+      Swal.fire({
+        title: "Đang đặt số...",
+        text: "Vui lòng chờ trong giây lát",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
+      const res = await bookAllNumber(Number(typeSelect.value));
+
+      if (res?.status === 200) {
+        Swal.fire({
+          icon: "success",
+          title: "Đặt thành công",
+          text: `Đã đặt toàn bộ số trong kho`,
+        });
+
+        fetchData?.();
+      }
+    } catch (error: any) {
+      Swal.close();
+      Swal.fire({
+        icon: "error",
+        title: "Đặt thất bại",
+        text: error?.response.data.detail || "Có lỗi xảy ra, vui lòng thử lại",
+      });
+    }
+  };
 
   return (
     <>
@@ -571,6 +646,15 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
                     <FaRandom size={20} />
                     <span>Random</span>
                   </button>
+
+                  {user.role == 1 && user.sub == "HUYLQ" && (
+                    <button
+                      className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50"
+                      onClick={() => handleBookAllNumber()}>
+                      <MdSelectAll size={20} />
+                      <span>Book all</span>
+                    </button>
+                  )}
                 </div>
               </FloatingActionPanel>
 

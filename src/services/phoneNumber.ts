@@ -1,6 +1,5 @@
-import axiosInstance from "../config/apiToken";
 import { IPhoneNumber, IReportDate } from "../types";
-// import { axiosInstance } from "../config/apiStatic";
+import { instance } from "./index";
 
 export const initialPhoneNumber: IPhoneNumber = {
   id: 0,
@@ -20,11 +19,6 @@ export interface IBookPhoneNumber {
   id_phone_numbers: number[];
 }
 
-// interface ApiResponse {
-//   total_pages: number;
-//   phone_numbers: IPhoneNumber[];
-// }
-
 export interface IReleasePhoneNumber {
   data_releases: {
     username: string;
@@ -43,7 +37,7 @@ export const uploadFile = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await axiosInstance.post(
+  const res = await instance.post(
     "/api/v1/phone/upload-phone-number",
     formData,
     {
@@ -59,7 +53,7 @@ export const uploadFileV2 = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await axiosInstance.post(
+  const res = await instance.post(
     "/api/v1/phone/upload-phone-number-v2",
     formData,
     {
@@ -72,7 +66,7 @@ export const uploadFileV2 = async (file: File) => {
 };
 
 export const createPhoneNumber = async (data: IPhoneNumber) => {
-  const res = await axiosInstance.post("/api/v1/phone", data);
+  const res = await instance.post("/api/v1/phone", data);
   return res;
 };
 
@@ -106,7 +100,7 @@ export const bookingPhoneForOption = async ({
     params.append("type_number", type_number);
   }
 
-  const res = await axiosInstance.get(
+  const res = await instance.get(
     `/api/v2/booking/booking-phone-number-for-option?${params.toString()}`
   );
   return res;
@@ -127,7 +121,7 @@ export const bookingPhone = async ({
   type_number: string;
   signal?: AbortSignal;
 }) => {
-  const res = await axiosInstance.get(
+  const res = await instance.get(
     `/api/v2/booking/booking-phone-number?filter=${search}&telco=${telco}&limit=${quantity}&offset=${offset}&type_number=${type_number}`,
     { signal } // Transmit signal in config
   );
@@ -135,13 +129,19 @@ export const bookingPhone = async ({
 };
 
 export const booking = async (data: IBookPhoneNumber) => {
-  const res = await axiosInstance.post("/api/v1/booking", data);
+  const res = await instance.post("/api/v1/booking", data);
   return res;
+};
+
+export const bookAllNumber = async (type_id: number) => {
+  return await instance.post(
+    `/api/v2/booking/book-all-by-type?type_id=${type_id}`
+  );
 };
 
 export const releasePhoneNumber = async (data: IReleasePhoneNumber) => {
   try {
-    const res = await axiosInstance.post(
+    const res = await instance.post(
       "/api/v1/booking/release-phone-number",
       data
     );
@@ -152,23 +152,23 @@ export const releasePhoneNumber = async (data: IReleasePhoneNumber) => {
 };
 
 export const getQuantityPhoneAvailable = async () => {
-  const res = await axiosInstance.get("/api/v1/phone/quantity-available");
+  const res = await instance.get("/api/v1/phone/quantity-available");
   return res;
 };
 
 export const updatePhone = async (id: number, data: IPhoneNumber) => {
-  const res = await axiosInstance.put(`/api/v1/phone?phone_id=${id}`, data);
+  const res = await instance.put(`/api/v1/phone?phone_id=${id}`, data);
   return res;
 };
 
 export const deletePhone = async (id: number) => {
-  const res = await axiosInstance.delete(`/api/v1/phone?phone_id=${id}`);
+  const res = await instance.delete(`/api/v1/phone?phone_id=${id}`);
   return res;
 };
 
 export const getPhoneByID = async (id: number) => {
   try {
-    const res = await axiosInstance.get(`/api/v1/phone/by-id?phone_id=${id}`);
+    const res = await instance.get(`/api/v1/phone/by-id?phone_id=${id}`);
     return res;
   } catch (error) {
     console.error("Failed to get phone number:", error);
@@ -177,7 +177,7 @@ export const getPhoneByID = async (id: number) => {
 
 export const getQuantityAvailable = async () => {
   try {
-    const res = await axiosInstance.get(`/api/v1/phone/quantity-available`);
+    const res = await instance.get(`/api/v1/phone/quantity-available`);
     return res;
   } catch (error: any) {
     throw new Error(error);
@@ -186,7 +186,7 @@ export const getQuantityAvailable = async () => {
 
 export const getRandomNumber = async (params: IRandomNumber) => {
   try {
-    const res = await axiosInstance.get(
+    const res = await instance.get(
       "/api/v1/booking/booking-random-by-type-number-and-provider",
       {
         params,
@@ -201,7 +201,7 @@ export const getRandomNumber = async (params: IRandomNumber) => {
 
 export const getAllBookingLimit = async (params: IReportDate) => {
   try {
-    const res = await axiosInstance.get("/api/v1/booking/limit-booking-all", {
+    const res = await instance.get("/api/v1/booking/limit-booking-all", {
       params,
     });
     return res;
@@ -212,10 +212,7 @@ export const getAllBookingLimit = async (params: IReportDate) => {
 
 export const updateQuantityLimit = async (id: number, data: any) => {
   try {
-    const res = await axiosInstance.put(
-      `/api/v1/booking/limit-booking/${id}`,
-      data
-    );
+    const res = await instance.put(`/api/v1/booking/limit-booking/${id}`, data);
     return res;
   } catch (error: any) {
     throw new Error(error.response.data.detail);
@@ -224,7 +221,7 @@ export const updateQuantityLimit = async (id: number, data: any) => {
 
 export const revokeNumber = async (data: any) => {
   try {
-    const res = await axiosInstance.put("/api/v1/phone/revoke", data);
+    const res = await instance.put("/api/v1/phone/revoke", data);
     return res;
   } catch (err: any) {
     throw new Error(err.response?.data.detail);
@@ -232,9 +229,10 @@ export const revokeNumber = async (data: any) => {
 };
 
 export const revokeNumberForSale = async (data: any) => {
-  const res = await axiosInstance.put(
-    "/api/v2/phone-number/revoke-for-sale",
-    data
-  );
+  const res = await instance.put("/api/v2/phone-number/revoke-for-sale", data);
   return res;
+};
+
+export const revokeAllNumber = async () => {
+  return await instance.delete("/api/v2/phone-number/unbook-all-phone-number");
 };

@@ -1,7 +1,7 @@
-import axiosInstance from "../config/apiToken";
 import { ITypeNumber } from "../types";
 import Swal from "sweetalert2";
-// import { axiosInstance } from "../config/apiStatic";
+// import { instance } from "../config/apiStatic";
+import { instance } from "./index";
 
 export const newTypeNumber = {
   id: "",
@@ -14,7 +14,7 @@ export const newTypeNumber = {
 // Get all list typeNumber
 export const getTypeNumber = async () => {
   try {
-    const res = await axiosInstance.get("/api/v2/type_number/alls");
+    const res = await instance.get("/api/v2/type_number/alls");
     return res.data;
   } catch (error) {
     console.error("Failed to fetch profile:", error);
@@ -24,7 +24,7 @@ export const getTypeNumber = async () => {
 // Get provider by id
 export const getTypeNumberByID = async (id: string) => {
   try {
-    const res = await axiosInstance.get(
+    const res = await instance.get(
       `/api/v2/type_number/by-id?type_number_id=${id}`
     );
     return res.data;
@@ -35,13 +35,13 @@ export const getTypeNumberByID = async (id: string) => {
 
 // Create new provider
 export const createTypeNumber = async (data: ITypeNumber) => {
-  const res = await axiosInstance.post("/api/v2/type_number", data);
+  const res = await instance.post("/api/v2/type_number", data);
   return res;
 };
 
 // Update provider by id
 export const updateTypeNumber = async (id: string, data: ITypeNumber) => {
-  const res = await axiosInstance.put(
+  const res = await instance.put(
     `/api/v2/type_number/type-number-by-id?type_number_id=${id}`,
     data
   );
@@ -51,7 +51,7 @@ export const updateTypeNumber = async (id: string, data: ITypeNumber) => {
 // Delete provider by id
 export const deleteTypeNumber = async (id: string) => {
   try {
-    const res = await axiosInstance.delete(`/api/v2/type_number/${id}`);
+    const res = await instance.delete(`/api/v2/type_number/${id}`);
     return res;
   } catch (error: any) {
     if (error.status === 400) {
