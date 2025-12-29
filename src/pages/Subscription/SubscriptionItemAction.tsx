@@ -4,11 +4,14 @@ import { subscriptionItemService } from "../../services/subcription";
 import { planService } from "../../services/plan";
 import Swal from "sweetalert2";
 import { useApi } from "../../hooks/useApi";
+import { PlanData } from "../Plan/interfaces/PlanForm";
 
 export interface SubscriptionItem {
   id?: number;
   subscription_id: number;
   plan_id: number;
+  plan?: PlanData; // Thêm này
+
   quantity: number;
   price_override_vnd: number;
   note: string;

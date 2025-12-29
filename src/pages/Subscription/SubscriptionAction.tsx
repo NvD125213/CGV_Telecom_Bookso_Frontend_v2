@@ -92,36 +92,6 @@ interface SlideFormProps {
 export const SlideForm = ({ value, onChange }: SlideFormProps) => {
   const [items, setItems] = useState<string[]>(value || []);
   const [input, setInput] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const updateParent = (list: string[]) => {
-    onChange(list);
-  };
-
-  const handleAddTag = () => {
-    if (input.trim() && !items.includes(input.trim())) {
-      const newItems = [...items, input.trim()];
-      setItems(newItems);
-      updateParent(newItems);
-      setInput("");
-      inputRef.current?.focus();
-    }
-  };
-
-  const handleRemoveTag = (index: number) => {
-    const newItems = items.filter((_, i) => i !== index);
-    setItems(newItems);
-    updateParent(newItems);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleAddTag();
-    } else if (e.key === "Backspace" && input === "" && items.length > 0) {
-      handleRemoveTag(items.length - 1);
-    }
-  };
 
   useEffect(() => {
     setItems(value || []);
@@ -285,10 +255,6 @@ export const SubcriptionActionPage = () => {
         : Promise.resolve(null),
     [form?.root_plan_id]
   );
-
-  // Fetch all plans cho dropdown trong modal edit
-  const { data: allPlansData } = useApi<any>(() => planService.get({}), []);
-  const allPlans = allPlansData?.data?.items || [];
 
   const { scrollRef, canScrollLeft, canScrollRight, scroll } =
     useScrollPagination<PlanData>([]);
@@ -504,11 +470,8 @@ export const SubcriptionActionPage = () => {
   const handleEditItem = (item: SubscriptionItem) => {
     setEditingItem(item);
     setItemFormData({
-      subscription_id: form.id || 0,
-      plan_id: item.plan_id,
-      quantity: item.quantity,
-      price_override_vnd: item.price_override_vnd,
-      note: item.note || "",
+      ...item, // Copy toàn bộ item, bao gồm plan
+      plan: item.plan, // Đảm bảo plan được set
     });
     setIsItemModalOpen(true);
     setItemErrors({});
@@ -598,7 +561,7 @@ export const SubcriptionActionPage = () => {
   ];
 
   const getItemColumns = () => [
-    { key: "plan_id", label: "Gói bổ sung" },
+    { key: "plan_name", label: "Gói bổ sung" },
     { key: "quantity", label: "Số lượng" },
     { key: "price_override_vnd", label: "Giá (VND)" },
     { key: "note", label: "Ghi chú" },
@@ -608,18 +571,18 @@ export const SubcriptionActionPage = () => {
       render: (item: any) => {
         return item.status === 1
           ? {
-              text: "active",
+              text: "Hoạt động",
               classname:
                 "inline-flex items-center justify-center gap-1 px-4 py-1 rounded-full font-medium text-xs bg-success-50 text-success-600 dark:bg-success-500/15 min-w-[80px]",
             }
           : item.status === 2
           ? {
-              text: "pending",
+              text: "Đang chờ",
               classname:
                 "inline-flex items-center justify-center gap-1 px-4 py-1 rounded-full font-medium text-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-orange-400 min-w-[80px]",
             }
           : {
-              text: "expired",
+              text: "Hết hạn",
               classname:
                 "inline-flex items-center justify-center gap-1 px-4 py-1 rounded-full font-medium text-xs bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500 min-w-[80px]",
             };
@@ -627,11 +590,6 @@ export const SubcriptionActionPage = () => {
     },
     { key: "is_payment", label: "Thanh toán" },
   ];
-
-  const mapPlanIdToName = (planId: number): string => {
-    const plan = allPlans.find((p: any) => p.id === planId);
-    return plan ? plan.name : "-";
-  };
 
   const [modal, setModal] = useState<boolean>(false);
   const [selectedDataSubItem, setSelectedDataSubItem] = useState<any | null>(
@@ -878,35 +836,28 @@ export const SubcriptionActionPage = () => {
 
     // Tổng minutes từ các subscription items
     const itemsMinutes = items.reduce((sum, item) => {
-      // Tìm plan tương ứng với item.plan_id
-      const plan = allPlans.find((p: any) => p.id === item.plan_id);
-      const planMinutes = plan?.minutes || 0;
-
-      // Nhân với quantity
+      const planMinutes = item.plan?.minutes || 0; // Dùng trực tiếp từ item.plan
       return sum + planMinutes * item.quantity;
     }, 0);
 
     return rootMinutes + itemsMinutes;
-  }, [planData, items, allPlans]);
+  }, [form?.total_minutes, items]); // Loại bỏ allPlans
 
   const totalAddOnPrice = useMemo(() => {
     let paid = 0;
     let unpaid = 0;
-
     items.forEach((item) => {
-      const plan = allPlans.find((p: any) => p.id === item.plan_id);
+      const plan = item.plan; // Dùng trực tiếp từ item.plan
       const price = item.price_override_vnd ?? plan?.price_vnd ?? 0;
       const totalPrice = price * item.quantity;
-
       if (item.is_payment) {
         paid += totalPrice;
       } else {
         unpaid += totalPrice;
       }
     });
-
     return { paid, unpaid };
-  }, [items, allPlans]);
+  }, [items]);
 
   return (
     <>
@@ -1190,9 +1141,10 @@ export const SubcriptionActionPage = () => {
                 data={items.map((item) => ({
                   ...item,
                   id: item.id || 0,
-                  plan_id: mapPlanIdToName(item.plan_id), // Map plan_id thành tên plan
+                  plan_name: item.plan?.name || "-", // Thêm plan_name
                   price_override_vnd:
                     item.price_override_vnd?.toLocaleString("vi-VN"),
+                  note: item.note || "-",
                   quantity: item.quantity?.toLocaleString("vi-VN"),
                   is_payment: item.is_payment
                     ? "Đã thanh toán"
@@ -1498,14 +1450,9 @@ export const SubcriptionActionPage = () => {
             name: "plan_id",
             label: "Gói cước",
             type: "text",
-            value: (() => {
-              const plan = allPlans.find(
-                (p: any) => p.id === itemFormData.plan_id
-              );
-              return plan ? plan.name : "";
-            })(),
+            value: itemFormData.plan?.name || "-", // Hiển thị tên từ plan object
             disabled: true,
-            onChange: () => {}, // Không cho phép thay đổi
+            onChange: () => {},
             error: itemErrors.plan_id,
           },
           {
