@@ -1,3 +1,4 @@
+import axios from "axios";
 import axiosInstance from "../config/apiToken";
 import { cleanQuery } from "../helper/cleanQuery";
 import { instance } from "./index";
@@ -92,12 +93,15 @@ export const getDetailCombo = async (
   const monthHeader = month_year;
 
   try {
-    const response = await axiosInstance.get("/api/v3/combo/detail", {
-      headers: {
-        list_account: listHeader,
-        month_year: monthHeader,
-      },
-    });
+    const response = await axios.get(
+      "https://api.telesip.vn/api/v1/combo/detail",
+      {
+        headers: {
+          list_account: listHeader,
+          month_year: monthHeader,
+        },
+      }
+    );
     return response.data;
   } catch (error: any) {
     console.error("Lỗi khi gọi combo detail:", error);

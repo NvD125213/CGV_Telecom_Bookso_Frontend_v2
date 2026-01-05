@@ -72,9 +72,6 @@ const ModalRenew: React.FC<PackageModalProps> = ({
 
     const renderSelect = (page: number, pkgs: any[]) => {
       const container = document.getElementById("select-container");
-      const paginationContainer = document.getElementById(
-        "pagination-container"
-      );
       const loadingContainer = document.getElementById("loading-container");
 
       if (loadingContainer) {
@@ -106,50 +103,6 @@ const ModalRenew: React.FC<PackageModalProps> = ({
           );
         }
       }
-
-      // if (paginationContainer) {
-      //   paginationContainer.innerHTML = `
-      //     <div style="display: flex; justify-content: end; align-items: center; gap: 10px; margin-top: 15px;">
-      //       <button id="prev-btn" ${page === 1 ? "disabled" : ""}
-      //         style="padding: 5px 15px; cursor: ${
-      //           page === 1 ? "not-allowed" : "pointer"
-      //         };
-      //         background: ${
-      //           page === 1 ? "#ccc" : "#3085d6"
-      //         }; color: white; border: none; border-radius: 4px;">
-      //         Trước
-      //       </button>
-      //       <span style="font-weight: bold;">Trang ${page} / ${
-      //     totalPages || 1
-      //   }</span>
-      //       <button id="next-btn" ${page === totalPages ? "disabled" : ""}
-      //         style="padding: 5px 15px; cursor: ${
-      //           page === totalPages ? "not-allowed" : "pointer"
-      //         };
-      //         background: ${
-      //           page === totalPages ? "#ccc" : "#3085d6"
-      //         }; color: white; border: none; border-radius: 4px;">
-      //         Sau
-      //       </button>
-      //     </div>
-      //   `;
-
-      //   document
-      //     .getElementById("prev-btn")
-      //     ?.addEventListener("click", async () => {
-      //       if (page > 1) {
-      //         await onLoadPage(page - 1);
-      //       }
-      //     });
-
-      //   document
-      //     .getElementById("next-btn")
-      //     ?.addEventListener("click", async () => {
-      //       if (page < totalPages) {
-      //         await onLoadPage(page + 1);
-      //       }
-      //     });
-      // }
     };
 
     const { value: confirmed } = await Swal.fire({

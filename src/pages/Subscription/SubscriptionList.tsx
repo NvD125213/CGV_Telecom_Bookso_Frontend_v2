@@ -600,8 +600,6 @@ const SubsciptionList = () => {
       return;
     }
 
-    console.log("Fetch API cho slides MỚI:", newSlides);
-
     // Fetch chỉ slide mới
     const tasks = newSlides.map((slide) => fetchDetailCombo(slide));
     const newData = await Promise.all(tasks);

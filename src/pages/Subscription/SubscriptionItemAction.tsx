@@ -133,7 +133,7 @@ const SubscriptionItemAction: React.FC<SubscriptionItemActionProps> = ({
         Swal.fire({
           icon: "success",
           title: "Thành công",
-          text: "Cập nhật subscription item thành công!",
+          text: "Cập nhật gói phụ thành công!",
         });
       } else {
         // Create
