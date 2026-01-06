@@ -539,7 +539,15 @@ const SubsciptionList = () => {
   // Hàm fetch 1 slide duy nhất - luôn dùng tháng hiện tại
   const fetchDetailCombo = async (slideUser: string) => {
     try {
-      const res = await getDetailCombo(slideUser, getCurrentMonth());
+      // Convert input string thành JSON array format
+      // Ví dụ: "CGV661, CGVMPHN" -> ["CGV661", "CGVMPHN"]
+      const slideArray = slideUser
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s !== "");
+      const slideJson = JSON.stringify(slideArray);
+
+      const res = await getDetailCombo(slideJson, getCurrentMonth());
       return {
         slide: slideUser,
         cidsData: res?.data?.cids_data ?? [],
