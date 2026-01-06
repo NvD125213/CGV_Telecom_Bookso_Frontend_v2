@@ -542,14 +542,35 @@ const SubsciptionList = () => {
       const res = await getDetailCombo(slideUser, getCurrentMonth());
       return {
         slide: slideUser,
-        viettelCID: res?.data?.cids_vt ?? 0,
+        cidsData: res?.data?.cids_data ?? [],
       };
     } catch (e) {
       return {
         slide: slideUser,
-        viettelCID: null,
+        cidsData: [],
       };
     }
+  };
+
+  const calculateViettelCID = (
+    slide: string,
+    mapData: any[],
+    cidsData: any[]
+  ): number => {
+    if (!Array.isArray(cidsData) || cidsData.length === 0) return 0;
+
+    // Tìm slide tương ứng (có xử lý dấu phẩy)
+    const slideItem = mapData.find((item) => item.slide_users.includes(slide));
+
+    if (!slideItem || !Array.isArray(slideItem.phone_numbers)) return 0;
+
+    const cidSet = new Set(
+      cidsData.filter((c) => c.vt === 1 && c.cid).map((c) => String(c.cid))
+    );
+
+    return slideItem.phone_numbers.filter((pn: any) =>
+      cidSet.has(String(pn.phone_number))
+    ).length;
   };
 
   const loadViettelCID = async () => {
@@ -587,7 +608,15 @@ const SubsciptionList = () => {
       };
 
       localStorage.setItem(CACHE_KEY, JSON.stringify(updatedCache));
-      setViettelCID(Object.values(updatedCache.data));
+      const recalculated = Object.values(updatedCache.data).map(
+        (item: any) => ({
+          ...item,
+          viettelCID: calculateViettelCID(item.slide, mapData, item.cidsData),
+        })
+      );
+
+      setViettelCID(recalculated);
+
       return;
     }
 
@@ -595,8 +624,14 @@ const SubsciptionList = () => {
     const newSlides = slideUsers.filter((slide) => !cache.data[slide]);
 
     if (newSlides.length === 0) {
-      console.log("Dùng cache hoàn toàn, không có slide mới");
-      setViettelCID(Object.values(cache.data));
+      console.log("Dùng cache + tính lại viettelCID");
+
+      const recalculated = Object.values(cache.data).map((item: any) => ({
+        ...item,
+        viettelCID: calculateViettelCID(item.slide, mapData, item.cidsData),
+      }));
+
+      setViettelCID(recalculated);
       return;
     }
 
@@ -613,8 +648,13 @@ const SubsciptionList = () => {
       timestamp: cache.timestamp || now,
     };
 
+    const recalculated = Object.values(updatedCache.data).map((item: any) => ({
+      ...item,
+      viettelCID: calculateViettelCID(item.slide, mapData, item.cidsData),
+    }));
+
     localStorage.setItem(CACHE_KEY, JSON.stringify(updatedCache));
-    setViettelCID(Object.values(updatedCache.data));
+    setViettelCID(recalculated);
   };
 
   useEffect(() => {
