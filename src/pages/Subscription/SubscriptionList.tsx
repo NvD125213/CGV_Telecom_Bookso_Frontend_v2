@@ -128,9 +128,6 @@ const SubsciptionList = () => {
     query.created_month,
   ]);
 
-  // FIX: Dùng state thay vì ref để trigger useEffect
-  const [quotaBody, setQuotaBody] = useState<any[]>([]);
-
   const fetchSubscriptions = async () => {
     setLoading(true);
     try {
@@ -148,8 +145,22 @@ const SubsciptionList = () => {
             list_account: item.slide_users || [],
           })) || [];
 
-      // FIX: Set vào state để trigger useEffect quota
-      setQuotaBody(listAccount);
+      // FIX: Fetch quota ngay tại đây với đúng listAccount và created_month hiện tại
+      // Điều này đảm bảo quota được fetch với đúng data, tránh race condition
+      if (listAccount && listAccount.length > 0) {
+        try {
+          const quotaResult = await getQuota(
+            listAccount,
+            query.created_month || getCurrentMonth()
+          );
+          setQuotaData(quotaResult.data || []);
+        } catch (quotaErr) {
+          console.error("Fetch quota failed:", quotaErr);
+          setQuotaData([]);
+        }
+      } else {
+        setQuotaData([]);
+      }
 
       setPagination(
         result.data?.meta || { page: 1, size: 10, total: 0, pages: 1 }
@@ -325,22 +336,8 @@ const SubsciptionList = () => {
 
   const [quotaData, setQuotaData] = useState<any[]>([]);
 
-  useEffect(() => {
-    const fetchQuota = async () => {
-      if (!quotaBody || quotaBody.length === 0) return;
-      try {
-        const data = await getQuota(
-          quotaBody,
-          query.created_month || getCurrentMonth()
-        );
-        // Remove filter to ensure we assume 0 usage if data exists but is 0
-        setQuotaData(data.data || []);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    fetchQuota();
-  }, [quotaBody, query.created_month]);
+  // NOTE: Quota được fetch trực tiếp trong fetchSubscriptions() để tránh race condition
+  // khi người dùng thay đổi created_month
 
   // FIX: useMemo để tránh tạo array mới mỗi lần render
   const mapData = useMemo(() => {
