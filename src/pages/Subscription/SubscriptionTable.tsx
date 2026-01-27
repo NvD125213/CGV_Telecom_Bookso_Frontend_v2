@@ -106,7 +106,7 @@ export const CustomSubscriptionTable = ({
   const { data: dataTotalPrice, isLoading: isLoadingTotalPrice } = useApi(
     () =>
       subscriptionService.getTotalPrice(quotaMonth || getCurrentMonthYear()),
-    [quotaMonth]
+    [quotaMonth],
   );
 
   const [openRows, setOpenRows] = useState<Record<string, boolean>>({});
@@ -164,20 +164,29 @@ export const CustomSubscriptionTable = ({
 
     return unpaid;
   }
-
   const data = dataRaw.map((item) => {
-    // lookup 2 mảng
     let map;
-    if (viettelCID) {
-      map = new Map(viettelCID.map((item) => [item.slide, item.viettelCID]));
+
+    if (viettelCID && viettelCID.length > 0) {
+      map = new Map(
+        viettelCID.map((v) => [
+          v.slide,
+          {
+            viettelCID: v.viettelCID,
+            count_cids: v.count_cids,
+          },
+        ]),
+      );
     }
 
     const key = item.slide_users || item.slide;
+    const vtData = map?.get(key?.trim());
 
     return {
       ...item,
       paid_amount: calculateUnpaidAmount(item),
-      viettelCID: map?.get(key.trim()) ?? null,
+      viettelCID: vtData?.viettelCID ?? null,
+      count_cids: vtData?.count_cids ?? 0, // ✅ THÊM DÒNG NÀY
     };
   });
 
@@ -377,11 +386,17 @@ export const CustomSubscriptionTable = ({
                                   </span>
                                 ) : col.key === "total_did" ? (
                                   <span className="font-medium">
-                                    {viettelCID && item.viettelCID != null
-                                      ? item.viettelCID +
-                                        " / " +
-                                        formatNumberVN(item[col.key])
-                                      : formatNumberVN(item[col.key])}
+                                    {viettelCID && item.viettelCID != null ? (
+                                      <>
+                                        {item.viettelCID}
+                                        {" / "}
+                                        {item.count_cids ?? 0}
+                                        {/* {" / "}
+                                        {formatNumberVN(item[col.key])} */}
+                                      </>
+                                    ) : (
+                                      formatNumberVN(item[col.key])
+                                    )}
                                   </span>
                                 ) : col.key === "total_minutes" ? (
                                   formatNumberVN(item[col.key])

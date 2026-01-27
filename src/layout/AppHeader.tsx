@@ -89,7 +89,7 @@ const AppHeader: React.FC = () => {
   //       const OriginalWebSocket = window.WebSocket;
   //       const PatchedWebSocket = function (
   //         url: string | URL,
-  //         protocols?: string | string[]
+  //         protocols?: string | string[],
   //       ) {
   //         const wsInstance = new OriginalWebSocket(url, protocols);
   //         wsInstance.addEventListener("message", function (event) {
@@ -112,17 +112,17 @@ const AppHeader: React.FC = () => {
   //       const sdkOptions = {
   //         enableWidget: true,
   //         sipOnly: true,
-  //         sipDomain: "tradeint.vn",
+  //         sipDomain: "demo.cgv.vn",
   //         wsServer: "wss://cgvcall.mobilesip.vn:7444",
-  //         sipPassword: "Agent@2025",
+  //         sipPassword: "ldCGV%2025!!!",
   //       };
 
   //       const cgvSdkInstance = new window.CGVSDK(
-  //         "tradeint.vn",
+  //         "demo.cgv.vn",
   //         "xxx",
-  //         "100",
+  //         "101",
   //         {},
-  //         sdkOptions
+  //         sdkOptions,
   //       );
 
   //       window.makeCall = function (phoneNumber: string) {

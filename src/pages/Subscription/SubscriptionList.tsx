@@ -138,7 +138,7 @@ const SubsciptionList = () => {
         result.data?.items
           ?.filter(
             (sub: any) =>
-              sub.slide_users && Object.keys(sub.slide_users).length > 0
+              sub.slide_users && Object.keys(sub.slide_users).length > 0,
           )
           ?.map((item: any) => ({
             sub_Id: item.id,
@@ -151,7 +151,7 @@ const SubsciptionList = () => {
         try {
           const quotaResult = await getQuota(
             listAccount,
-            query.created_month || getCurrentMonth()
+            query.created_month || getCurrentMonth(),
           );
           setQuotaData(quotaResult.data || []);
         } catch (quotaErr) {
@@ -163,7 +163,7 @@ const SubsciptionList = () => {
       }
 
       setPagination(
-        result.data?.meta || { page: 1, size: 10, total: 0, pages: 1 }
+        result.data?.meta || { page: 1, size: 10, total: 0, pages: 1 },
       );
     } catch (err: any) {
       console.error("Fetch subscriptions failed:", err.response?.data);
@@ -189,16 +189,16 @@ const SubsciptionList = () => {
     planService.get({
       size: 100,
       page: 1,
-    })
+    }),
   );
 
-  const { data: rootPlansData, isLoading: isLoadingRootPlans } = useApi(() =>
+  const { data: rootPlansData } = useApi(() =>
     planService.get({
       size: 100,
       page: 1,
       is_root: true,
       status: 1,
-    })
+    }),
   );
 
   // Map plan name
@@ -280,7 +280,7 @@ const SubsciptionList = () => {
         Swal.fire(
           "Lỗi",
           error?.response?.data?.detail || "Xảy ra lỗi",
-          "error"
+          "error",
         );
       }
     }
@@ -314,7 +314,7 @@ const SubsciptionList = () => {
             Swal.fire(
               "Đã xác nhận!",
               `Thanh toán thành công cho hợp đồng book gói.`,
-              "success"
+              "success",
             );
             fetchSubscriptions();
             navigate("/subscriptions");
@@ -325,7 +325,7 @@ const SubsciptionList = () => {
           Swal.fire(
             "Lỗi",
             error?.response?.data?.detail || "Xảy ra lỗi",
-            "error"
+            "error",
           );
         }
       }
@@ -457,7 +457,7 @@ const SubsciptionList = () => {
   const handleRenew = async (
     item: any,
     type: "renew" | "new",
-    plan_id: number
+    plan_id: number,
   ) => {
     try {
       const payload: any = {
@@ -484,7 +484,7 @@ const SubsciptionList = () => {
       if (result.isConfirmed) {
         const res = await subscriptionService.reNewSubcription(
           item.id,
-          payload
+          payload,
         );
 
         if (res.status === 200) {
@@ -509,7 +509,7 @@ const SubsciptionList = () => {
       Swal.fire(
         "Lỗi",
         error?.response?.data?.detail || "Xảy ra lỗi khi gia hạn",
-        "error"
+        "error",
       );
     }
   };
@@ -548,11 +548,13 @@ const SubsciptionList = () => {
       return {
         slide: slideUser,
         cidsData: res?.data?.cids_data ?? [],
+        count_cids: res?.data?.cids_data?.length ?? 0,
       };
     } catch (e) {
       return {
         slide: slideUser,
         cidsData: [],
+        count_cids: 0,
       };
     }
   };
@@ -560,22 +562,27 @@ const SubsciptionList = () => {
   const calculateViettelCID = (
     slide: string,
     mapData: any[],
-    cidsData: any[]
+    cidsData: any[],
   ): number => {
     if (!Array.isArray(cidsData) || cidsData.length === 0) return 0;
 
-    // Tìm slide tương ứng (có xử lý dấu phẩy)
-    const slideItem = mapData.find((item) => item.slide_users.includes(slide));
+    const normalizePhone = (phone: any): string => {
+      if (!phone) return "";
+      let p = String(phone).replace(/\D/g, ""); // Remove non-digits
+      // Chuẩn hóa đầu số 84 -> 0
+      if (p.startsWith("84") && p.length > 9) {
+        p = "0" + p.substring(2);
+      }
+      return p;
+    };
 
-    if (!slideItem || !Array.isArray(slideItem.phone_numbers)) return 0;
-
+    const rawVtOnes = cidsData.filter((c) => Number(c.vt) === 1);
     const cidSet = new Set(
-      cidsData.filter((c) => c.vt === 1 && c.cid).map((c) => String(c.cid))
+      rawVtOnes.filter((c) => c.cid).map((c) => normalizePhone(c.cid)),
     );
 
-    return slideItem.phone_numbers.filter((pn: any) =>
-      cidSet.has(String(pn.phone_number))
-    ).length;
+    // Trả về số lượng CID Viettel tìm thấy từ API (không check ngược lại với slideItem.phone_numbers nữa theo yêu cầu)
+    return cidSet.size;
   };
 
   const loadViettelCID = async () => {
@@ -617,7 +624,7 @@ const SubsciptionList = () => {
         (item: any) => ({
           ...item,
           viettelCID: calculateViettelCID(item.slide, mapData, item.cidsData),
-        })
+        }),
       );
 
       setViettelCID(recalculated);
@@ -832,7 +839,7 @@ const SubsciptionList = () => {
           if (data.type === "renew") {
             // Tìm subscription gốc để lấy root_plan_id (number)
             const originalSub = subscriptions.find(
-              (s) => s.id === renewData?.id
+              (s) => s.id === renewData?.id,
             );
 
             if (originalSub && originalSub.root_plan_id) {
@@ -842,7 +849,7 @@ const SubsciptionList = () => {
               Swal.fire(
                 "Lỗi",
                 "Không tìm thấy thông tin gói gốc để gia hạn",
-                "error"
+                "error",
               );
             }
           } else if (data.type === "new" && data.planId) {

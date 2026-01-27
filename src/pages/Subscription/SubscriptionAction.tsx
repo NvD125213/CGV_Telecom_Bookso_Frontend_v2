@@ -30,6 +30,7 @@ import CustomModal from "../../components/common/CustomModal";
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
 import DualProgress from "../../components/progress-bar/DualProgress";
+import { OutboundDidDisplay } from "./OutboundDidDisplay";
 
 export interface PhoneNumber {
   phone_number: string;
@@ -99,7 +100,7 @@ export const SlideForm = ({ value, onChange }: SlideFormProps) => {
 
   return (
     <div>
-      <div className="flex flex-wrap gap-2 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 focus-within:ring-2 focus-within:ring-indigo-500">
+      <div className="flex flex-wrap gap-2 p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 focus-within:ring-2 focus-within:ring-indigo-500">
         {/* Tags */}
         {items.map((item, index) => (
           <div
@@ -253,7 +254,7 @@ export const SubcriptionActionPage = () => {
       form?.root_plan_id
         ? planService.getChildren(form.root_plan_id)
         : Promise.resolve(null),
-    [form?.root_plan_id]
+    [form?.root_plan_id],
   );
 
   const { scrollRef, canScrollLeft, canScrollRight, scroll } =
@@ -354,7 +355,7 @@ export const SubcriptionActionPage = () => {
   useEffect(() => {
     if (form.phone_numbers && form.phone_numbers.length > 0) {
       const totalPages = Math.ceil(
-        form.phone_numbers.length / phonePagination.limit
+        form.phone_numbers.length / phonePagination.limit,
       );
       setPhonePagination((prev) => ({ ...prev, totalPages }));
     }
@@ -413,7 +414,7 @@ export const SubcriptionActionPage = () => {
           Swal.fire(
             "Thành công",
             "Tạo thông tin gói book thành công",
-            "success"
+            "success",
           );
           navigate("/subscriptions");
         }
@@ -423,7 +424,7 @@ export const SubcriptionActionPage = () => {
         Swal.fire("Lỗi", error.response.data.detail, "error");
         console.error(
           "Subscription action failed:",
-          error.response.data.detail
+          error.response.data.detail,
         );
       } else {
         Swal.fire("Lỗi", "Lỗi không xác định", "error");
@@ -503,7 +504,7 @@ export const SubcriptionActionPage = () => {
           Swal.fire(
             "Lỗi",
             error.response?.data?.detail || "Không thể xóa gói bổ sung",
-            "error"
+            "error",
           );
         }
       }
@@ -576,16 +577,16 @@ export const SubcriptionActionPage = () => {
                 "inline-flex items-center justify-center gap-1 px-4 py-1 rounded-full font-medium text-xs bg-success-50 text-success-600 dark:bg-success-500/15 min-w-[80px]",
             }
           : item.status === 2
-          ? {
-              text: "Đang chờ",
-              classname:
-                "inline-flex items-center justify-center gap-1 px-4 py-1 rounded-full font-medium text-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-orange-400 min-w-[80px]",
-            }
-          : {
-              text: "Hết hạn",
-              classname:
-                "inline-flex items-center justify-center gap-1 px-4 py-1 rounded-full font-medium text-xs bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500 min-w-[80px]",
-            };
+            ? {
+                text: "Đang chờ",
+                classname:
+                  "inline-flex items-center justify-center gap-1 px-4 py-1 rounded-full font-medium text-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-orange-400 min-w-[80px]",
+              }
+            : {
+                text: "Hết hạn",
+                classname:
+                  "inline-flex items-center justify-center gap-1 px-4 py-1 rounded-full font-medium text-xs bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500 min-w-[80px]",
+              };
       },
     },
     { key: "is_payment", label: "Thanh toán" },
@@ -593,11 +594,11 @@ export const SubcriptionActionPage = () => {
 
   const [modal, setModal] = useState<boolean>(false);
   const [selectedDataSubItem, setSelectedDataSubItem] = useState<any | null>(
-    null
+    null,
   );
   const onSelectModalSubmit = async (
     plan: PlanData,
-    subscription_id: number
+    subscription_id: number,
   ) => {
     setSelectedDataSubItem({
       data: plan,
@@ -657,7 +658,7 @@ export const SubcriptionActionPage = () => {
         const list_account = JSON.stringify(form.slide_users);
         const monthYearValue = `${selectedYear}-${selectedMonth.padStart(
           2,
-          "0"
+          "0",
         )}`;
 
         const response = await getDetailCombo(list_account, monthYearValue);
@@ -772,6 +773,8 @@ export const SubcriptionActionPage = () => {
   const itemsPerPage = 50;
 
   const totalItems = comboDetailData.cids_data?.length || 0;
+  const cids = comboDetailData.cids_data.map((item) => item.cid);
+  const cidString = cids.join(",");
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -782,13 +785,13 @@ export const SubcriptionActionPage = () => {
       Object.values(item)
         .join(" ") // nối tất cả giá trị thành chuỗi
         .toLowerCase()
-        .includes(searchTerm.toLowerCase())
+        .includes(searchTerm.toLowerCase()),
     ) || [];
 
   // Sau đó phân trang dữ liệu filteredData thay vì comboDetailData.cids_data
   const paginatedData = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   // Xử lý xác nhận số
@@ -812,7 +815,7 @@ export const SubcriptionActionPage = () => {
             Swal.fire(
               "Đã xác nhận!",
               `Thanh toán thành công cho hợp đồng book gói.`,
-              "success"
+              "success",
             );
             navigate("/subscriptions");
           } else {
@@ -822,7 +825,7 @@ export const SubcriptionActionPage = () => {
           Swal.fire(
             "Lỗi",
             error?.response?.data?.detail || "Xảy ra lỗi",
-            "error"
+            "error",
           );
         }
       }
@@ -870,20 +873,20 @@ export const SubcriptionActionPage = () => {
       {/* Hiển thị thông tin gói cước đã chọn */}
       {((!isHavingID && plan) || (isHavingID && planData)) && (
         <ComponentCard className="mb-6">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-blue-800 mb-2">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300 mb-2">
               Gói cước đã chọn
             </h3>
-            <table className="min-w-full text-sm text-left text-blue-600">
+            <table className="min-w-full text-sm text-left text-blue-600 dark:text-blue-300">
               <thead>
-                <tr className="border-b border-blue-200">
-                  <th className="px-4 py-2 font-medium text-blue-700">
+                <tr className="border-b border-blue-200 dark:border-blue-700">
+                  <th className="px-4 py-2 font-medium text-blue-700 dark:text-blue-300">
                     Tên gói
                   </th>
-                  <th className="px-4 py-2 font-medium text-blue-700">
+                  <th className="px-4 py-2 font-medium text-blue-700 dark:text-blue-300">
                     Số phút
                   </th>
-                  <th className="px-4 py-2 font-medium text-blue-700">
+                  <th className="px-4 py-2 font-medium text-blue-700 dark:text-blue-300">
                     Số CID
                   </th>
                 </tr>
@@ -1009,25 +1012,39 @@ export const SubcriptionActionPage = () => {
               </div>
             </>
           )}
+          {/* Hiển thị Outbound CID Configuration */}
+          {(plan?.outbound_did_by_route || planData?.outbound_did_by_route) && (
+            <div>
+              <OutboundDidDisplay
+                value={
+                  (plan?.outbound_did_by_route ||
+                    planData?.outbound_did_by_route) as Record<string, any>
+                }
+                title="Cấu hình Outbound CID"
+              />
+            </div>
+          )}
+          <div className="flex flex-col gap-4">
+            {isDetail && form.slide_users?.length > 0 && (
+              <div>
+                <Label>Danh sách mã trượt</Label>
+                <SlideForm
+                  value={form.slide_users as string[]}
+                  onChange={(updated) => handleChange("slide_users", updated)}
+                />
+              </div>
+            )}
+            {isHavingID && form.slide_users.length > 0 && (
+              <div>
+                <DualProgress
+                  total={totalMinutes}
+                  current={comboDetailData.total_call_out}
+                  label="Số phút gọi"
+                />
+              </div>
+            )}
+          </div>
         </div>
-        {isDetail && form.slide_users?.length > 0 && (
-          <div>
-            <Label>Danh sách mã trượt</Label>
-            <SlideForm
-              value={form.slide_users as string[]}
-              onChange={(updated) => handleChange("slide_users", updated)}
-            />
-          </div>
-        )}
-        {isHavingID && form.slide_users.length > 0 && (
-          <div>
-            <DualProgress
-              total={totalMinutes}
-              current={comboDetailData.total_call_out}
-              label="Số phút gọi"
-            />
-          </div>
-        )}
 
         {/* --- Submit --- */}
         <div className="flex justify-end gap-3 mt-8">
@@ -1046,8 +1063,8 @@ export const SubcriptionActionPage = () => {
               {loading
                 ? "Đang lưu..."
                 : isHavingID
-                ? "Xác nhận thông tin"
-                : "Xác nhận thông tin"}
+                  ? "Xác nhận thông tin"
+                  : "Xác nhận thông tin"}
             </button>
           )}
         </div>
@@ -1111,7 +1128,7 @@ export const SubcriptionActionPage = () => {
                     title="Danh sách số điện thoại"
                     data={form.phone_numbers.slice(
                       phonePagination.offset,
-                      phonePagination.offset + phonePagination.limit
+                      phonePagination.offset + phonePagination.limit,
                     )}
                     columns={phoneColumns}
                     isLoading={loading}
@@ -1159,7 +1176,7 @@ export const SubcriptionActionPage = () => {
                 role={1}
                 onEdit={(item) => {
                   const originalItem = items.find(
-                    (i) => i.id === (item as any).id
+                    (i) => i.id === (item as any).id,
                   );
                   if (originalItem) {
                     handleEditItem(originalItem);
