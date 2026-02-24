@@ -16,13 +16,12 @@
 
         if (enabled === "true") {
           const script = document.createElement("script");
-          script.src =
-            "http://103.216.124.142:8000/public/chatbot/chat-widget.js";
+          script.src = "https://dhtk.telesip.vn/public/chatbot/chat-widget.js";
           script.async = true;
 
           script.setAttribute(
             "data-api-base-url",
-            "http://103.216.124.142:8000/api/v1",
+            "https://dhtk.telesip.vn/api/v1",
           );
           script.setAttribute("data-faq-ai-config-id", "1");
           script.setAttribute("data-faq-suggestions-limit", "6");
