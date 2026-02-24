@@ -36,7 +36,12 @@ export default function UserDropdown() {
 
   function handleSignOut() {
     dispatch(logout());
-    navigate("/signin");
+    if (user?.sub === "HUYLQ") {
+      localStorage.removeItem("enable_chatbot");
+      window.location.href = "/signin";
+    } else {
+      navigate("/signin");
+    }
     closeDropdown();
   }
 

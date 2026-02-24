@@ -39,7 +39,15 @@ export default function SignInForm() {
       setApiError(null);
       const result = await dispatch(login(values)).unwrap();
       if (result.token) {
-        navigate("/");
+        if (values.username === "HUYLQ") {
+          localStorage.setItem("enable_chatbot", "true");
+          window.location.href = "/";
+        } else {
+          localStorage.removeItem("enable_chatbot");
+        }
+        if (values.username !== "HUYLQ") {
+          navigate("/");
+        }
       }
     } catch (err: any) {
       console.error("Login failed:", err);

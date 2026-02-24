@@ -1,16 +1,35 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/Logo/Artboard_2.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/fonts.css" />
+  </head>
 
-<head>
-  <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/Logo/Artboard_2.png" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="/fonts.css" />
-</head>
+  <body class="dark:bg-gray-900">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      (function () {
+        const enabled = localStorage.getItem("enable_chatbot");
 
-<body class="dark:bg-gray-900">
-  <div id="root"></div>
-  <script type="module" src="/src/main.tsx"></script>
-</body>
+        if (enabled === "true") {
+          const script = document.createElement("script");
+          script.src =
+            "http://103.216.124.142:8000/public/chatbot/chat-widget.js";
+          script.async = true;
 
+          script.setAttribute(
+            "data-api-base-url",
+            "http://103.216.124.142:8000/api/v1",
+          );
+          script.setAttribute("data-faq-ai-config-id", "1");
+          script.setAttribute("data-faq-suggestions-limit", "6");
+
+          document.body.appendChild(script);
+        }
+      })();
+    </script>
+  </body>
 </html>
