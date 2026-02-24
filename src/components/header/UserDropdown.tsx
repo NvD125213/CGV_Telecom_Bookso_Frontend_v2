@@ -36,7 +36,7 @@ export default function UserDropdown() {
 
   function handleSignOut() {
     dispatch(logout());
-    if (user?.sub === "HUYLQ") {
+    if (user?.sub === "HUYLQ" || user?.sub === "ANHNTQ") {
       localStorage.removeItem("enable_chatbot");
       window.location.href = "/signin";
     } else {

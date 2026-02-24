@@ -39,13 +39,13 @@ export default function SignInForm() {
       setApiError(null);
       const result = await dispatch(login(values)).unwrap();
       if (result.token) {
-        if (values.username === "HUYLQ") {
+        if (values.username === "HUYLQ" || values.username === "ANHNTQ") {
           localStorage.setItem("enable_chatbot", "true");
           window.location.href = "/";
         } else {
           localStorage.removeItem("enable_chatbot");
         }
-        if (values.username !== "HUYLQ") {
+        if (values.username !== "HUYLQ" && values.username !== "ANHNTQ") {
           navigate("/");
         }
       }
