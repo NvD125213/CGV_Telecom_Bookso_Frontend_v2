@@ -4,6 +4,7 @@ import AppHeader from "./AppHeader";
 import Backdrop from "./Backdrop";
 import AppSidebar from "./AppSidebar";
 import Footer from "../components/footer/footer";
+import ChatbotLoader from "../components/ChatbotLoader";
 
 const LayoutContent: React.FC = () => {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
@@ -24,6 +25,7 @@ const LayoutContent: React.FC = () => {
         </div>
       </div>
       <Footer />
+      <ChatbotLoader />
     </div>
   );
 };

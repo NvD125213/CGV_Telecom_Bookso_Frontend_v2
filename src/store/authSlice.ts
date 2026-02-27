@@ -24,7 +24,7 @@ export const login = createAsyncThunk(
   "auth/login",
   async (
     credentials: { username: string; password: string },
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       await signIn({
@@ -47,7 +47,7 @@ export const login = createAsyncThunk(
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.detail || "Login failed");
     }
-  }
+  },
 );
 
 const authSlice = createSlice({

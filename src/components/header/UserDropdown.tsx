@@ -25,23 +25,13 @@ export default function UserDropdown() {
     setIsOpen(false);
   }
 
-  function openSettings() {
-    setIsSettingsOpen(true);
-    closeDropdown();
-  }
-
   function closeSettings() {
     setIsSettingsOpen(false);
   }
 
   function handleSignOut() {
     dispatch(logout());
-    if (user?.sub === "HUYLQ" || user?.sub === "ANHNTQ") {
-      localStorage.removeItem("enable_chatbot");
-      window.location.href = "/signin";
-    } else {
-      navigate("/signin");
-    }
+    navigate("/signin");
     closeDropdown();
   }
 

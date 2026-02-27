@@ -10,25 +10,5 @@
   <body class="dark:bg-gray-900">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      (function () {
-        const enabled = localStorage.getItem("enable_chatbot");
-
-        if (enabled === "true") {
-          const script = document.createElement("script");
-          script.src = "https://dhtk.telesip.vn/public/chatbot/chat-widget.js";
-          script.async = true;
-
-          script.setAttribute(
-            "data-api-base-url",
-            "https://dhtk.telesip.vn/api/v1",
-          );
-          script.setAttribute("data-faq-ai-config-id", "1");
-          script.setAttribute("data-faq-suggestions-limit", "6");
-
-          document.body.appendChild(script);
-        }
-      })();
-    </script>
   </body>
 </html>
