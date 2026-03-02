@@ -16,7 +16,7 @@ function ensureChatbotScriptLoaded() {
   const script = document.createElement("script");
   script.id = SCRIPT_ID;
   // cache-busting để chắc chắn browser fetch/execute lần đầu
-  script.src = `${SCRIPT_BASE}?t=${Date.now()}`;
+  script.src = SCRIPT_BASE;
   script.async = true;
   script.setAttribute("data-api-base-url", "https://dhtk.telesip.vn/api/v1");
   script.setAttribute("data-faq-ai-config-id", "1");
