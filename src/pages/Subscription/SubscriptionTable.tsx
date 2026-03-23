@@ -127,7 +127,11 @@ export const CustomSubscriptionTable = ({
   const checkPayment = (data: any) => {
     const { main_sub, list_sub_plan } = data;
 
-    const allItems = [main_sub, ...(list_sub_plan || [])];
+    const activeSubPlans = (list_sub_plan || []).filter((s: any) => {
+      const st = Number(s.status);
+      return st !== 0 && st !== 2;
+    });
+    const allItems = [main_sub, ...activeSubPlans];
 
     return allItems.every((item) => item.is_payment === true);
   };
@@ -153,9 +157,11 @@ export const CustomSubscriptionTable = ({
       unpaid += item.main_sub.price || 0;
     }
 
-    // 2. List Sub Plan
+    // 2. List Sub Plan (bỏ qua status = 0 Hết hạn, = 2 Chờ duyệt)
     if (Array.isArray(item.list_sub_plan)) {
       for (const sub of item.list_sub_plan) {
+        const st = Number(sub.status);
+        if (st === 0 || st === 2) continue;
         if (sub.is_payment === true) {
           unpaid += sub.price || 0;
         }
