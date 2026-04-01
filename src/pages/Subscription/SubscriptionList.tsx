@@ -223,10 +223,10 @@ const SubsciptionList = () => {
           ? planPriceMap[item.root_plan_id] || 0
           : 0;
         const items = item.items || [];
-        // Không cộng giá gói phụ status = 0 (Hết hạn) hoặc 2 (Chờ duyệt)
+        // Chỉ cộng giá gói phụ có status = 0 hoặc 1
         const itemsTotal = items.reduce((sum: number, line: any) => {
           const st = Number(line.status);
-          if (st === 0 || st === 2) return sum;
+          if (st !== 0 && st !== 1) return sum;
           const price = line.price_override_vnd || 0;
           return sum + price;
         }, 0);
@@ -381,10 +381,10 @@ const SubsciptionList = () => {
         })
         .filter(Boolean);
 
-      // Không cộng phút/CID gói phụ status = 0 (Hết hạn) hoặc 2 (Chờ duyệt)
+      // Chỉ cộng phút/CID gói phụ có status = 0 hoặc 1
       sub.items.forEach((line: any) => {
         const st = Number(line.status);
-        if (st === 0 || st === 2) return;
+        if (st !== 0 && st !== 1) return;
         const plan = plansMap.get(line.plan_id);
         if (plan) {
           totalPlanMinutes += plan.minutes || 0;

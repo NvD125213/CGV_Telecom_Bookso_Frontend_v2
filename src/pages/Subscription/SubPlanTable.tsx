@@ -188,15 +188,18 @@ export const SubPlanRow = React.memo(
         <td className="px-3 py-2 text-[12px] text-center text-gray-600 dark:text-gray-300">
           <span className="inline-block">{formatDate(sub.created_at)}</span>
         </td>
-        {/* Confirm button */}
+        {/* Xác nhận TT: hiện khi chưa thanh toán (kể cả gói phụ status = 0); đã TT thì ẩn nút */}
         {checkPayment === false &&
           (user.sub == "VANLTT" || user.sub == "HUYLQ") && (
             <td className="px-3 py-2 text-center">
-              <button
-                onClick={onConfirm}
-                className="hover:bg-blue-50 dark:hover:bg-blue-900/20 p-1 rounded transition-colors">
-                <GiConfirmed className="h-4 w-4 text-blue-500" />
-              </button>
+              {!sub.is_payment ? (
+                <button
+                  type="button"
+                  onClick={onConfirm}
+                  className="hover:bg-blue-50 dark:hover:bg-blue-900/20 p-1 rounded transition-colors">
+                  <GiConfirmed className="h-4 w-4 text-blue-500" />
+                </button>
+              ) : null}
             </td>
           )}
       </motion.tr>
