@@ -249,7 +249,11 @@ export const SubcriptionActionPage = () => {
   });
 
   // Fetch plans với useApi
-  const { data: plansData, isLoading: isLoadingPlans } = useApi<any>(
+  const {
+    data: plansData,
+    isLoading: isLoadingPlans,
+    refetch: refetchChildPlans,
+  } = useApi<any>(
     () =>
       form?.root_plan_id
         ? planService.getChildren(form.root_plan_id)
@@ -605,6 +609,37 @@ export const SubcriptionActionPage = () => {
       subscription_id: subscription_id,
     });
     setModal(true);
+  };
+
+  const handleDeleteChildPlan = async (plan: PlanData) => {
+    const result = await Swal.fire({
+      title: "Xác nhận xóa",
+      text: `Bạn có chắc chắn muốn xóa gói "${plan.name}" không?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Xóa",
+      cancelButtonText: "Hủy",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      const res = await planService.delete(plan.id);
+      if (res.status === 200) {
+        Swal.fire("Đã xóa!", `Gói "${plan.name}" đã được xóa.`, "success");
+        await refetchChildPlans();
+      } else {
+        Swal.fire("Lỗi", "Không thể xóa gói này.", "error");
+      }
+    } catch (error: any) {
+      Swal.fire(
+        "Lỗi",
+        error?.response?.data?.detail || "Xảy ra lỗi",
+        "error",
+      );
+    }
   };
 
   // State cho combo detail
@@ -1403,6 +1438,8 @@ export const SubcriptionActionPage = () => {
                       data={plan}
                       showBadge={false}
                       onSelect={() => onSelectModalSubmit(plan, form.id)}
+                      onDelete={handleDeleteChildPlan}
+                      onDetail={() => navigate(`/plans/edit/${plan.id}`)}
                     />
                   </div>
                 ))

@@ -1,4 +1,5 @@
 import { IPhoneNumber, IReportDate } from "../types";
+import { cleanQuery } from "../helper/cleanQuery";
 import { instance } from "./index";
 
 export const initialPhoneNumber: IPhoneNumber = {
@@ -33,6 +34,15 @@ export interface IRandomNumber {
   quantity_book: number;
 }
 
+export interface IParamsListCheckPhoneNumber {
+  page: number;
+  size: number;
+  file_page: number;
+  file_size: number;
+  file_code?: string;
+  phone?: string;
+  valid_only?: boolean;
+}
 export const uploadFile = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
@@ -44,7 +54,7 @@ export const uploadFile = async (file: File) => {
       headers: {
         "Content-Type": "multipart/form-data",
       },
-    }
+    },
   );
   return res.data;
 };
@@ -60,7 +70,7 @@ export const uploadFileV2 = async (file: File) => {
       headers: {
         "Content-Type": "multipart/form-data",
       },
-    }
+    },
   );
   return res.data;
 };
@@ -101,7 +111,7 @@ export const bookingPhoneForOption = async ({
   }
 
   const res = await instance.get(
-    `/api/v2/booking/booking-phone-number-for-option?${params.toString()}`
+    `/api/v2/booking/booking-phone-number-for-option?${params.toString()}`,
   );
   return res;
 };
@@ -123,7 +133,7 @@ export const bookingPhone = async ({
 }) => {
   const res = await instance.get(
     `/api/v2/booking/booking-phone-number?filter=${search}&telco=${telco}&limit=${quantity}&offset=${offset}&type_number=${type_number}`,
-    { signal } // Transmit signal in config
+    { signal }, // Transmit signal in config
   );
   return res;
 };
@@ -135,7 +145,7 @@ export const booking = async (data: IBookPhoneNumber) => {
 
 export const bookAllNumber = async (type_id: number) => {
   return await instance.post(
-    `/api/v2/booking/book-all-by-type?type_id=${type_id}`
+    `/api/v2/booking/book-all-by-type?type_id=${type_id}`,
   );
 };
 
@@ -143,7 +153,7 @@ export const releasePhoneNumber = async (data: IReleasePhoneNumber) => {
   try {
     const res = await instance.post(
       "/api/v1/booking/release-phone-number",
-      data
+      data,
     );
     return res;
   } catch (err: any) {
@@ -190,7 +200,7 @@ export const getRandomNumber = async (params: IRandomNumber) => {
       "/api/v1/booking/booking-random-by-type-number-and-provider",
       {
         params,
-      }
+      },
     );
     return res;
   } catch (error) {
@@ -235,4 +245,25 @@ export const revokeNumberForSale = async (data: any) => {
 
 export const revokeAllNumber = async () => {
   return await instance.delete("/api/v2/phone-number/unbook-all-phone-number");
+};
+
+export const uploadCheckPhoneNumber = async (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  /** Không set Content-Type: axios tự thêm `multipart/form-data; boundary=...` */
+  return await instance.post("/api/v3/phone/upload-phone-number", formData);
+};
+
+export const listCheckPhoneNumber = async (
+  params: IParamsListCheckPhoneNumber,
+) => {
+  return await instance.get("/api/v3/phone/upload-phone-number", {
+    params: cleanQuery(params),
+  });
+};
+
+export const deleteFileNumber = async (file_code: string) => {
+  return await instance.delete(
+    `/api/v3/phone/upload-phone-number/${file_code}`,
+  );
 };

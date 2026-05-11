@@ -8,6 +8,7 @@ interface PaginationProps {
   paginationMode?: "page" | "total";
   onPageChange: (limit: number, offset: number) => void;
   onLimitChange: (limit: number) => void;
+  changeLimitOptions?: number[];
   showLimitSelector?: boolean;
 }
 
@@ -17,6 +18,7 @@ const Pagination: React.FC<PaginationProps> = ({
   totalPages,
   onPageChange,
   onLimitChange,
+  changeLimitOptions = [10, 20, 50, 100] as number[],
   showLimitSelector = true,
 }) => {
   // Với yêu cầu offset = 0, 1, 2..., currentPage = offset + 1
@@ -65,7 +67,7 @@ const Pagination: React.FC<PaginationProps> = ({
             value={limit}
             onChange={handleLimitChange}
             className="border dark:text-gray-300 border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
-            {[10, 20, 50, 100].map((value) => (
+            {changeLimitOptions.map((value) => (
               <option
                 className="dark:bg-black dark:text-white "
                 key={value}

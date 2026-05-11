@@ -36,6 +36,7 @@ import OrderList from "./pages/Order/OrderList";
 import { OrderActionPage } from "./pages/Order/OrderAction/OrderAction.tsx";
 import SettingOrder from "./pages/Order/SettingOrder.tsx";
 import LogDetail from "./pages/Logs/LogDetail";
+import ListCheckFileUpload from "./pages/PhoneNumbers/ListCheckFileUpload.tsx";
 
 function AppWithInactivityHandler() {
   const { resetInactivityTimer } = useAuth();
@@ -93,6 +94,7 @@ function AppWithInactivityHandler() {
         <Route element={<AppLayout />}>
           <Route path="/providers" element={<ProviderPage />} />
           <Route path="/upload-file" element={<UploadExcel />} />
+          <Route path="/check-file-upload" element={<ListCheckFileUpload />} />
           <Route path="/type-numbers" element={<TypeNumber />} />
           <Route path="/limit-booking" element={<LimitBooking />} />
           <Route path="/time-online" element={<SessionPage />} />

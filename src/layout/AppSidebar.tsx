@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { FaListAlt } from "react-icons/fa";
 import { CiDatabase } from "react-icons/ci";
+import { FaRegFileExcel } from "react-icons/fa6";
 import {
   // CalenderIcon,
   ChevronDownIcon,
@@ -18,6 +19,7 @@ import { useSidebar } from "../context/SidebarContext";
 import { FaCloudUploadAlt } from "react-icons/fa";
 import { FaCalendarCheck } from "react-icons/fa";
 import { SiAmazonsimpleemailservice } from "react-icons/si";
+import { FaRegFileAlt } from "react-icons/fa";
 import { RiBaseStationLine } from "react-icons/ri";
 import { BsPhone } from "react-icons/bs";
 import { useSelector } from "react-redux";
@@ -30,15 +32,11 @@ import { CiSettings } from "react-icons/ci";
 
 type NavItem = {
   name: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   path?: string;
-  subItems?: {
-    name: string;
-    path: string;
-    pro?: boolean;
-    new?: boolean;
-    icon?: React.ReactNode;
-  }[];
+  pro?: boolean;
+  new?: boolean;
+  subItems?: NavItem[];
 };
 
 const navItems: NavItem[] = [
@@ -128,10 +126,23 @@ const navItems: NavItem[] = [
         icon: <MdOutlineProductionQuantityLimits />,
       },
       {
-        name: "Upload File",
-        path: "/upload-file",
+        name: "Quản lý File",
+        icon: <FaRegFileAlt />,
         pro: false,
-        icon: <FaCloudUploadAlt />,
+        subItems: [
+          {
+            name: "Upload File",
+            path: "/upload-file",
+            pro: false,
+            icon: <FaCloudUploadAlt />,
+          },
+          {
+            name: "Danh sách File",
+            path: "/check-file-upload",
+            pro: false,
+            icon: <FaRegFileExcel />,
+          },
+        ],
       },
     ],
   },
@@ -145,6 +156,21 @@ const othersItems: NavItem[] = [
   },
 ];
 
+/** Thu/mở chiều cao theo nội dung (không cần đo scrollHeight), hoạt động ổn với submenu lồng nhau */
+const SubmenuCollapse = ({
+  isOpen,
+  children,
+}: {
+  isOpen: boolean;
+  children: React.ReactNode;
+}) => (
+  <div
+    className="grid overflow-hidden transition-[grid-template-rows] duration-300 ease-in-out"
+    style={{ gridTemplateRows: isOpen ? "1fr" : "0fr" }}>
+    <div className="min-h-0 overflow-hidden">{children}</div>
+  </div>
+);
+
 const AppSidebar: React.FC = () => {
   const {
     isExpanded,
@@ -155,83 +181,109 @@ const AppSidebar: React.FC = () => {
   } = useSidebar();
   const location = useLocation();
   const user = useSelector((state: RootState) => state.auth.user);
-  const filteredNavItems = navItems
-    .map((item) => {
-      const newItem = { ...item };
-      if (newItem.subItems) {
-        newItem.subItems = newItem.subItems.filter(
-          (subItem) =>
-            !(
-              user?.role !== 1 &&
-              (subItem.path == "/upload-file" ||
-                subItem.path == "/limit-booking" ||
-                subItem.path == "/setting-order")
-            )
-        );
-      }
-      return newItem;
-    })
-    .filter((item) => {
-      return !(
-        user?.role !== 1 &&
-        (item.path === "/providers" ||
-          item.path === "/type-numbers" ||
-          item.path == "/time-online" ||
-          item.path == "/logs" ||
-          item.path == "/setting-order")
-      );
-    });
+  const filteredNavItems = useMemo(
+    () =>
+      navItems
+        .map((item) => {
+          const newItem = { ...item };
+          if (newItem.subItems) {
+            newItem.subItems = newItem.subItems.filter((subItem) => {
+              if (user?.role === 1) return true;
+              if (subItem.name === "Quản lý File") return false;
+              if (
+                subItem.path === "/upload-file" ||
+                subItem.path === "/limit-booking" ||
+                subItem.path === "/setting-order"
+              ) {
+                return false;
+              }
+              return true;
+            });
+          }
+          return newItem;
+        })
+        .filter((item) => {
+          return !(
+            user?.role !== 1 &&
+            (item.path === "/providers" ||
+              item.path === "/type-numbers" ||
+              item.path == "/time-online" ||
+              item.path == "/logs" ||
+              item.path == "/setting-order")
+          );
+        }),
+    [user?.role],
+  );
 
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";
     index: number;
   } | null>(null);
-  const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>(
-    {}
-  );
-  const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [openNestedSubmenus, setOpenNestedSubmenus] = useState<
+    Record<string, boolean>
+  >({});
 
   // const isActive = (path: string) => location.pathname === path;
   const isActive = useCallback(
     (path: string) => location.pathname === path,
-    [location.pathname]
+    [location.pathname],
+  );
+
+  const hasActivePathInTree = useCallback(
+    (item: NavItem): boolean => {
+      if (item.path && isActive(item.path)) {
+        return true;
+      }
+      return item.subItems?.some(hasActivePathInTree) ?? false;
+    },
+    [isActive],
   );
 
   useEffect(() => {
     let submenuMatched = false;
+    const autoOpenedNestedSubmenus: Record<string, boolean> = {};
     ["main", "others"].forEach((menuType) => {
       const items = menuType === "main" ? filteredNavItems : othersItems;
       items.forEach((nav, index) => {
-        if (nav.subItems) {
-          nav.subItems.forEach((subItem) => {
-            if (isActive(subItem.path)) {
-              setOpenSubmenu({
-                type: menuType as "main" | "others",
-                index,
-              });
-              submenuMatched = true;
+        if (!nav.subItems) {
+          return;
+        }
+        const topKey = `${menuType}-${index}`;
+        const markActiveBranches = (subItems: NavItem[], parentKey: string) => {
+          subItems.forEach((subItem, subIndex) => {
+            const key = `${parentKey}-${subIndex}`;
+            if (subItem.subItems && hasActivePathInTree(subItem)) {
+              autoOpenedNestedSubmenus[key] = true;
+              markActiveBranches(subItem.subItems, key);
             }
           });
+        };
+        if (hasActivePathInTree(nav)) {
+          setOpenSubmenu({
+            type: menuType as "main" | "others",
+            index,
+          });
+          submenuMatched = true;
+          markActiveBranches(nav.subItems, topKey);
         }
       });
     });
 
     if (!submenuMatched) {
-      setOpenSubmenu(null);
+      setOpenSubmenu((prev) => (prev === null ? prev : null));
     }
-  }, [location, isActive]);
-
-  useEffect(() => {
-    if (openSubmenu !== null) {
-      const key = `${openSubmenu.type}-${openSubmenu.index}`;
-      if (subMenuRefs.current[key]) {
-        setSubMenuHeight((prevHeights) => ({
-          ...prevHeights,
-          [key]: subMenuRefs.current[key]?.scrollHeight || 0,
-        }));
+    setOpenNestedSubmenus((prev) => {
+      const prevKeys = Object.keys(prev);
+      const nextKeys = Object.keys(autoOpenedNestedSubmenus);
+      if (
+        prevKeys.length === nextKeys.length &&
+        prevKeys.every((key) => prev[key] === autoOpenedNestedSubmenus[key])
+      ) {
+        return prev;
       }
-    }
-  }, [openSubmenu]);
+      return autoOpenedNestedSubmenus;
+    });
+  }, [filteredNavItems, hasActivePathInTree, location.pathname]);
 
   const handleMenuClick = () => {
     // Đóng sidebar trên mobile khi click vào menu item
@@ -252,6 +304,91 @@ const AppSidebar: React.FC = () => {
       return { type: menuType, index };
     });
   };
+
+  const toggleNestedSubmenu = (key: string) => {
+    setOpenNestedSubmenus((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const renderNestedSubItems = (
+    subItems: NavItem[],
+    parentKey: string,
+    level = 0,
+  ) => (
+    <ul className={`mt-2 space-y-1 ${level === 0 ? "ml-9" : "ml-6"}`}>
+      {subItems.map((subItem, subIndex) => {
+        const itemKey = `${parentKey}-${subIndex}`;
+        const isSubmenuOpen = !!openNestedSubmenus[itemKey];
+        const isItemActive = subItem.path ? isActive(subItem.path) : false;
+
+        return (
+          <li key={itemKey}>
+            {subItem.subItems ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => toggleNestedSubmenu(itemKey)}
+                  className={`menu-dropdown-item w-full ${
+                    hasActivePathInTree(subItem)
+                      ? "menu-dropdown-item-active"
+                      : "menu-dropdown-item-inactive"
+                  }`}>
+                  <span>{subItem.icon}</span>
+                  {subItem.name}
+                  <ChevronDownIcon
+                    className={`ml-auto w-4 h-4 transition-transform duration-200 ${
+                      isSubmenuOpen ? "rotate-180 text-brand-500" : ""
+                    }`}
+                  />
+                </button>
+                <SubmenuCollapse isOpen={isSubmenuOpen}>
+                  {renderNestedSubItems(subItem.subItems, itemKey, level + 1)}
+                </SubmenuCollapse>
+              </>
+            ) : (
+              subItem.path && (
+                <Link
+                  to={subItem.path}
+                  onClick={handleMenuClick}
+                  className={`menu-dropdown-item ${
+                    isItemActive
+                      ? "menu-dropdown-item-active"
+                      : "menu-dropdown-item-inactive"
+                  }`}>
+                  <span>{subItem.icon}</span>
+                  {subItem.name}
+                  <span className="flex items-center gap-1 ml-auto">
+                    {subItem.new && (
+                      <span
+                        className={`ml-auto ${
+                          isItemActive
+                            ? "menu-dropdown-badge-active"
+                            : "menu-dropdown-badge-inactive"
+                        } menu-dropdown-badge`}>
+                        new
+                      </span>
+                    )}
+                    {subItem.pro && (
+                      <span
+                        className={`ml-auto ${
+                          isItemActive
+                            ? "menu-dropdown-badge-active"
+                            : "menu-dropdown-badge-inactive"
+                        } menu-dropdown-badge`}>
+                        pro
+                      </span>
+                    )}
+                  </span>
+                </Link>
+              )
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
 
   const renderMenuItems = (items: NavItem[], menuType: "main" | "others") => (
     <ul className="flex flex-col gap-4">
@@ -314,58 +451,12 @@ const AppSidebar: React.FC = () => {
             )
           )}
           {nav.subItems && (isExpanded || isHovered || isMobileOpen) && (
-            <div
-              ref={(el) => {
-                subMenuRefs.current[`${menuType}-${index}`] = el;
-              }}
-              className="overflow-hidden transition-all duration-300"
-              style={{
-                height:
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
-                    ? `${subMenuHeight[`${menuType}-${index}`]}px`
-                    : "0px",
-              }}>
-              <ul className="mt-2 space-y-1 ml-9">
-                {nav.subItems.map((subItem) => (
-                  <li key={subItem.name}>
-                    <Link
-                      to={subItem.path}
-                      onClick={handleMenuClick}
-                      className={`menu-dropdown-item ${
-                        isActive(subItem.path)
-                          ? "menu-dropdown-item-active"
-                          : "menu-dropdown-item-inactive"
-                      }`}>
-                      <span>{subItem.icon}</span>
-
-                      {subItem.name}
-                      <span className="flex items-center gap-1 ml-auto">
-                        {subItem.new && (
-                          <span
-                            className={`ml-auto ${
-                              isActive(subItem.path)
-                                ? "menu-dropdown-badge-active"
-                                : "menu-dropdown-badge-inactive"
-                            } menu-dropdown-badge`}>
-                            new
-                          </span>
-                        )}
-                        {subItem.pro && (
-                          <span
-                            className={`ml-auto ${
-                              isActive(subItem.path)
-                                ? "menu-dropdown-badge-active"
-                                : "menu-dropdown-badge-inactive"
-                            } menu-dropdown-badge`}>
-                            pro
-                          </span>
-                        )}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <SubmenuCollapse
+              isOpen={
+                openSubmenu?.type === menuType && openSubmenu?.index === index
+              }>
+              {renderNestedSubItems(nav.subItems, `${menuType}-${index}`)}
+            </SubmenuCollapse>
           )}
         </li>
       ))}
@@ -379,8 +470,8 @@ const AppSidebar: React.FC = () => {
           isExpanded || isMobileOpen
             ? "w-[290px]"
             : isHovered
-            ? "w-[290px]"
-            : "w-[90px]"
+              ? "w-[290px]"
+              : "w-[90px]"
         }
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0`}

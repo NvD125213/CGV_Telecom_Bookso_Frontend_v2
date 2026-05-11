@@ -66,10 +66,10 @@ const getColumns = (status: string) => {
         status === "available"
           ? "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500"
           : status === "booked"
-          ? "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-orange-400"
-          : status === "released"
-          ? "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500"
-          : "",
+            ? "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-orange-400"
+            : status === "released"
+              ? "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500"
+              : "",
     },
   ];
   if (status === "available") {
@@ -114,11 +114,11 @@ function PhoneNumbers() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [quantity, setQuantity] = useState(
-    Number(searchParams.get("quantity")) || 20
+    Number(searchParams.get("quantity")) || 20,
   );
   const [offset, setOffset] = useState(Number(searchParams.get("offset")) || 0);
   const [status, setStatus] = useState(
-    searchParams.get("status") || "available"
+    searchParams.get("status") || "available",
   );
   const [selectedRows, setSelectedRows] = useState<IPhoneNumber[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -142,7 +142,7 @@ function PhoneNumbers() {
   });
 
   const selectedIdsFromStore = useSelector(
-    (state: RootState) => state.selectedPhone.selectedIds
+    (state: RootState) => state.selectedPhone.selectedIds,
   );
 
   const prevSelectedIdsRef = useRef(selectedIdsFromStore);
@@ -182,7 +182,7 @@ function PhoneNumbers() {
     offset: number,
     search?: string,
     provider?: string,
-    type_number?: string
+    type_number?: string,
   ) => {
     setLoading(true);
     try {
@@ -222,12 +222,12 @@ function PhoneNumbers() {
             phone.type_name == "SODEP"
               ? "Liên hệ"
               : formatNumber(phone?.vanity_number_fee),
-        })
+        }),
       );
 
       // Update selectedRows based on selectedIds from store
       const updatedSelectedRows = formattedData.filter((phone: IPhoneNumber) =>
-        selectedIdsFromStore.includes(Number(phone.id))
+        selectedIdsFromStore.includes(Number(phone.id)),
       );
       setSelectedRows(updatedSelectedRows);
 
@@ -277,7 +277,7 @@ function PhoneNumbers() {
       offset,
       search,
       searchProvider,
-      searchTypeNumber
+      searchTypeNumber,
     ); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quantity, status, offset]);
 
@@ -303,7 +303,7 @@ function PhoneNumbers() {
     const regexPattern = term.replace(/\*/g, ".*");
     const regex = new RegExp(`^${regexPattern}$`, "i");
     return data?.phone_numbers.filter((phone) =>
-      regex.test(phone.phone_number)
+      regex.test(phone.phone_number),
     );
   };
 
@@ -317,7 +317,7 @@ function PhoneNumbers() {
           offset,
           search,
           searchProvider,
-          searchTypeNumber
+          searchTypeNumber,
         );
         setError(originalData.length === 0 ? "Không có dữ liệu" : "");
       } else {
@@ -328,7 +328,7 @@ function PhoneNumbers() {
           offset,
           search,
           searchProvider,
-          searchTypeNumber
+          searchTypeNumber,
         );
         setError(result.length === 0 ? "Không có dữ liệu" : "");
       }
@@ -381,7 +381,7 @@ function PhoneNumbers() {
       Swal.fire(
         "Thông báo",
         "Vui lòng chọn ít nhất một số để thu hồi",
-        "warning"
+        "warning",
       );
       return;
     }
@@ -389,7 +389,7 @@ function PhoneNumbers() {
     try {
       // Fetch phone details for all selected IDs from store
       const phoneDetailsPromises = selectedIdsFromStore.map((id) =>
-        getPhoneByID(Number(id))
+        getPhoneByID(Number(id)),
       );
       const phoneDetailsResponses = await Promise.all(phoneDetailsPromises);
 
@@ -408,7 +408,7 @@ function PhoneNumbers() {
             </label>
             <div class="p-3 bg-gray-50 rounded-lg border border-gray-300">
               <div class="text-sm text-gray-700">${phoneDetails.join(
-                ", "
+                ", ",
               )}</div>
             </div>
           </div>
@@ -439,7 +439,7 @@ function PhoneNumbers() {
                 </label>
                 <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
                   <div class="text-sm text-gray-700 dark:text-gray-300">${phoneDetails.join(
-                    ", "
+                    ", ",
                   )}</div>
                 </div>
               </div>
@@ -466,7 +466,7 @@ function PhoneNumbers() {
               offset,
               search,
               searchProvider,
-              searchTypeNumber
+              searchTypeNumber,
             );
             setSearchParams({});
           });
@@ -477,7 +477,7 @@ function PhoneNumbers() {
       Swal.fire(
         "Oops...",
         `${error || "Có lỗi xảy ra khi thu hồi, vui lòng thử lại!"}`,
-        "error"
+        "error",
       );
       // Reset states on error
       dispatch(resetSelectedIds());
@@ -489,7 +489,7 @@ function PhoneNumbers() {
         offset,
         search,
         searchProvider,
-        searchTypeNumber
+        searchTypeNumber,
       );
     }
   };
@@ -554,7 +554,7 @@ function PhoneNumbers() {
             "type_name",
             `${status}_data.xlsx`,
             `Danh sách số theo trạng thái: ${status}`,
-            "Nhà mạng"
+            "Nhà mạng",
           );
         } else {
           console.error("No data returned from API for status:", status);
@@ -611,7 +611,7 @@ function PhoneNumbers() {
           } catch (error) {
             console.error(
               `Error fetching data for status ${status} at page ${page}`,
-              error
+              error,
             );
           }
 
@@ -637,7 +637,7 @@ function PhoneNumbers() {
         "status",
         "all_statuses_pivot.xlsx",
         "Tổng hợp số theo nhà mạng và trạng thái",
-        "Nhà mạng"
+        "Nhà mạng",
       );
 
       await waitMinimumTime;
@@ -715,10 +715,10 @@ function PhoneNumbers() {
         <Spinner />
       ) : (
         <>
+          {isMobile ? null : (
+            <PageBreadcrumb pageTitle="Danh sách trạng thái số" />
+          )}{" "}
           <ComponentCard>
-            {isMobile ? null : (
-              <PageBreadcrumb pageTitle="Danh sách trạng thái số" />
-            )}{" "}
             <div className="space-y-6">
               <ResponsiveFilterWrapper drawerTitle="Bộ lọc trạng thái số ">
                 <div
@@ -770,7 +770,7 @@ function PhoneNumbers() {
                           offset,
                           search,
                           value,
-                          searchTypeNumber
+                          searchTypeNumber,
                         );
                       }}
                       className="dark:bg-dark-900"
@@ -800,7 +800,7 @@ function PhoneNumbers() {
                           offset,
                           search,
                           searchProvider,
-                          value
+                          value,
                         );
                       }}
                       className="dark:bg-dark-900"
