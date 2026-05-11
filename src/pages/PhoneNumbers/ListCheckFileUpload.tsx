@@ -173,7 +173,8 @@ export default function ListCheckFileUpload() {
     file_size: limit,
     file_page: offset + 1,
     phone: searchPhone.trim(),
-    valid_only: validOnly === "true",
+    /** Chỉ gửi khi lọc "chỉ hợp lệ"; không gửi `valid_only=false` — backend có thể vẫn lọc. */
+    ...(validOnly === "true" ? { valid_only: true } : {}),
   });
 
   const { mutateAsync: uploadCheckFile, isPending: isUploading } =
@@ -352,41 +353,68 @@ export default function ListCheckFileUpload() {
             {!isLoading && !isError && (
               <div className="flex items-start gap-2">
                 <div className="min-w-0 flex-1">
-                  <div className="space-y-4">
-                    {fileList.map((file, index) => (
-                      <CardUpload
-                        key={`${file.file_code}-${index}`}
-                        data={file}
-                        onDetail={(data) => {
-                          setSelectedFile(data);
-                          setOpenDrawer(true);
-                        }}
-                        onDeleted={(fileCode) => {
-                          if (selectedFile?.file_code === fileCode) {
-                            setOpenDrawer(false);
-                            setSelectedFile(undefined);
-                          }
-                        }}
-                      />
-                    ))}
-                  </div>
+                  {fileList.length === 0 ? (
+                    <div className="rounded-xl h-full border border-dashed border-gray-200 bg-gray-50/80 px-6 py-14 text-center dark:border-gray-700 dark:bg-gray-900/40">
+                      <svg
+                        className="mx-auto h-14 w-14 text-gray-300 dark:text-gray-600"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        aria-hidden="true">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.5}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      <h3 className="mt-4 text-base font-semibold text-gray-900 dark:text-white">
+                        Chưa có file nào được upload
+                      </h3>
+                      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                        Hãy chuyển sang tab Upload kiểm tra để tải file Excel
+                        hoặc CSV lên hệ thống.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-4">
+                        {fileList.map((file, index) => (
+                          <CardUpload
+                            key={`${file.file_code}-${index}`}
+                            data={file}
+                            onDetail={(data) => {
+                              setSelectedFile(data);
+                              setOpenDrawer(true);
+                            }}
+                            onDeleted={(fileCode) => {
+                              if (selectedFile?.file_code === fileCode) {
+                                setOpenDrawer(false);
+                                setSelectedFile(undefined);
+                              }
+                            }}
+                          />
+                        ))}
+                      </div>
 
-                  <div className="mt-6">
-                    <Pagination
-                      changeLimitOptions={[10, 20, 50]}
-                      limit={limit}
-                      offset={offset}
-                      totalPages={filePagination?.pages || 1}
-                      totalResults={filePagination?.total || 0}
-                      onPageChange={(_limit, newOffset) => {
-                        setOffset(newOffset);
-                      }}
-                      onLimitChange={(newLimit) => {
-                        setLimit(newLimit);
-                        setOffset(0);
-                      }}
-                    />
-                  </div>
+                      <div className="mt-6">
+                        <Pagination
+                          changeLimitOptions={[10, 20, 50]}
+                          limit={limit}
+                          offset={offset}
+                          totalPages={filePagination?.pages || 1}
+                          totalResults={filePagination?.total || 0}
+                          onPageChange={(_limit, newOffset) => {
+                            setOffset(newOffset);
+                          }}
+                          onLimitChange={(newLimit) => {
+                            setLimit(newLimit);
+                            setOffset(0);
+                          }}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <AnimatePresence initial={false} mode="wait">

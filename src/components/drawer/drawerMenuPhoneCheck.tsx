@@ -147,8 +147,8 @@ export default function DrawerMenuPhoneCheck({
       exit={{ width: 0, opacity: 0, x: 12 }}
       transition={{ duration: 0.28, ease: "easeInOut" }}
       className="sticky top-20 h-[calc(100vh-6rem)] shrink-0 self-start overflow-hidden">
-      <div className="flex h-full min-h-[260px] w-[600px] flex-col border-l border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
+      <div className="flex h-full min-h-0 w-[600px] flex-col border-l border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
           <h2 className="text-base font-semibold text-gray-900 dark:text-white">
             Danh sách số điện thoại
           </h2>
@@ -161,7 +161,7 @@ export default function DrawerMenuPhoneCheck({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-2">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={detailKey}
@@ -169,8 +169,8 @@ export default function DrawerMenuPhoneCheck({
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
               exit={{ opacity: 0, y: -8, filter: "blur(1px)" }}
               transition={{ duration: 0.22, ease: "easeOut" }}
-              className="space-y-4 text-sm">
-              <div className="mb-3 grid grid-cols-1 gap-2 bg-white p-3 dark:border-gray-800 dark:bg-gray-900/40">
+              className="flex min-h-0 flex-1 flex-col gap-4 text-sm">
+              <div className="mb-3 grid shrink-0 grid-cols-1 gap-2 bg-white p-3 dark:border-gray-800 dark:bg-gray-900/40">
                 {/* Sử dụng w-full và gap để tạo khoảng cách giữa 2 phần tử */}
                 <div className="flex w-full items-end justify-between gap-4 py-2">
                   {/* Thêm flex-1 để div này giãn ra chiếm hết không gian trống bên trái */}
@@ -215,25 +215,26 @@ export default function DrawerMenuPhoneCheck({
                   </div>
                 </div>
 
-                <div className="mb-3 flex items-center justify-between">
+                <div className="mb-3 flex shrink-0 items-center justify-between">
                   {searchTooShort && (
                     <p className="text-xs font-medium text-red-600 dark:text-red-400">
                       Vui lòng nhập tối thiểu 3 chữ số.
                     </p>
                   )}
                 </div>
+              </div>
 
                 {isLoading ? (
-                  <p className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                  <p className="shrink-0 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
                     Đang tải danh sách số điện thoại...
                   </p>
                 ) : isError ? (
-                  <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-500 dark:bg-red-900/20 dark:text-red-400">
+                  <p className="shrink-0 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-500 dark:bg-red-900/20 dark:text-red-400">
                     Có lỗi xảy ra khi tải dữ liệu.
                   </p>
                 ) : phoneRecords.length > 0 ? (
                   <div
-                    className="max-h-[560px] overflow-auto rounded-lg border border-gray-100 dark:border-gray-800"
+                    className="min-h-0 flex-1 overflow-auto rounded-lg border border-gray-100 dark:border-gray-800"
                     onScroll={handleScroll}>
                     <table className="min-w-full border-collapse text-xs">
                       <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800">
@@ -302,7 +303,7 @@ export default function DrawerMenuPhoneCheck({
                     )}
                   </div>
                 ) : (
-                  <p className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                  <p className="shrink-0 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
                     {hasActiveListFilters
                       ? hasActivePhoneFilter
                         ? "Không tìm thấy số điện thoại phù hợp với bộ lọc hiện tại."
@@ -310,7 +311,6 @@ export default function DrawerMenuPhoneCheck({
                       : "Chưa có dữ liệu số điện thoại cho file này."}
                   </p>
                 )}
-              </div>
             </motion.div>
           </AnimatePresence>
         </div>
