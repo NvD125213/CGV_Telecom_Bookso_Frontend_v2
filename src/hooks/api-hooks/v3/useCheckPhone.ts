@@ -10,6 +10,7 @@ import {
   listCheckPhoneNumber,
   uploadCheckPhoneNumber,
   deleteFileNumber,
+  listCheckedPhoneNumberData,
 } from "../../../services/phoneNumber";
 
 type UseListCheckPhoneNumberParams = Partial<IParamsListCheckPhoneNumber>;
@@ -83,12 +84,34 @@ const resolveNextPage = (lastPage: any, currentPage: number, size: number) => {
 
 export const useListCheckPhoneNumber = (
   params?: UseListCheckPhoneNumberParams,
+  options?: { enabled?: boolean },
 ) => {
   const mergedParams = { ...DEFAULT_LIST_PARAMS, ...params };
   return useQuery({
     queryKey: ["v3", "phone", "check", "list", mergedParams] as QueryKey,
     queryFn: () =>
       listCheckPhoneNumber(mergedParams as IParamsListCheckPhoneNumber),
+    enabled: options?.enabled ?? true,
+  });
+};
+
+export const useListCheckedPhoneNumberData = (
+  params?: UseListCheckPhoneNumberParams,
+  options?: { enabled?: boolean },
+) => {
+  const mergedParams = { ...DEFAULT_LIST_PARAMS, ...params };
+  return useQuery({
+    queryKey: [
+      "v3",
+      "phone",
+      "check",
+      "list",
+      "data",
+      mergedParams,
+    ] as QueryKey,
+    queryFn: () =>
+      listCheckedPhoneNumberData(mergedParams as IParamsListCheckPhoneNumber),
+    enabled: options?.enabled ?? true,
   });
 };
 
@@ -102,6 +125,34 @@ export const useListCheckPhoneNumberScroll = (
     queryKey: ["v3", "phone", "check", "scroll", mergedParams] as QueryKey,
     queryFn: ({ pageParam = 1 }) =>
       listCheckPhoneNumber({
+        ...mergedParams,
+        page: pageParam as number,
+      } as IParamsListCheckPhoneNumber),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, _allPages, lastPageParam) =>
+      resolveNextPage(lastPage, lastPageParam as number, mergedParams.size),
+    enabled: options?.enabled ?? true,
+  });
+};
+
+/** Infinite scroll cho chi tiết file trên tab "đã check" (`/upload-phone-number/data`). */
+export const useListCheckedPhoneNumberDataScroll = (
+  params?: UseListCheckPhoneNumberParams,
+  options?: { enabled?: boolean },
+) => {
+  const mergedParams = { ...DEFAULT_LIST_PARAMS, ...params };
+
+  return useInfiniteQuery({
+    queryKey: [
+      "v3",
+      "phone",
+      "check",
+      "scroll",
+      "data",
+      mergedParams,
+    ] as QueryKey,
+    queryFn: ({ pageParam = 1 }) =>
+      listCheckedPhoneNumberData({
         ...mergedParams,
         page: pageParam as number,
       } as IParamsListCheckPhoneNumber),

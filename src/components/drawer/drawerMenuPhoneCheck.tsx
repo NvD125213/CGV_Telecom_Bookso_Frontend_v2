@@ -4,7 +4,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
 import type { UploadFileCardData, UploadPhoneRecord } from "../card/CardUpload";
 
-import { useListCheckPhoneNumberScroll } from "../../hooks/api-hooks/v3/useCheckPhone";
+import {
+  useListCheckPhoneNumberScroll,
+  useListCheckedPhoneNumberDataScroll,
+} from "../../hooks/api-hooks/v3/useCheckPhone";
 
 const SEARCH_DEBOUNCE_MS = 400;
 
@@ -16,14 +19,19 @@ function digitsOnly(value: string) {
   return value.replace(/\D/g, "");
 }
 
+type DrawerListSource = "upload" | "checked-data";
+
 type DrawerMenuPhoneCheckProps = {
   onClose: () => void;
   data?: UploadFileCardData;
+  /** Tab danh sách đã check → gọi API `/upload-phone-number/data` khi tải chi tiết. */
+  listSource?: DrawerListSource;
 };
 
 export default function DrawerMenuPhoneCheck({
   onClose,
   data,
+  listSource = "upload",
 }: DrawerMenuPhoneCheckProps) {
   const [selectedRecord, setSelectedRecord] =
     useState<UploadPhoneRecord | null>(null);
@@ -51,6 +59,26 @@ export default function DrawerMenuPhoneCheck({
   const searchTooShort =
     searchPhone.length > 0 && searchPhone.length < 3;
 
+  const scrollParams = useMemo(
+    () => ({
+      file_code: data?.file_code || "",
+      phone: phoneForQuery,
+      valid_only:
+        validOnly === "all" ? undefined : validOnly === "true" ? true : false,
+    }),
+    [data?.file_code, phoneForQuery, validOnly],
+  );
+
+  const scrollEnabled = Boolean(data?.file_code);
+  const useCheckedDataApi = listSource === "checked-data";
+
+  const uploadScroll = useListCheckPhoneNumberScroll(scrollParams, {
+    enabled: scrollEnabled && !useCheckedDataApi,
+  });
+  const checkedDataScroll = useListCheckedPhoneNumberDataScroll(scrollParams, {
+    enabled: scrollEnabled && useCheckedDataApi,
+  });
+
   const {
     data: phoneListResponse,
     hasNextPage,
@@ -60,17 +88,7 @@ export default function DrawerMenuPhoneCheck({
     isFetched,
     fetchNextPage,
     isError,
-  } = useListCheckPhoneNumberScroll(
-    {
-      file_code: data?.file_code || "",
-      phone: phoneForQuery,
-      valid_only:
-        validOnly === "all" ? undefined : validOnly === "true" ? true : false,
-    },
-    {
-      enabled: Boolean(data?.file_code),
-    },
-  );
+  } = useCheckedDataApi ? checkedDataScroll : uploadScroll;
 
   /**
    * flatten toàn bộ pages

@@ -6,6 +6,7 @@ import CardUpload from "../../components/card/CardUpload";
 import DrawerMenuPhoneCheck from "../../components/drawer/drawerMenuPhoneCheck";
 import {
   useListCheckPhoneNumber,
+  useListCheckedPhoneNumberData,
   useUploadCheckPhoneNumber,
 } from "../../hooks/api-hooks/v3/useCheckPhone";
 import Pagination from "../../components/pagination/pagination";
@@ -147,6 +148,46 @@ function getUploadErrorMessage(err: unknown): string {
   return fallback;
 }
 
+function mapGroupsToUploadFileList(
+  response: { data?: { groups?: any[] } } | null | undefined,
+): UploadFileCardData[] {
+  const files = response?.data?.groups || [];
+  return files.map((file: any) => ({
+    file_code: file.file_code,
+    original_filename: file.original_filename,
+    uploaded_at: file.uploaded_at,
+    uploaded_by: file.uploaded_by,
+    total_records: file.total_records,
+    valid_records: file.valid_records,
+    invalid_records: file.invalid_records,
+
+    records:
+      file.records?.map((record: any) => ({
+        file_code: record.file_code,
+        original_filename: record.original_filename,
+        uploaded_at: record.uploaded_at,
+
+        raw: record.raw,
+        phone_full: record.phone_full,
+        phone_last9: record.phone_last9,
+
+        provider_name: record.provider_name,
+        type_number_name: record.type_number_name,
+
+        forward_number: record.forward_number,
+        length: record.length,
+
+        is_valid_candidate: record.is_valid_candidate,
+        validation_errors: record.validation_errors || [],
+
+        index: record.index,
+
+        provider_id: record.provider_id,
+        type_number_id: record.type_number_id,
+      })) || [],
+  }));
+}
+
 export default function ListCheckFileUpload() {
   const [openDrawer, setOpenDrawer] = useState(false);
   const [selectedFile, setSelectedFile] = useState<
@@ -164,62 +205,58 @@ export default function ListCheckFileUpload() {
 
   const [limit, setLimit] = useState(10);
   const [offset, setOffset] = useState(0);
+  const [checkedDataOffset, setCheckedDataOffset] = useState(0);
+
+  const listQueryParams = useMemo(
+    () => ({
+      file_size: limit,
+      file_page: offset + 1,
+      phone: searchPhone.trim(),
+      /** Chỉ gửi khi lọc "chỉ hợp lệ"; không gửi `valid_only=false` — backend có thể vẫn lọc. */
+      ...(validOnly === "true" ? { valid_only: true } : {}),
+    }),
+    [limit, offset, searchPhone, validOnly],
+  );
+
+  const checkedListQueryParams = useMemo(
+    () => ({
+      file_size: limit,
+      file_page: checkedDataOffset + 1,
+      phone: searchPhone.trim(),
+      ...(validOnly === "true" ? { valid_only: true } : {}),
+    }),
+    [limit, checkedDataOffset, searchPhone, validOnly],
+  );
 
   const {
     data: fileListResponse,
     isLoading,
     isError,
-  } = useListCheckPhoneNumber({
-    file_size: limit,
-    file_page: offset + 1,
-    phone: searchPhone.trim(),
-    /** Chỉ gửi khi lọc "chỉ hợp lệ"; không gửi `valid_only=false` — backend có thể vẫn lọc. */
-    ...(validOnly === "true" ? { valid_only: true } : {}),
+  } = useListCheckPhoneNumber(listQueryParams, { enabled: mainTab === 0 });
+
+  const {
+    data: checkedFileListResponse,
+    isLoading: isLoadingCheckedData,
+    isError: isErrorCheckedData,
+  } = useListCheckedPhoneNumberData(checkedListQueryParams, {
+    enabled: mainTab === 1,
   });
 
   const { mutateAsync: uploadCheckFile, isPending: isUploading } =
     useUploadCheckPhoneNumber();
 
+  const fileList = useMemo(
+    () => mapGroupsToUploadFileList(fileListResponse),
+    [fileListResponse],
+  );
+
+  const checkedFileList = useMemo(
+    () => mapGroupsToUploadFileList(checkedFileListResponse),
+    [checkedFileListResponse],
+  );
+
   const filePagination = fileListResponse?.data.meta?.files;
-
-  const fileList: UploadFileCardData[] = useMemo(() => {
-    const files = fileListResponse?.data?.groups || [];
-
-    return files.map((file: any) => ({
-      file_code: file.file_code,
-      original_filename: file.original_filename,
-      uploaded_at: file.uploaded_at,
-      uploaded_by: file.uploaded_by,
-      total_records: file.total_records,
-      valid_records: file.valid_records,
-      invalid_records: file.invalid_records,
-
-      records:
-        file.records?.map((record: any) => ({
-          file_code: record.file_code,
-          original_filename: record.original_filename,
-          uploaded_at: record.uploaded_at,
-
-          raw: record.raw,
-          phone_full: record.phone_full,
-          phone_last9: record.phone_last9,
-
-          provider_name: record.provider_name,
-          type_number_name: record.type_number_name,
-
-          forward_number: record.forward_number,
-          length: record.length,
-
-          is_valid_candidate: record.is_valid_candidate,
-          validation_errors: record.validation_errors || [],
-
-          index: record.index,
-
-          provider_id: record.provider_id,
-          type_number_id: record.type_number_id,
-        })) || [],
-    }));
-  }, [fileListResponse]);
+  const checkedFilePagination = checkedFileListResponse?.data.meta?.files;
 
   const resetUploadModal = useCallback(() => {
     setPendingUploadFile(null);
@@ -231,8 +268,8 @@ export default function ListCheckFileUpload() {
 
   const handleMainTabChange = useCallback(
     (_event: React.SyntheticEvent, value: number) => {
-      if (isUploading && mainTab === 1 && value === 0) return;
-      if (value === 1 && mainTab === 0) {
+      if (isUploading && mainTab === 2 && value !== 2) return;
+      if (value === 2 || mainTab === 2) {
         resetUploadModal();
       }
       setMainTab(value);
@@ -319,13 +356,19 @@ export default function ListCheckFileUpload() {
           "& .MuiTab-root": { textTransform: "none", fontWeight: 500 },
         }}>
         <Tab
-          label="Danh sách file"
-          disabled={isUploading && mainTab === 1}
+          label="Danh sách file chưa kiểm tra"
+          disabled={isUploading && mainTab === 2}
           id="check-file-tab-list"
           aria-controls="check-file-panel-list"
         />
         <Tab
-          label="Upload kiểm tra"
+          label="Danh sách file đã kiểm tra"
+          disabled={isUploading && mainTab === 2}
+          id="check-file-tab-checked-data"
+          aria-controls="check-file-panel-checked-data"
+        />
+        <Tab
+          label="Upload file kiểm tra"
           id="check-file-tab-upload"
           aria-controls="check-file-panel-upload"
         />
@@ -372,8 +415,8 @@ export default function ListCheckFileUpload() {
                         Chưa có file nào được upload
                       </h3>
                       <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                        Hãy chuyển sang tab Upload kiểm tra để tải file Excel
-                        hoặc CSV lên hệ thống.
+                        Hãy chuyển sang tab Upload kiểm tra (tab cuối) để tải
+                        file Excel hoặc CSV lên hệ thống.
                       </p>
                     </div>
                   ) : (
@@ -410,6 +453,7 @@ export default function ListCheckFileUpload() {
                           onLimitChange={(newLimit) => {
                             setLimit(newLimit);
                             setOffset(0);
+                            setCheckedDataOffset(0);
                           }}
                         />
                       </div>
@@ -433,11 +477,114 @@ export default function ListCheckFileUpload() {
       </div>
 
       <div
-        id="check-file-panel-upload"
+        id="check-file-panel-checked-data"
         role="tabpanel"
         hidden={mainTab !== 1}
-        aria-labelledby="check-file-tab-upload">
+        aria-labelledby="check-file-tab-checked-data">
         {mainTab === 1 && (
+          <>
+            {isLoadingCheckedData && (
+              <div className="py-10 text-center text-sm text-gray-500">
+                Đang tải dữ liệu...
+              </div>
+            )}
+
+            {isErrorCheckedData && (
+              <div className="py-10 text-center text-sm text-red-500">
+                Có lỗi xảy ra khi tải danh sách file đã check
+              </div>
+            )}
+
+            {!isLoadingCheckedData && !isErrorCheckedData && (
+              <div className="flex items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  {checkedFileList.length === 0 ? (
+                    <div className="rounded-xl h-full border border-dashed border-gray-200 bg-gray-50/80 px-6 py-14 text-center dark:border-gray-700 dark:bg-gray-900/40">
+                      <svg
+                        className="mx-auto h-14 w-14 text-gray-300 dark:text-gray-600"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        aria-hidden="true">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.5}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      <h3 className="mt-4 text-base font-semibold text-gray-900 dark:text-white">
+                        Chưa có file đã check
+                      </h3>
+                      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                        Dữ liệu sẽ hiển thị sau khi có file đã qua bước kiểm tra
+                        trên hệ thống.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-4">
+                        {checkedFileList.map((file, index) => (
+                          <CardUpload
+                            key={`checked-${file.file_code}-${index}`}
+                            data={file}
+                            onDetail={(data) => {
+                              setSelectedFile(data);
+                              setOpenDrawer(true);
+                            }}
+                            onDeleted={(fileCode) => {
+                              if (selectedFile?.file_code === fileCode) {
+                                setOpenDrawer(false);
+                                setSelectedFile(undefined);
+                              }
+                            }}
+                          />
+                        ))}
+                      </div>
+
+                      <div className="mt-6">
+                        <Pagination
+                          changeLimitOptions={[10, 20, 50]}
+                          limit={limit}
+                          offset={checkedDataOffset}
+                          totalPages={checkedFilePagination?.pages || 1}
+                          totalResults={checkedFilePagination?.total || 0}
+                          onPageChange={(_limit, newOffset) => {
+                            setCheckedDataOffset(newOffset);
+                          }}
+                          onLimitChange={(newLimit) => {
+                            setLimit(newLimit);
+                            setOffset(0);
+                            setCheckedDataOffset(0);
+                          }}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <AnimatePresence initial={false} mode="wait">
+                  {openDrawer && (
+                    <DrawerMenuPhoneCheck
+                      key="drawer-menu-phone-check-checked"
+                      listSource="checked-data"
+                      onClose={() => setOpenDrawer(false)}
+                      data={selectedFile}
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      <div
+        id="check-file-panel-upload"
+        role="tabpanel"
+        hidden={mainTab !== 2}
+        aria-labelledby="check-file-tab-upload">
+        {mainTab === 2 && (
           <div
             className={`mx-auto mt-2 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900 sm:p-8 w-full`}>
             <div className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-100 pb-4 dark:border-gray-800">

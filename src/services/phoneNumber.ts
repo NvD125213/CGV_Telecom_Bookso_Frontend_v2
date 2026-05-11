@@ -262,6 +262,14 @@ export const listCheckPhoneNumber = async (
   });
 };
 
+export const listCheckedPhoneNumberData = async (
+  params: IParamsListCheckPhoneNumber,
+) => {
+  return await instance.get("/api/v3/phone/upload-phone-number/data", {
+    params: cleanQuery(params),
+  });
+};
+
 export const deleteFileNumber = async (file_code: string) => {
   return await instance.delete(
     `/api/v3/phone/upload-phone-number/${file_code}`,
