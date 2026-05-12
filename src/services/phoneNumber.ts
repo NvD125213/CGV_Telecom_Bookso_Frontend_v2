@@ -43,6 +43,11 @@ export interface IParamsListCheckPhoneNumber {
   phone?: string;
   valid_only?: boolean;
 }
+
+export interface IParamsListPhoneErrors {
+  /** Lọc theo ngày (optional); backend có thể trả `date: null` trong body. */
+  date?: string | null;
+}
 export const uploadFile = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
@@ -273,5 +278,20 @@ export const listCheckedPhoneNumberData = async (
 export const deleteFileNumber = async (file_code: string) => {
   return await instance.delete(
     `/api/v3/phone/upload-phone-number/${file_code}`,
+  );
+};
+
+export const listPhoneErrors = async (
+  params?: Partial<IParamsListPhoneErrors>,
+) => {
+  return await instance.get("/api/v3/phone/phone-errors", {
+    params: cleanQuery(params ?? {}),
+  });
+};
+
+export const getPhoneErrorDownload = async (file_name: string) => {
+  return await instance.get(
+    `/api/v3/phone/phone-errors/download/${encodeURIComponent(file_name)}`,
+    { responseType: "blob" },
   );
 };

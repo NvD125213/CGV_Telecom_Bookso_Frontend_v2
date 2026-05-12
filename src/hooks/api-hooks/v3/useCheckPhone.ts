@@ -11,6 +11,9 @@ import {
   uploadCheckPhoneNumber,
   deleteFileNumber,
   listCheckedPhoneNumberData,
+  listPhoneErrors,
+  IParamsListPhoneErrors,
+  getPhoneErrorDownload,
 } from "../../../services/phoneNumber";
 
 type UseListCheckPhoneNumberParams = Partial<IParamsListCheckPhoneNumber>;
@@ -172,6 +175,9 @@ export const useUploadCheckPhoneNumber = () => {
       await queryClient.invalidateQueries({
         queryKey: ["v3", "phone", "check", "list"],
       });
+      await queryClient.invalidateQueries({
+        queryKey: ["v3", "phone", "errors", "list"],
+      });
     },
   });
 };
@@ -189,5 +195,28 @@ export const useDeleteFileNumber = () => {
         queryKey: ["v3", "phone", "check", "scroll"],
       });
     },
+  });
+};
+
+export const useListPhoneErrors = (
+  params?: Partial<IParamsListPhoneErrors>,
+  options?: { enabled?: boolean },
+) => {
+  const merged = params ?? {};
+  return useQuery({
+    queryKey: ["v3", "phone", "errors", "list", merged] as QueryKey,
+    queryFn: () => listPhoneErrors(merged),
+    enabled: options?.enabled ?? true,
+  });
+};
+
+export const useGetPhoneErrorDownload = (
+  file_name: string,
+  options?: { enabled?: boolean },
+) => {
+  return useQuery({
+    queryKey: ["v3", "phone", "errors", "download", file_name] as QueryKey,
+    queryFn: () => getPhoneErrorDownload(file_name),
+    enabled: (options?.enabled ?? true) && !!file_name,
   });
 };

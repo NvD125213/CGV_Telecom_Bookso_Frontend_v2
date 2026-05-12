@@ -8,11 +8,17 @@ import {
   useListCheckPhoneNumber,
   useListCheckedPhoneNumberData,
   useUploadCheckPhoneNumber,
+  useListPhoneErrors,
 } from "../../hooks/api-hooks/v3/useCheckPhone";
 import Pagination from "../../components/pagination/pagination";
 import Swal from "sweetalert2";
 import { Tab, Tabs } from "@mui/material";
 import axios from "axios";
+import ModalDetailFile from "../../components/modals/modalDetailFile";
+import ModalDetailFileErrorExcel from "../../components/modals/modalDetailFileErrorExcel";
+import CardError, {
+  type PhoneErrorFileCardData,
+} from "../../components/card/CardError";
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -206,6 +212,12 @@ export default function ListCheckFileUpload() {
   const [limit, setLimit] = useState(10);
   const [offset, setOffset] = useState(0);
   const [checkedDataOffset, setCheckedDataOffset] = useState(0);
+  /** Offset trang (0-based), đồng bộ với `Pagination` — phân trang client cho danh sách file lỗi. */
+  const [phoneErrorsOffset, setPhoneErrorsOffset] = useState(0);
+
+  const [phoneErrorPreviewFile, setPhoneErrorPreviewFile] = useState<
+    string | null
+  >(null);
 
   const listQueryParams = useMemo(
     () => ({
@@ -242,8 +254,33 @@ export default function ListCheckFileUpload() {
     enabled: mainTab === 1,
   });
 
+  const {
+    data: phoneErrorsResponse,
+    isLoading: isLoadingPhoneErrors,
+    isError: isErrorPhoneErrors,
+  } = useListPhoneErrors(undefined, { enabled: mainTab === 2 });
+
   const { mutateAsync: uploadCheckFile, isPending: isUploading } =
     useUploadCheckPhoneNumber();
+
+  const { phoneErrorsItemsAll, phoneErrorsTotal } = useMemo(() => {
+    const payload = phoneErrorsResponse?.data as
+      | { items?: PhoneErrorFileCardData[]; total?: number }
+      | undefined;
+    const items = payload?.items ?? [];
+    const total = payload?.total ?? items.length;
+    return { phoneErrorsItemsAll: items, phoneErrorsTotal: total };
+  }, [phoneErrorsResponse?.data]);
+
+  const phoneErrorsPageItems = useMemo(() => {
+    const start = phoneErrorsOffset * limit;
+    return phoneErrorsItemsAll.slice(start, start + limit);
+  }, [phoneErrorsItemsAll, phoneErrorsOffset, limit]);
+
+  const phoneErrorsTotalPages = Math.max(
+    1,
+    Math.ceil(phoneErrorsTotal / limit) || 1,
+  );
 
   const fileList = useMemo(
     () => mapGroupsToUploadFileList(fileListResponse),
@@ -268,8 +305,8 @@ export default function ListCheckFileUpload() {
 
   const handleMainTabChange = useCallback(
     (_event: React.SyntheticEvent, value: number) => {
-      if (isUploading && mainTab === 2 && value !== 2) return;
-      if (value === 2 || mainTab === 2) {
+      if (isUploading && mainTab === 3 && value !== 3) return;
+      if (value === 3 || mainTab === 3) {
         resetUploadModal();
       }
       setMainTab(value);
@@ -357,16 +394,23 @@ export default function ListCheckFileUpload() {
         }}>
         <Tab
           label="Danh sách file chưa kiểm tra"
-          disabled={isUploading && mainTab === 2}
+          disabled={isUploading && mainTab === 3}
           id="check-file-tab-list"
           aria-controls="check-file-panel-list"
         />
         <Tab
           label="Danh sách file đã kiểm tra"
-          disabled={isUploading && mainTab === 2}
+          disabled={isUploading && mainTab === 3}
           id="check-file-tab-checked-data"
           aria-controls="check-file-panel-checked-data"
         />
+        <Tab
+          label="Danh sách file lỗi"
+          disabled={isUploading && mainTab === 3}
+          id="check-file-tab-phone-errors"
+          aria-controls="check-file-panel-phone-errors"
+        />
+
         <Tab
           label="Upload file kiểm tra"
           id="check-file-tab-upload"
@@ -454,6 +498,7 @@ export default function ListCheckFileUpload() {
                             setLimit(newLimit);
                             setOffset(0);
                             setCheckedDataOffset(0);
+                            setPhoneErrorsOffset(0);
                           }}
                         />
                       </div>
@@ -556,6 +601,7 @@ export default function ListCheckFileUpload() {
                             setLimit(newLimit);
                             setOffset(0);
                             setCheckedDataOffset(0);
+                            setPhoneErrorsOffset(0);
                           }}
                         />
                       </div>
@@ -580,11 +626,94 @@ export default function ListCheckFileUpload() {
       </div>
 
       <div
-        id="check-file-panel-upload"
+        id="check-file-panel-phone-errors"
         role="tabpanel"
         hidden={mainTab !== 2}
-        aria-labelledby="check-file-tab-upload">
+        aria-labelledby="check-file-tab-phone-errors">
         {mainTab === 2 && (
+          <>
+            {isLoadingPhoneErrors && (
+              <div className="py-10 text-center text-sm text-gray-500">
+                Đang tải dữ liệu...
+              </div>
+            )}
+
+            {isErrorPhoneErrors && (
+              <div className="py-10 text-center text-sm text-red-500">
+                Có lỗi xảy ra khi tải danh sách file lỗi
+              </div>
+            )}
+
+            {!isLoadingPhoneErrors && !isErrorPhoneErrors && (
+              <div className="min-w-0 flex-1">
+                {phoneErrorsItemsAll.length === 0 ? (
+                  <div className="rounded-xl h-full border border-dashed border-gray-200 bg-gray-50/80 px-6 py-14 text-center dark:border-gray-700 dark:bg-gray-900/40">
+                    <svg
+                      className="mx-auto h-14 w-14 text-gray-300 dark:text-gray-600"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      aria-hidden="true">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                    <h3 className="mt-4 text-base font-semibold text-gray-900 dark:text-white">
+                      Chưa có file lỗi
+                    </h3>
+                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                      Các file export lỗi (nếu có) sẽ hiển thị tại đây.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-4">
+                      {phoneErrorsPageItems.map((row) => (
+                        <CardError
+                          key={row.file_name}
+                          data={row}
+                          onViewDetail={(item) =>
+                            setPhoneErrorPreviewFile(item.file_name)
+                          }
+                        />
+                      ))}
+                    </div>
+
+                    <div className="mt-6">
+                      <Pagination
+                        changeLimitOptions={[10, 20, 50]}
+                        limit={limit}
+                        offset={phoneErrorsOffset}
+                        totalPages={phoneErrorsTotalPages}
+                        totalResults={phoneErrorsTotal}
+                        onPageChange={(_l, newOffset) => {
+                          setPhoneErrorsOffset(newOffset);
+                        }}
+                        onLimitChange={(newLimit) => {
+                          setLimit(newLimit);
+                          setOffset(0);
+                          setCheckedDataOffset(0);
+                          setPhoneErrorsOffset(0);
+                        }}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      <div
+        id="check-file-panel-upload"
+        role="tabpanel"
+        hidden={mainTab !== 3}
+        aria-labelledby="check-file-tab-upload">
+        {mainTab === 3 && (
           <div
             className={`mx-auto mt-2 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900 sm:p-8 w-full`}>
             <div className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-100 pb-4 dark:border-gray-800">
@@ -634,62 +763,6 @@ export default function ListCheckFileUpload() {
               )}
             </div>
 
-            {uploadInvalidRows && uploadInvalidRows.length > 0 && (
-              <div
-                className="mt-6 rounded-xl border border-red-200 bg-red-50/80 dark:border-red-900/50 dark:bg-red-950/20"
-                role="region"
-                aria-label="Danh sách dòng không hợp lệ">
-                <div className="border-b border-red-200 px-3 py-2 dark:border-red-900/40">
-                  <p className="text-sm font-semibold text-red-800 dark:text-red-200">
-                    Invalid data — các dòng cần chỉnh sửa
-                  </p>
-                  <p className="mt-0.5 text-xs text-red-700/90 dark:text-red-300/90">
-                    {uploadInvalidRows.length} dòng trong file không hợp lệ.
-                  </p>
-                </div>
-                <div className="max-h-60 overflow-auto p-2">
-                  <table className="w-full border-collapse text-left text-xs">
-                    <thead className="sticky top-0 z-[1] bg-red-100/90 dark:bg-red-950/80">
-                      <tr className="text-red-900 dark:text-red-200">
-                        <th className="whitespace-nowrap px-2 py-2 font-medium">
-                          Dòng (Excel)
-                        </th>
-                        <th className="whitespace-nowrap px-2 py-2 font-medium">
-                          Số điện thoại
-                        </th>
-                        <th className="px-2 py-2 font-medium">Chi tiết lỗi</th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-gray-800 dark:text-gray-200">
-                      {uploadInvalidRows.map((item, idx) => (
-                        <tr
-                          key={`${item.row}-${item.phone}-${idx}`}
-                          className="border-t border-red-100 dark:border-red-900/30">
-                          <td className="align-top px-2 py-2 font-mono font-medium">
-                            {item.row}
-                          </td>
-                          <td className="align-top px-2 py-2 font-mono">
-                            {item.phone || "—"}
-                          </td>
-                          <td className="align-top px-2 py-2">
-                            {item.errors.length > 0 ? (
-                              <ul className="list-inside list-disc space-y-0.5">
-                                {item.errors.map((line, i) => (
-                                  <li key={i}>{line}</li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <span className="text-gray-500">—</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
             <div className="mt-8 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button
                 type="button"
@@ -709,6 +782,18 @@ export default function ListCheckFileUpload() {
           </div>
         )}
       </div>
+
+      <ModalDetailFile
+        open={Boolean(uploadInvalidRows && uploadInvalidRows.length > 0)}
+        onClose={() => setUploadInvalidRows(null)}
+        rows={uploadInvalidRows ?? []}
+      />
+
+      <ModalDetailFileErrorExcel
+        open={!!phoneErrorPreviewFile}
+        fileName={phoneErrorPreviewFile}
+        onClose={() => setPhoneErrorPreviewFile(null)}
+      />
     </div>
   );
 }
