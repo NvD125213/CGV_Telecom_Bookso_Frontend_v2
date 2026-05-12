@@ -7,7 +7,7 @@ import { useIsMobile } from "../../hooks/useScreenSize";
 import {
   subscriptionService,
   getQuota,
-  getDetailCombo,
+  // getDetailCombo, // VT_CID — tạm tắt (quota combo theo slide)
 } from "../../services/subcription";
 import { useApi } from "../../hooks/useApi";
 import { useQuerySync } from "../../hooks/useQueryAsync";
@@ -522,6 +522,7 @@ const SubsciptionList = () => {
     loadRenewPlans(1);
   }, []);
 
+  /* ========== VT_CID / viettelCID — tạm tắt ==========
   // Load quota viettel theo tháng
   const CACHE_TIME = 5 * 60 * 1000;
   const CACHE_KEY = "viettelCIDCache";
@@ -698,6 +699,7 @@ const SubsciptionList = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slideUsers.length, isCurrentMonth]); // Re-run khi số lượng slideUsers hoặc isCurrentMonth thay đổi
+  ========== /VT_CID ========== */
 
   return (
     <>
@@ -800,7 +802,8 @@ const SubsciptionList = () => {
           ) : (
             <>
               <CustomSubscriptionTable
-                viettelCID={isCurrentMonth ? viettelCID : undefined}
+                // VT_CID — tạm tắt
+                // viettelCID={isCurrentMonth ? viettelCID : undefined}
                 dataRaw={mapData}
                 isLoading={loading || isLoadingPlans}
                 role={user.role}

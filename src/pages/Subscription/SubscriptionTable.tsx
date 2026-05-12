@@ -60,7 +60,8 @@ const StatusBadge = ({ status }: { status: number }) => {
 
 export const CustomSubscriptionTable = ({
   dataRaw,
-  viettelCID,
+  // VT_CID — tạm tắt
+  // viettelCID,
   isLoading,
   onEdit,
   onDelete,
@@ -72,7 +73,8 @@ export const CustomSubscriptionTable = ({
   quotaMonth,
 }: {
   dataRaw: any[];
-  viettelCID?: any[];
+  /** VT_CID — tạm tắt */
+  // viettelCID?: any[];
   isLoading: boolean;
   onEdit?: (item: any) => void;
   onDelete?: (id: string | number) => void;
@@ -88,7 +90,8 @@ export const CustomSubscriptionTable = ({
     { key: "customer_name", label: "Khách hàng" },
     { key: "username", label: "Sales" },
     { key: "status", label: "Trạng thái" },
-    { key: "total_did", label: viettelCID ? "VT_CID / CID" : "CID" },
+    // { key: "total_did", label: viettelCID ? "VT_CID / CID" : "CID" },
+    { key: "total_did", label: "CID" },
     { key: "total_minutes", label: "Số phút" },
     { key: "created_at", label: "Ngày tạo" },
     { key: "progress", label: "Lưu lượng cuộc gọi" },
@@ -171,6 +174,7 @@ export const CustomSubscriptionTable = ({
     return unpaid;
   }
   const data = dataRaw.map((item) => {
+    /* VT_CID — tạm tắt
     let map;
 
     if (viettelCID && viettelCID.length > 0) {
@@ -187,12 +191,13 @@ export const CustomSubscriptionTable = ({
 
     const key = item.slide_users || item.slide;
     const vtData = map?.get(key?.trim());
+    */
 
     return {
       ...item,
       paid_amount: calculateUnpaidAmount(item),
-      viettelCID: vtData?.viettelCID ?? null,
-      count_cids: vtData?.count_cids ?? 0, // ✅ THÊM DÒNG NÀY
+      // viettelCID: vtData?.viettelCID ?? null,
+      // count_cids: vtData?.count_cids ?? 0,
     };
   });
 
@@ -392,17 +397,18 @@ export const CustomSubscriptionTable = ({
                                   </span>
                                 ) : col.key === "total_did" ? (
                                   <span className="font-medium">
+                                    {/* VT_CID — tạm tắt
                                     {viettelCID && item.viettelCID != null ? (
                                       <>
                                         {item.viettelCID}
                                         {" / "}
                                         {item.count_cids ?? 0}
-                                        {/* {" / "}
-                                        {formatNumberVN(item[col.key])} */}
                                       </>
                                     ) : (
                                       formatNumberVN(item[col.key])
                                     )}
+                                    */}
+                                    {formatNumberVN(item[col.key])}
                                   </span>
                                 ) : col.key === "total_minutes" ? (
                                   formatNumberVN(item[col.key])
