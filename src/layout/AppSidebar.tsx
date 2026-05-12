@@ -156,6 +156,19 @@ const othersItems: NavItem[] = [
   },
 ];
 
+/** Tạm ẩn route khỏi sidebar — bỏ comment hoặc xóa path khi bật lại menu. */
+const SIDEBAR_HIDDEN_PATHS = new Set<string>(["/upload-file"]);
+
+function stripHiddenPathsFromNav(items: NavItem[]): NavItem[] {
+  return items
+    .filter((n) => !n.path || !SIDEBAR_HIDDEN_PATHS.has(n.path))
+    .map((n) =>
+      n.subItems?.length
+        ? { ...n, subItems: stripHiddenPathsFromNav(n.subItems) }
+        : n,
+    );
+}
+
 /** Thu/mở chiều cao theo nội dung (không cần đo scrollHeight), hoạt động ổn với submenu lồng nhau */
 const SubmenuCollapse = ({
   isOpen,
@@ -187,7 +200,7 @@ const AppSidebar: React.FC = () => {
         .map((item) => {
           const newItem = { ...item };
           if (newItem.subItems) {
-            newItem.subItems = newItem.subItems.filter((subItem) => {
+            const roleFiltered = newItem.subItems.filter((subItem) => {
               if (user?.role === 1) return true;
               if (subItem.name === "Quản lý File") return false;
               if (
@@ -199,6 +212,7 @@ const AppSidebar: React.FC = () => {
               }
               return true;
             });
+            newItem.subItems = stripHiddenPathsFromNav(roleFiltered);
           }
           return newItem;
         })
