@@ -12,6 +12,8 @@ import { useDeleteFileNumber } from "../../hooks/api-hooks/v3/useCheckPhone";
 export type UploadPhoneRecord = {
   file_code: string;
   original_filename: string;
+  brandname_name: string;
+  brandname_id: number;
   uploaded_at: string;
   raw: string;
   phone_full: string;

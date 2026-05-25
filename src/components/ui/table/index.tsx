@@ -1,8 +1,9 @@
-import { ReactNode, MouseEvent } from "react";
+import { ReactNode, MouseEvent, CSSProperties } from "react";
 // Props for Table
 interface TableProps {
   children: ReactNode;
   className?: string;
+  style?: CSSProperties;
 }
 
 // Props for TableHeader
@@ -37,8 +38,12 @@ interface TableCellProps {
 }
 
 // Table Component
-const Table: React.FC<TableProps> = ({ children, className }) => {
-  return <table className={`min-w-full z-0 ${className}`}>{children}</table>;
+const Table: React.FC<TableProps> = ({ children, className, style }) => {
+  return (
+    <table className={`min-w-full z-0 ${className ?? ""}`} style={style}>
+      {children}
+    </table>
+  );
 };
 
 // TableHeader Component

@@ -185,7 +185,7 @@ const ModalDetailReport = ({
         },
       };
     },
-    [option, optionType, darkMode, chartHeight]
+    [option, optionType, darkMode, chartHeight],
   );
 
   const fetchData = useCallback(async () => {
@@ -238,7 +238,7 @@ const ModalDetailReport = ({
         options: getResponsiveChartOptions(
           options,
           rawData.categories,
-          rawData.values
+          rawData.values,
         ),
       });
     }

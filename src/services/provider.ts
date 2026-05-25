@@ -1,5 +1,4 @@
 import { IProvider } from "../types";
-import axiosInstance from "../config/apiToken";
 import Swal from "sweetalert2";
 import { instance } from "./index";
 
@@ -28,7 +27,7 @@ export const getProviders = async () => {
 export const getProviderById = async (id: string) => {
   try {
     const res = await instance.get(
-      `/api/v2/provider/provider-by-id?provider_id=${id}`
+      `/api/v2/provider/provider-by-id?provider_id=${id}`,
     );
     return res.data;
   } catch (error: any) {
@@ -46,7 +45,7 @@ export const createProvider = async (data: IProvider) => {
 export const updateProvider = async (id: string, data: IProvider) => {
   const res = await instance.put(
     `/api/v2/provider/provider-by-id?provider_id=${id}`,
-    data
+    data,
   );
   return res;
 };
@@ -65,7 +64,7 @@ export const deleteProvider = async (id: string) => {
         Swal.fire(
           "Oops...",
           "Đang tồn tại số điện thoại sử dụng nhà cung cấp này ",
-          "error"
+          "error",
         );
       }
     } else {

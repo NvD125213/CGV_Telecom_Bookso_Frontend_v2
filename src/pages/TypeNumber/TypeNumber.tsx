@@ -70,7 +70,7 @@ const TypeNumberPages = () => {
           ...item,
           booking_expiration: convertSecondsToTime(item.booking_expiration),
           weekend_booking_expiration: convertSecondsToTime(
-            item.weekend_booking_expiration
+            item.weekend_booking_expiration,
           ),
         }));
         setTypes(formatData);

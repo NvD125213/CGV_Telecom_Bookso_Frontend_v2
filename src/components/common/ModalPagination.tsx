@@ -103,7 +103,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
   const selectedIdsFromStore = useSelector(
-    (state: RootState) => state.selectedPhone.selectedIds
+    (state: RootState) => state.selectedPhone.selectedIds,
   );
 
   // Tạo object chứa tất cả các tham số để so sánh
@@ -137,7 +137,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
       type_number,
       username,
       apiSearchParams,
-    ]
+    ],
   );
 
   // Kiểm tra xem có cần fetch data hay không
@@ -214,7 +214,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
     } catch (error: any) {
       console.log("Lỗi khi lấy dữ liệu:", error.response?.data?.detail);
       setError(
-        error.response?.data?.detail || "Đã xảy ra lỗi, vui lòng thử lại."
+        error.response?.data?.detail || "Đã xảy ra lỗi, vui lòng thử lại.",
       );
     } finally {
       setIsLoading(false);
@@ -332,7 +332,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
     try {
       // Fetch phone details for all selected IDs from store
       const phoneDetailsPromises = selectedIdsFromStore.map((id) =>
-        getPhoneByID(Number(id))
+        getPhoneByID(Number(id)),
       );
       const phoneDetailsResponses = await Promise.all(phoneDetailsPromises);
 
@@ -351,7 +351,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
             </label>
             <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
               <div class="text-sm text-gray-700 dark:text-gray-300">${phoneDetails.join(
-                ", "
+                ", ",
               )}</div>
             </div>
           </div>
@@ -382,7 +382,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
                 </label>
                 <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
                   <div class="text-sm text-gray-700 dark:text-gray-300">${phoneDetails.join(
-                    ", "
+                    ", ",
                   )}</div>
                 </div>
               </div>
@@ -416,7 +416,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
       Swal.fire(
         "Oops...",
         `${error || "Có lỗi xảy ra khi thu hồi, vui lòng thử lại!"}`,
-        "error"
+        "error",
       );
       // Reset states on error
       dispatch(resetSelectedIds());

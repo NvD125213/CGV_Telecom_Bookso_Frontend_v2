@@ -8,6 +8,7 @@ import { getProviders } from "../../services/provider";
 import { getTypeNumber } from "../../services/typeNumber";
 import Swal from "sweetalert2";
 import { formatNumber, parseNumber } from "../../helper/formatCurrencyVND";
+import { useBrandNameList } from "../../hooks/api-hooks/v3/useBrandname";
 
 interface PhoneNumberProps {
   role?: number;
@@ -47,11 +48,18 @@ const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
     service: getTypeNumber,
   });
 
+  const { data: brandNameListData } = useBrandNameList(
+    { page: 1, size: 100, is_active: true },
+    { enabled: isOpen },
+  );
+
+  const brandNames = brandNameListData?.items ?? [];
+
   const setValue = (name: keyof IPhoneNumber, value: string | number) => {
     let finalValue: string | number = value;
     if (
       ["installation_fee", "maintenance_fee", "vanity_number_fee"].includes(
-        name
+        name,
       )
     ) {
       const stringValue = value.toString().replace(/\./g, "");
@@ -72,7 +80,7 @@ const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
   const checkIDSelect = () => {
     if (phone.provider_name && providers.length) {
       const provider = providers.find(
-        (p) => p.name.toLowerCase() === phone.provider_name?.toLowerCase()
+        (p) => p.name.toLowerCase() === phone.provider_name?.toLowerCase(),
       );
       if (provider) {
         setValue("provider_id", Number(provider.id));
@@ -80,17 +88,33 @@ const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
     }
     if (phone.type_name && typeNumbers.length) {
       const typeNumber = typeNumbers.find(
-        (t) => t.name.toLowerCase() === phone.type_name?.toLowerCase()
+        (t) => t.name.toLowerCase() === phone.type_name?.toLowerCase(),
       );
       if (typeNumber) {
         setValue("type_id", Number(typeNumber.id));
+      }
+    }
+    if (!phone.brandname_id && phone.brandname_name && brandNames.length) {
+      const brand = brandNames.find(
+        (b) => b.name.toLowerCase() === phone.brandname_name?.toLowerCase(),
+      );
+      if (brand) {
+        setValue("brandname_id", brand.id);
       }
     }
   };
 
   useEffect(() => {
     checkIDSelect();
-  }, [providers, typeNumbers, phone.provider_name, phone.type_name]);
+  }, [
+    providers,
+    typeNumbers,
+    brandNames,
+    phone.provider_name,
+    phone.type_name,
+    phone.brandname_id,
+    phone.brandname_name,
+  ]);
 
   const handleSubmit = async () => {
     try {
@@ -118,7 +142,7 @@ const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
           label: "Số điện thoại",
           type: "text",
           value: phone.phone_number || "",
-          onChange: (value) => setValue("phone_number", value),
+          onChange: (value) => setValue("phone_number", value as any),
           error: errors.phone_number,
           disabled: true,
         },
@@ -127,7 +151,7 @@ const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
           label: "Trạng thái",
           type: "text",
           value: phone.status || "Không có",
-          onChange: (value) => setValue("status", value),
+          onChange: (value) => setValue("status", value as any),
           disabled: true,
           error: errors.status,
         },
@@ -144,7 +168,7 @@ const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
               key: provider.id,
             })),
           ],
-          onChange: (value) => setValue("provider_id", value),
+          onChange: (value) => setValue("provider_id", value as any),
           error: errors.provider_id,
         },
         {
@@ -160,15 +184,48 @@ const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
               key: type.id,
             })),
           ],
-          onChange: (value) => setValue("type_id", value),
+          onChange: (value) => setValue("type_id", value as any),
           error: errors.type_id,
+        },
+        {
+          name: "brandname_id",
+          label: "Định danh",
+          type: "select",
+          value: phone.brandname_id ?? "",
+          options: [
+            { label: "Chọn định danh", value: "" },
+            ...brandNames.map((brand) => ({
+              label: brand.name,
+              value: brand.id,
+            })),
+          ],
+          onChange: (value) => {
+            if (value === "" || value == null) {
+              setPhone((prev) => ({
+                ...prev,
+                brandname_id: undefined,
+                brandname_name: undefined,
+              }));
+              setErrors((prev) => ({ ...prev, brandname_id: undefined }));
+              return;
+            }
+            const id = Number(value);
+            const brand = brandNames.find((b) => b.id === id);
+            setPhone((prev) => ({
+              ...prev,
+              brandname_id: id,
+              brandname_name: brand?.name,
+            }));
+            setErrors((prev) => ({ ...prev, brandname_id: undefined }));
+          },
+          error: errors.brandname_id,
         },
         {
           name: "installation_fee",
           label: "Phí yêu cầu (đ)",
           type: "text", // Đổi sang text
           value: formatNumber(phone.installation_fee?.toString() || "0"),
-          onChange: (value) => setValue("installation_fee", value),
+          onChange: (value) => setValue("installation_fee", value as any),
           error: errors.installation_fee,
         },
         {
@@ -176,7 +233,7 @@ const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
           label: "Phí duy trì (đ)",
           type: "text", // Đổi sang text
           value: formatNumber(phone.maintenance_fee?.toString() || "0"),
-          onChange: (value) => setValue("maintenance_fee", value),
+          onChange: (value) => setValue("maintenance_fee", value as any),
           error: errors.maintenance_fee,
         },
         {
@@ -184,7 +241,7 @@ const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
           label: "Phí số đẹp (đ)",
           type: "text", // Đổi sang text
           value: formatNumber(phone.vanity_number_fee?.toString() || "0"),
-          onChange: (value) => setValue("vanity_number_fee", value),
+          onChange: (value) => setValue("vanity_number_fee", value as any),
           error: errors.vanity_number_fee,
         },
       ]}

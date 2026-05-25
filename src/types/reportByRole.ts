@@ -13,11 +13,14 @@ export interface IReportDetail extends IReportRole {
   status: string;
   installation_fee: number;
   vanity_number_fee: number;
+  branch_name: string;
   phone_number: string;
   booked_until: string;
   active: number;
   maintenance_fee: number;
   provider_name: string;
+  brandname_name: string;
+  brandname_id: number;
   type_name: string;
   booked_at?: string;
   user_name_release?: string;

@@ -56,8 +56,7 @@ export default function DrawerMenuPhoneCheck({
         ? trimmedDebounced
         : "";
 
-  const searchTooShort =
-    searchPhone.length > 0 && searchPhone.length < 3;
+  const searchTooShort = searchPhone.length > 0 && searchPhone.length < 3;
 
   const scrollParams = useMemo(
     () => ({
@@ -242,93 +241,95 @@ export default function DrawerMenuPhoneCheck({
                 </div>
               </div>
 
-                {isLoading ? (
-                  <p className="shrink-0 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                    Đang tải danh sách số điện thoại...
-                  </p>
-                ) : isError ? (
-                  <p className="shrink-0 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-500 dark:bg-red-900/20 dark:text-red-400">
-                    Có lỗi xảy ra khi tải dữ liệu.
-                  </p>
-                ) : phoneRecords.length > 0 ? (
-                  <div
-                    className="min-h-0 flex-1 overflow-auto rounded-lg border border-gray-100 dark:border-gray-800"
-                    onScroll={handleScroll}>
-                    <table className="min-w-full border-collapse text-xs">
-                      <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800">
-                        <tr className="text-left text-gray-500 dark:text-gray-300">
-                          <th className="px-3 py-2 font-medium">Số</th>
-                          <th className="px-3 py-2 font-medium">Nhà mạng</th>
-                          <th className="px-3 py-2 font-medium">Loại</th>
-                          <th className="px-3 py-2 font-medium">Trạng thái</th>
-                          <th className="px-3 py-2 font-medium">Hành động</th>
+              {isLoading ? (
+                <p className="shrink-0 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                  Đang tải danh sách số điện thoại...
+                </p>
+              ) : isError ? (
+                <p className="shrink-0 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-500 dark:bg-red-900/20 dark:text-red-400">
+                  Có lỗi xảy ra khi tải dữ liệu.
+                </p>
+              ) : phoneRecords.length > 0 ? (
+                <div
+                  className="min-h-0 flex-1 overflow-auto rounded-lg border border-gray-100 dark:border-gray-800"
+                  onScroll={handleScroll}>
+                  <table className="min-w-full border-collapse text-xs">
+                    <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800">
+                      <tr className="text-left text-gray-500 dark:text-gray-300">
+                        <th className="px-3 py-2 font-medium">Số</th>
+                        <th className="px-3 py-2 font-medium">Nhà mạng</th>
+                        <th className="px-3 py-2 font-medium">Loại</th>
+                        <th className="px-3 py-2 font-medium">Định danh</th>
+                        <th className="px-3 py-2 font-medium">Trạng thái</th>
+                        <th className="px-3 py-2 font-medium">Hành động</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {phoneRecords.map((record) => (
+                        <tr
+                          key={`${record.file_code}-${record.index}-${record.phone_full}`}
+                          className="border-t border-gray-100 text-gray-700 dark:border-gray-800 dark:text-gray-200">
+                          <td className="px-3 py-2 font-mono">
+                            {record.phone_full}
+                          </td>
+
+                          <td className="px-3 py-2">{record.provider_name}</td>
+
+                          <td className="px-3 py-2">
+                            {record.type_number_name}
+                          </td>
+                          <td className="px-3 py-2">
+                            {record.brandname_name || "Chưa có"}
+                          </td>
+
+                          <td className="px-3 py-2">
+                            {record.is_valid_candidate ? (
+                              <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                                <BsCheckCircleFill className="text-[12px]" />
+                                Hợp lệ
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400">
+                                <BsXCircleFill className="text-[12px]" />
+                                Không hợp lệ
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedRecord(record)}
+                              className="rounded-md px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-900/30">
+                              Chi tiết
+                            </button>
+                          </td>
                         </tr>
-                      </thead>
+                      ))}
+                    </tbody>
+                  </table>
 
-                      <tbody>
-                        {phoneRecords.map((record) => (
-                          <tr
-                            key={`${record.file_code}-${record.index}-${record.phone_full}`}
-                            className="border-t border-gray-100 text-gray-700 dark:border-gray-800 dark:text-gray-200">
-                            <td className="px-3 py-2 font-mono">
-                              {record.phone_full}
-                            </td>
+                  {isFetchingNextPage && (
+                    <div className="border-t border-gray-100 px-3 py-3 text-center text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
+                      Đang tải thêm dữ liệu...
+                    </div>
+                  )}
 
-                            <td className="px-3 py-2">
-                              {record.provider_name}
-                            </td>
-
-                            <td className="px-3 py-2">
-                              {record.type_number_name}
-                            </td>
-
-                            <td className="px-3 py-2">
-                              {record.is_valid_candidate ? (
-                                <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                                  <BsCheckCircleFill className="text-[12px]" />
-                                  Hợp lệ
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400">
-                                  <BsXCircleFill className="text-[12px]" />
-                                  Không hợp lệ
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-3 py-2">
-                              <button
-                                type="button"
-                                onClick={() => setSelectedRecord(record)}
-                                className="rounded-md px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-900/30">
-                                Chi tiết
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-
-                    {isFetchingNextPage && (
-                      <div className="border-t border-gray-100 px-3 py-3 text-center text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
-                        Đang tải thêm dữ liệu...
-                      </div>
-                    )}
-
-                    {!hasNextPage && phoneRecords.length > 0 && (
-                      <div className="border-t border-gray-100 px-3 py-3 text-center text-xs text-gray-400 dark:border-gray-800 dark:text-gray-500">
-                        Đã tải toàn bộ dữ liệu
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="shrink-0 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                    {hasActiveListFilters
-                      ? hasActivePhoneFilter
-                        ? "Không tìm thấy số điện thoại phù hợp với bộ lọc hiện tại."
-                        : "Không có số nào khớp bộ lọc trạng thái hợp lệ."
-                      : "Chưa có dữ liệu số điện thoại cho file này."}
-                  </p>
-                )}
+                  {!hasNextPage && phoneRecords.length > 0 && (
+                    <div className="border-t border-gray-100 px-3 py-3 text-center text-xs text-gray-400 dark:border-gray-800 dark:text-gray-500">
+                      Đã tải toàn bộ dữ liệu
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="shrink-0 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                  {hasActiveListFilters
+                    ? hasActivePhoneFilter
+                      ? "Không tìm thấy số điện thoại phù hợp với bộ lọc hiện tại."
+                      : "Không có số nào khớp bộ lọc trạng thái hợp lệ."
+                    : "Chưa có dữ liệu số điện thoại cho file này."}
+                </p>
+              )}
             </motion.div>
           </AnimatePresence>
         </div>

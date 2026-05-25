@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { FiDelete, FiEdit, FiEye } from "react-icons/fi";
 import {
@@ -25,6 +25,11 @@ import {
 } from "../../services/phoneNumber";
 import { getProviders } from "../../services/provider";
 import { getTypeNumber } from "../../services/typeNumber";
+import { getBrandName } from "../../services/brandName";
+import { useBrandNameList } from "../../hooks/api-hooks/v3/useBrandname";
+import AutocompleteMultiple, {
+  Option as AutocompleteOption,
+} from "../../components/ui/autocomplete/auto-complete";
 import { RootState } from "../../store";
 import { IPhoneNumber, IProvider, ITypeNumber } from "../../types";
 import PhoneModalDetail from "./PhoneModalDetail";
@@ -55,6 +60,7 @@ const getColumns = (status: string) => {
     { key: "phone_number", label: "Số điện thoại" },
     { key: "provider_name", label: "Nhà cung cấp" },
     { key: "type_name", label: "Loại số" },
+    { key: "brandname_name", label: "Định danh" },
     { key: "installation_fee", label: "Phí lắp đặt (đ)" },
     { key: "maintenance_fee", label: "Phí duy trì (đ)" },
     { key: "vanity_number_fee", label: "Phí số đẹp (đ)" },
@@ -106,9 +112,23 @@ function PhoneNumbers() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [openModal, setOpenModal] = useState(false);
   const [selectedPhone, setSelectedPhone] = useState<IPhoneNumber | null>(null);
-  const [search, setSearch] = useState<string>("");
-  const [searchProvider, setSearchProvider] = useState<string>("");
-  const [searchTypeNumber, setSearchTypeNumber] = useState<string>("");
+  const [search, setSearch] = useState<string>(
+    searchParams.get("search") || "",
+  );
+  const [searchProvider, setSearchProvider] = useState<string>(
+    searchParams.get("provider") || "",
+  );
+  const [searchTypeNumber, setSearchTypeNumber] = useState<string>(
+    searchParams.get("type_number") || "",
+  );
+  const initialBrandname = searchParams.get("brandname") || "";
+  const [searchBrandname, setSearchBrandname] =
+    useState<string>(initialBrandname);
+  const [selectedBrand, setSelectedBrand] = useState<AutocompleteOption[]>(() =>
+    initialBrandname
+      ? [{ label: initialBrandname, value: initialBrandname }]
+      : [],
+  );
 
   const [safeData, setSafeData] = useState<IPhoneNumber[]>([]);
   const [loading, setLoading] = useState(false);
@@ -140,6 +160,34 @@ function PhoneNumbers() {
   const { data: type_numbers } = useSelectData<ITypeNumber>({
     service: getTypeNumber,
   });
+
+  const { data: brandNameListData } = useBrandNameList({
+    page: 1,
+    size: 20,
+    is_active: true,
+  });
+  const brandOptions = useMemo(
+    () =>
+      (brandNameListData?.items ?? []).map((brand) => ({
+        label: brand.name,
+        value: brand.name,
+      })),
+    [brandNameListData],
+  );
+  const fetchBrandOptions = useCallback(async (query: string) => {
+    const result = await getBrandName({
+      page: 1,
+      size: 20,
+      is_active: true,
+      search: query.trim() || undefined,
+      order_by: "created_at",
+      order_dir: "desc",
+    });
+    return result.items.map((brand) => ({
+      label: brand.name,
+      value: brand.name,
+    }));
+  }, []);
 
   const selectedIdsFromStore = useSelector(
     (state: RootState) => state.selectedPhone.selectedIds,
@@ -173,7 +221,15 @@ function PhoneNumbers() {
     dispatch(resetSelectedIds());
     setSelectedIds([]);
     setSelectedRows([]);
-    fetchData(quantity, value, 0, search, searchProvider, searchTypeNumber);
+    fetchData(
+      quantity,
+      value,
+      0,
+      search,
+      searchProvider,
+      searchTypeNumber,
+      searchBrandname,
+    );
   };
 
   const fetchData = async (
@@ -183,6 +239,7 @@ function PhoneNumbers() {
     search?: string,
     provider?: string,
     type_number?: string,
+    brandname?: string,
   ) => {
     setLoading(true);
     try {
@@ -193,6 +250,7 @@ function PhoneNumbers() {
         search: search?.trim(),
         provider: provider?.trim(),
         type_number: type_number?.trim(),
+        brandname: (brandname ?? searchBrandname)?.trim() || undefined,
       });
 
       const formatNumber = (num: any) =>
@@ -262,6 +320,11 @@ function PhoneNumbers() {
         params.type_number = type_number;
       }
 
+      const brandnameValue = (brandname ?? searchBrandname)?.trim();
+      if (brandnameValue) {
+        params.brandname = brandnameValue;
+      }
+
       setSearchParams(params);
     } catch (error) {
       console.error("Lỗi khi gọi API:", error);
@@ -278,6 +341,7 @@ function PhoneNumbers() {
       search,
       searchProvider,
       searchTypeNumber,
+      searchBrandname,
     ); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quantity, status, offset]);
 
@@ -318,6 +382,7 @@ function PhoneNumbers() {
           search,
           searchProvider,
           searchTypeNumber,
+          searchBrandname,
         );
         setError(originalData.length === 0 ? "Không có dữ liệu" : "");
       } else {
@@ -329,6 +394,7 @@ function PhoneNumbers() {
           search,
           searchProvider,
           searchTypeNumber,
+          searchBrandname,
         );
         setError(result.length === 0 ? "Không có dữ liệu" : "");
       }
@@ -360,7 +426,15 @@ function PhoneNumbers() {
             title: "Xóa thành công!",
             icon: "success",
           });
-          fetchData(quantity, status, offset);
+          fetchData(
+            quantity,
+            status,
+            offset,
+            search,
+            searchProvider,
+            searchTypeNumber,
+            searchBrandname,
+          );
         }
       }
     } catch (error: any) {
@@ -467,6 +541,7 @@ function PhoneNumbers() {
               search,
               searchProvider,
               searchTypeNumber,
+              searchBrandname,
             );
             setSearchParams({});
           });
@@ -490,6 +565,7 @@ function PhoneNumbers() {
         search,
         searchProvider,
         searchTypeNumber,
+        searchBrandname,
       );
     }
   };
@@ -721,8 +797,7 @@ function PhoneNumbers() {
           <ComponentCard>
             <div className="space-y-6">
               <ResponsiveFilterWrapper drawerTitle="Bộ lọc trạng thái số ">
-                <div
-                  className={`grid grid-cols-1 items-end gap-4 lg:grid-cols-3`}>
+                <div className="grid grid-cols-1 items-end gap-4 lg:grid-cols-2 xl:grid-cols-3">
                   <div>
                     <Label>Trạng thái</Label>
                     <Select
@@ -764,13 +839,15 @@ function PhoneNumbers() {
                       defaultValue={searchProvider}
                       onChange={(value) => {
                         setSearchProvider(value);
+                        setOffset(0);
                         fetchData(
                           quantity,
                           status,
-                          offset,
+                          0,
                           search,
                           value,
                           searchTypeNumber,
+                          searchBrandname,
                         );
                       }}
                       className="dark:bg-dark-900"
@@ -791,19 +868,50 @@ function PhoneNumbers() {
                       placeholder="Chọn định dạng số..."
                       defaultValue={searchTypeNumber}
                       onChange={(value) => {
-                        console.log("Type number selected:", value); // Debug log
                         setSearchTypeNumber(value);
-                        // Make sure we're passing the current search and provider values
+                        setOffset(0);
                         fetchData(
                           quantity,
                           status,
-                          offset,
+                          0,
                           search,
                           searchProvider,
                           value,
+                          searchBrandname,
                         );
                       }}
                       className="dark:bg-dark-900"
+                    />
+                  </div>
+                  <div>
+                    <Label>Tên định danh</Label>
+                    <AutocompleteMultiple
+                      options={brandOptions}
+                      value={selectedBrand}
+                      fetchOptions={fetchBrandOptions}
+                      placeholder="Gõ để tìm định danh..."
+                      className="dark:bg-black dark:text-white"
+                      onChange={(value) => {
+                        const options = Array.isArray(value) ? value : [];
+                        const single =
+                          options.length > 1
+                            ? [options[options.length - 1]]
+                            : options;
+                        setSelectedBrand(single);
+                        const name =
+                          single.length > 0 ? single[0].label : "";
+                        setSearchBrandname(name);
+                        setOffset(0);
+                        fetchData(
+                          quantity,
+                          status,
+                          0,
+                          search,
+                          searchProvider,
+                          searchTypeNumber,
+                          name,
+                        );
+                      }}
                     />
                   </div>
 
@@ -929,7 +1037,17 @@ function PhoneNumbers() {
               )}
               <PhoneModalDetail
                 role={user.role}
-                onSuccess={() => fetchData(quantity, status, offset)}
+                onSuccess={() =>
+                  fetchData(
+                    quantity,
+                    status,
+                    offset,
+                    search,
+                    searchProvider,
+                    searchTypeNumber,
+                    searchBrandname,
+                  )
+                }
                 isOpen={openModal}
                 onCloseModal={() => setOpenModal(false)}
                 data={selectedPhone}

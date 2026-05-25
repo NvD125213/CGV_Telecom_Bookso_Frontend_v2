@@ -6,11 +6,18 @@ export const validatePhoneNumber = (phone: IPhoneNumber) => {
   if (!phone.phone_number) {
     errors.phone_number = "Số điện thoại không được để trống";
   }
-  if (!phone.provider_id || phone.provider_id === "0") {
+  const providerId = phone.provider_id;
+  if (
+    providerId === "" ||
+    providerId === "0" ||
+    providerId === 0 ||
+    providerId == null
+  ) {
     errors.provider_id = "Vui lòng chọn nhà cung cấp";
   }
 
-  if (!phone.type_id) {
+  const typeId = phone.type_id;
+  if (typeId === "" || typeId === 0 || typeId == null) {
     errors.type_id = "Vui lòng chọn loại số";
   }
 

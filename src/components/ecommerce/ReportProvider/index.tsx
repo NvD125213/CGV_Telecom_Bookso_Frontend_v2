@@ -44,6 +44,28 @@ interface BookingStatusData {
   count: number;
 }
 
+/** Bật tạm để xem biểu đồ với dữ liệu mock (tắt khi nối API thật) */
+// const USE_MOCK_CHART_DATA = true;
+
+// const MOCK_DASHBOARD_DATA: DashboardData = {
+//   booked: 120,
+//   deployed: 80,
+//   total_available: [
+//     { provider: "Nhà cung cấp 1", quantity: 150, quantity_booked: 45 },
+//     { provider: "Nhà cung cấp 2", quantity: 120, quantity_booked: 30 },
+//     { provider: "Nhà cung cấp 3", quantity: 95, quantity_booked: 22 },
+//     { provider: "Nhà cung cấp 4", quantity: 60, quantity_booked: 18 },
+//     { provider: "Nhà cung cấp 5", quantity: 40, quantity_booked: 10 },
+//   ],
+//   booked_by_sales: [
+//     { user_name: "Nguyễn Văn A", quantity: 50, booked: 25, deployed: 15 },
+//     { user_name: "Trần Thị B", quantity: 42, booked: 20, deployed: 12 },
+//     { user_name: "Lê Văn C", quantity: 38, booked: 18, deployed: 10 },
+//     { user_name: "Phạm Thị D", quantity: 30, booked: 15, deployed: 8 },
+//     { user_name: "Hoàng Văn E", quantity: 25, booked: 12, deployed: 6 },
+//   ],
+// };
+
 const ProviderReport = () => {
   const [selectedData, setSelectedData] = useState<
     "total_available" | "booked_by_sales"
@@ -58,8 +80,8 @@ const ProviderReport = () => {
   const [date, setDate] = useState<string>(
     `${currentDate.getFullYear()}/${String(currentDate.getMonth() + 1).padStart(
       2,
-      "0"
-    )}`
+      "0",
+    )}`,
   );
   const { theme } = useTheme();
   const [data, setData] = useState<DashboardData>({
@@ -102,7 +124,7 @@ const ProviderReport = () => {
       month: getMonth(date),
       day: getDay(date),
     }),
-    [date]
+    [date],
   );
 
   // Kiểm tra xem có cần fetch data hay không
@@ -155,7 +177,7 @@ const ProviderReport = () => {
         setLoading(false);
       }
     },
-    [shouldFetchData]
+    [shouldFetchData],
   );
 
   // Chỉ gọi API 1 lần khi component mount
@@ -206,9 +228,11 @@ const ProviderReport = () => {
     fetchDataImmediate(year, month, day);
   };
 
+  const chartSource = data;
+
   const chartData: ChartDataItem[] =
     selectedData === "total_available"
-      ? data.total_available
+      ? chartSource.total_available
           .filter((item) => item && item.provider)
           .map((item) => ({
             name: item.provider || "Unknown",
@@ -217,7 +241,7 @@ const ProviderReport = () => {
             total: (item.quantity || 0) + (item.quantity_booked || 0),
           }))
           .sort((a, b) => (b.total || 0) - (a.total || 0))
-      : data.booked_by_sales
+      : chartSource.booked_by_sales
           .filter((item) => item && item.user_name)
           .map((item) => {
             return {
@@ -319,15 +343,15 @@ const ProviderReport = () => {
       const minBarLength = 20;
       const trueQuantityData = sortedData.map((item) => item.quantity || 0);
       const trueBookedData = sortedData.map(
-        (item) => item.quantity_booked || 0
+        (item) => item.quantity_booked || 0,
       );
 
       const renderQuantityData = trueQuantityData.map((val) =>
-        val === 0 ? 0 : val + minBarLength
+        val === 0 ? 0 : val + minBarLength,
       );
 
       const renderBookedData = trueBookedData.map((val) =>
-        val === 0 ? 0 : val + minBarLength
+        val === 0 ? 0 : val + minBarLength,
       );
       const categories = sortedData.map((item) => item.name);
       const series = [
@@ -343,8 +367,8 @@ const ProviderReport = () => {
 
       const maxTotal = Math.max(
         ...sortedData.map(
-          (item) => (item.quantity || 0) + (item.quantity_booked || 0)
-        )
+          (item) => (item.quantity || 0) + (item.quantity_booked || 0),
+        ),
       );
 
       // Kiểm tra maxTotal để tránh NaN
@@ -352,7 +376,7 @@ const ProviderReport = () => {
         maxTotal > 0
           ? Math.ceil(
               maxTotal /
-                Math.pow(10, Math.max(1, maxTotal.toString().length - 1))
+                Math.pow(10, Math.max(1, maxTotal.toString().length - 1)),
             ) *
               Math.pow(10, Math.max(1, maxTotal.toString().length - 1)) +
             minBarLength * 2
@@ -504,7 +528,7 @@ const ProviderReport = () => {
 
             formatter: function (
               val: any,
-              { seriesIndex, dataPointIndex }: any
+              { seriesIndex, dataPointIndex }: any,
             ) {
               const displayVal =
                 seriesIndex === 0
@@ -730,14 +754,14 @@ const ProviderReport = () => {
       const trueDeployedData = sortedData.map((item) => item.deployed || 0);
 
       const renderBookedData = trueBookedData.map((val) =>
-        val === 0 ? 0 : val + minBarLength
+        val === 0 ? 0 : val + minBarLength,
       );
       const renderDeployedData = trueDeployedData.map((val) =>
-        val === 0 ? 0 : val + minBarLength
+        val === 0 ? 0 : val + minBarLength,
       );
 
       const maxValue = Math.max(
-        ...sortedData.map((item) => (item.booked || 0) + (item.deployed || 0))
+        ...sortedData.map((item) => (item.booked || 0) + (item.deployed || 0)),
       );
 
       // Kiểm tra maxValue để tránh NaN
@@ -745,7 +769,7 @@ const ProviderReport = () => {
         maxValue > 0
           ? Math.ceil(
               maxValue /
-                Math.pow(10, Math.max(1, maxValue.toString().length - 1))
+                Math.pow(10, Math.max(1, maxValue.toString().length - 1)),
             ) *
               Math.pow(10, Math.max(1, maxValue.toString().length - 1)) +
             minBarLength * 2
@@ -757,7 +781,7 @@ const ProviderReport = () => {
       const maxHeight = 1200;
       const computedHeight = Math.max(
         minHeight,
-        Math.min(itemCount * minHeightPerBar, maxHeight)
+        Math.min(itemCount * minHeightPerBar, maxHeight),
       );
 
       return {
@@ -921,7 +945,7 @@ const ProviderReport = () => {
             enabled: true,
             formatter: function (
               val: any,
-              { seriesIndex, dataPointIndex }: any
+              { seriesIndex, dataPointIndex }: any,
             ) {
               const displayVal =
                 seriesIndex === 0
@@ -1185,7 +1209,7 @@ const ProviderReport = () => {
 
   const chartOptions = useMemo(() => getChartOptions(), [getChartOptions]);
 
-  const chartKey = `${selectedData}-${JSON.stringify(data)}-${chartRenderKey}`;
+  const chartKey = `${selectedData}-${JSON.stringify(chartSource)}-${chartRenderKey}`;
 
   const [showModal, setShowModal] = useState(false);
   const [modalData, setModalData] = useState<ChartDataItem | null>(null);
@@ -1248,7 +1272,7 @@ const ProviderReport = () => {
         {chartOptions.series &&
         chartOptions.series.length > 0 &&
         chartOptions.series.some(
-          (series) => series.data && series.data.length > 0
+          (series) => series.data && series.data.length > 0,
         ) ? (
           <div
             className="chart-container"

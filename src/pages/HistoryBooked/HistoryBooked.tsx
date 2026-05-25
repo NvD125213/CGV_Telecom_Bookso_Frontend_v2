@@ -43,6 +43,7 @@ const getColumns = (status: string) => {
     { key: "phone_number", label: "Số điện thoại" },
     { key: "provider_name", label: "Nhà cung cấp" },
     { key: "type_name", label: "Loại số" },
+    { key: "brandname_name", label: "Tên định danh" },
     { key: "installation_fee", label: "Phí lắp đặt (đ)" },
     { key: "maintenance_fee", label: "Phí duy trì (đ)" },
     { key: "vanity_number_fee", label: "Phí số đẹp (đ)" },
@@ -54,10 +55,10 @@ const getColumns = (status: string) => {
         status === "available"
           ? "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500"
           : status === "booked"
-          ? "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-orange-400"
-          : status === "released"
-          ? "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500"
-          : "",
+            ? "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-orange-400"
+            : status === "released"
+              ? "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500"
+              : "",
     },
   ];
   if (status === "available") {
@@ -87,7 +88,7 @@ type StatusType = "booked" | "released";
 const HistoryBooked = () => {
   const dispatch = useDispatch();
   const selectedIdsFromStore = useSelector(
-    (state: RootState) => state.selectedPhone.selectedIds
+    (state: RootState) => state.selectedPhone.selectedIds,
   );
   const user = useSelector((state: RootState) => state.auth.user);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -212,7 +213,7 @@ const HistoryBooked = () => {
       Swal.fire(
         "Thông báo",
         "Vui lòng chọn ít nhất một số để thu hồi",
-        "warning"
+        "warning",
       );
       return;
     }
@@ -220,7 +221,7 @@ const HistoryBooked = () => {
     try {
       // Fetch phone details for all selected IDs from store
       const phoneDetailsPromises = selectedIdsFromStore.map((id) =>
-        getPhoneByID(Number(id))
+        getPhoneByID(Number(id)),
       );
       const phoneDetailsResponses = await Promise.all(phoneDetailsPromises);
 
@@ -239,7 +240,7 @@ const HistoryBooked = () => {
             </label>
             <div class="p-3 bg-gray-50 rounded-lg border border-gray-300">
               <div class="text-sm text-gray-700">${phoneDetails.join(
-                ", "
+                ", ",
               )}</div>
             </div>
           </div>
@@ -269,7 +270,7 @@ const HistoryBooked = () => {
                 </label>
                 <div class="p-3 bg-gray-50 rounded-lg border border-gray-300">
                   <div class="text-sm text-gray-700">${phoneDetails.join(
-                    ", "
+                    ", ",
                   )}</div>
                 </div>
               </div>
@@ -300,7 +301,7 @@ const HistoryBooked = () => {
       Swal.fire(
         "Oops...",
         `${error || "Có lỗi xảy ra khi thu hồi, vui lòng thử lại!"}`,
-        "error"
+        "error",
       );
       // Reset states on error
       dispatch(resetSelectedIds());
@@ -432,7 +433,7 @@ const HistoryBooked = () => {
         {status === "booked" && (
           <div
             className={clsx(
-              isMobile ? "block" : "flex items-end justify-end gap-2"
+              isMobile ? "block" : "flex items-end justify-end gap-2",
             )}>
             <button
               onClick={handleRevoke}
@@ -524,7 +525,7 @@ const HistoryBooked = () => {
                   disabled={status !== "booked"}
                   onCheck={(
                     selectedIds: (string | number)[],
-                    selectedRows: IHistoryBooked[]
+                    selectedRows: IHistoryBooked[],
                   ) => {
                     setSelectedIds(selectedIds.map((id) => Number(id)));
                     setSelectedRows(selectedRows);

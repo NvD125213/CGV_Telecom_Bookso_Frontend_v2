@@ -10,6 +10,7 @@ import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
 import ProviderPage from "./pages/ProviderPages/ProviderPage";
 import TypeNumber from "./pages/TypeNumber/TypeNumber";
+import BrandNameList from "./pages/BrandNames/BrandNameList";
 import PhoneNumbers from "./pages/PhoneNumbers/PhoneStatus";
 import PhoneNumberFilters from "./pages/PhoneNumbers/PhoneFilter";
 import UploadExcel from "./pages/PhoneNumbers/UploadExcel";
@@ -96,6 +97,7 @@ function AppWithInactivityHandler() {
           <Route path="/upload-file" element={<UploadExcel />} />
           <Route path="/check-file-upload" element={<ListCheckFileUpload />} />
           <Route path="/type-numbers" element={<TypeNumber />} />
+          <Route path="/brand-names" element={<BrandNameList />} />
           <Route path="/limit-booking" element={<LimitBooking />} />
           <Route path="/time-online" element={<SessionPage />} />
           <Route path="/logs" element={<LogList />} />

@@ -7,6 +7,7 @@ import { RootState } from "../../store";
 import { logout } from "../../store/authSlice";
 import { MdOutlineHistory } from "react-icons/md";
 import ModalSetting from "./ModalSetting";
+import { UserIcon } from "../../icons";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -41,7 +42,7 @@ export default function UserDropdown() {
         <button
           onClick={toggleDropdown}
           className="flex items-center text-gray-700 dropdown-toggle dark:text-gray-400">
-          <span className="block text-center mr-1 font-medium text-theme-sm">
+          <span className="block flex items-center gap-2 text-center mr-1 font-medium text-theme-sm">
             {user.sub || "Guest"}
           </span>
           <svg

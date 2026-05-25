@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { IProvider, ITypeNumber } from "../../types";
 import CustomModal from "../../components/common/CustomModal";
 import Swal from "sweetalert2";
@@ -9,11 +9,15 @@ import { validateRandomPhone } from "../../validate/phoneNumber";
 import { getRandomNumber } from "../../services/phoneNumber";
 import { copyToClipBoard } from "../../helper/copyToClipboard";
 import Spinner from "../../components/common/LoadingSpinner";
-import { useScreenSize } from "../../hooks/useScreenSize";
+import { useBrandNameList } from "../../hooks/api-hooks/v3/useBrandname";
+import { getBrandName } from "../../services/brandName";
+import type { Option } from "../../components/ui/autocomplete/auto-complete";
+
 export interface IBookRandom {
   quantity: number;
   provider_id: number;
   type_id: number;
+  brandname_id?: number;
 }
 
 const initialBookRandom: IBookRandom = {
@@ -38,12 +42,24 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
     Partial<Record<keyof IBookRandom, string>>
   >({});
   const [loading, setLoading] = useState(false);
+  const [selectedBrand, setSelectedBrand] = useState<Option[]>([]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setListNumber(initialBookRandom);
+      setErrors({});
+      setSelectedBrand([]);
+    }
+  }, [isOpen]);
+
   const setValue = (name: keyof IBookRandom, value: string | number) => {
     setListNumber((prev) => ({
       ...prev,
       [name]: value,
     }));
+    setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
+
   const { data: providers } = useSelectData<IProvider>({
     service: getProviders,
   });
@@ -51,6 +67,35 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
   const { data: typeNumbers } = useSelectData<ITypeNumber>({
     service: getTypeNumber,
   });
+
+  const { data: brandNameListData } = useBrandNameList(
+    { page: 1, size: 20, is_active: true },
+    { enabled: isOpen },
+  );
+
+  const brandOptions = useMemo(
+    () =>
+      (brandNameListData?.items ?? []).map((brand) => ({
+        label: brand.name,
+        value: String(brand.id),
+      })),
+    [brandNameListData],
+  );
+
+  const fetchBrandOptions = useCallback(async (query: string) => {
+    const result = await getBrandName({
+      page: 1,
+      size: 20,
+      is_active: true,
+      search: query.trim() || undefined,
+      order_by: "created_at",
+      order_dir: "desc",
+    });
+    return result.items.map((brand) => ({
+      label: brand.name,
+      value: String(brand.id),
+    }));
+  }, []);
 
   const handleSubmit = async (data: IBookRandom) => {
     const validationErrors = validateRandomPhone(data);
@@ -65,6 +110,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
         type_number_id: data.type_id,
         provider_id: data.provider_id,
         quantity_book: data.quantity,
+        ...(data.brandname_id ? { brandname_id: data.brandname_id } : {}),
       });
 
       if (!res.data || res.data.length === 0) {
@@ -96,7 +142,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
             }
           </label>
           <textarea id="message" rows="4" class="block max-h-[200px] w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 px-[10px]">${res.data.join(
-            ", "
+            ", ",
           )}</textarea>
         `.trim(),
           showDenyButton: true,
@@ -115,6 +161,15 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
         });
       }
     } catch (error: any) {
+      if (error.response && error.response.status === 404) {
+        Swal.fire({
+          title: error.response.data.detail,
+          icon: "warning",
+          confirmButtonText: "Đóng",
+        });
+        onCloseModal();
+        return;
+      }
       if (
         error.response &&
         error.response.data.detail ===
@@ -137,7 +192,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
         Swal.fire(
           "Opps!",
           `Bạn đã vượt quá số lượng book cho phép trong ngày! Vui lòng liên hệ admin để được cấp phép thêm.`,
-          "error"
+          "error",
         );
       }
     } finally {
@@ -153,14 +208,13 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
           isOpen={isOpen}
           title={"Book ngẫu nhiên số điện thoại"}
           description={`Lựa chọn danh sách số phù hợp với yêu cầu book của bạn`}
-          //   errorDetail={errorDetail}
           fields={[
             {
               name: "quantity",
               label: "Nhập số lượng",
               type: "text",
               value: listNumber.quantity,
-              onChange: (value) => setValue("quantity", value),
+              onChange: (value) => setValue("quantity", value as any),
               error: errors.quantity,
             },
             {
@@ -176,7 +230,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                   key: provider.id,
                 })),
               ],
-              onChange: (value) => setValue("provider_id", value),
+              onChange: (value) => setValue("provider_id", value as any),
               error: errors.provider_id,
             },
             {
@@ -192,8 +246,34 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                   key: type.id,
                 })),
               ],
-              onChange: (value) => setValue("type_id", value),
+              onChange: (value) => setValue("type_id", value as any),
               error: errors.type_id,
+            },
+            {
+              name: "brandname_id",
+              label: "Tên định danh (tùy chọn)",
+              type: "autocomplete",
+              value: selectedBrand,
+              options: brandOptions,
+              fetchOptions: fetchBrandOptions,
+              placeholder: "Gõ để tìm...",
+              onChange: (value) => {
+                const options = Array.isArray(value) ? value : [];
+                const single =
+                  options.length > 1 ? [options[options.length - 1]] : options;
+                setSelectedBrand(single as Option[]);
+                if (single.length === 0) {
+                  setListNumber((prev) => {
+                    const next = { ...prev };
+                    delete next.brandname_id;
+                    return next;
+                  });
+                  setErrors((prev) => ({ ...prev, brandname_id: undefined }));
+                  return;
+                }
+                setValue("brandname_id", Number(single[0].value));
+              },
+              error: errors.brandname_id,
             },
           ]}
           onClose={onCloseModal}

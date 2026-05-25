@@ -54,6 +54,7 @@ const getColumns = (status: string) => {
     { key: "phone_number", label: "Số đã book" },
     { key: "provider_name", label: "Nhà cung cấp" },
     { key: "type_name", label: "Định dạng số" },
+    { key: "brandname_name", label: "Định danh" },
     { key: "installation_fee", label: "Phí cài đặt" },
     { key: "maintenance_fee", label: "Phí bảo trì" },
     { key: "vanity_number_fee", label: "Phí số đẹp" },
@@ -102,7 +103,7 @@ const NumberStatusPieChart = () => {
       month,
       day: day ? parseInt(day) : undefined,
     }),
-    [year, month, day]
+    [year, month, day],
   );
 
   // Kiểm tra xem có cần fetch data hay không
@@ -170,7 +171,7 @@ const NumberStatusPieChart = () => {
     // For Pie chart clicks, entry is the full data object
     // For Legend clicks, entry is { value, color, ... }, so we need to find the matching data object
     const selectedData = data.find(
-      (item) => item.name === entry.name || item.name === entry.value
+      (item) => item.name === entry.name || item.name === entry.value,
     );
     if (selectedData) {
       setSelectedEntry(selectedData);
@@ -201,7 +202,7 @@ const NumberStatusPieChart = () => {
   const displayData = getDisplayData();
 
   const [windowWidth, setWindowWidth] = useState(
-    typeof window !== "undefined" ? window.innerWidth : 1024
+    typeof window !== "undefined" ? window.innerWidth : 1024,
   );
 
   useEffect(() => {

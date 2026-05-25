@@ -6,8 +6,8 @@ export const initialPhoneNumber: IPhoneNumber = {
   id: 0,
   phone_number: "",
   type_id: "",
-  provider_id: 0,
-  type_number_id: 0,
+  provider_id: "",
+  type_number_id: "",
   installation_fee: 0,
   maintenance_fee: 0,
   vanity_number_fee: 0,
@@ -32,6 +32,7 @@ export interface IRandomNumber {
   type_number_id: number;
   provider_id: number;
   quantity_book: number;
+  brandname_id?: number;
 }
 
 export interface IParamsListCheckPhoneNumber {
@@ -92,6 +93,7 @@ export const bookingPhoneForOption = async ({
   search,
   provider,
   type_number,
+  brandname,
 }: {
   quantity: number;
   status: string;
@@ -99,6 +101,7 @@ export const bookingPhoneForOption = async ({
   search?: string;
   provider?: string;
   type_number?: string;
+  brandname?: string;
 }) => {
   const params = new URLSearchParams();
   params.append("quantity", quantity.toString());
@@ -114,6 +117,9 @@ export const bookingPhoneForOption = async ({
   if (type_number) {
     params.append("type_number", type_number);
   }
+  if (brandname) {
+    params.append("brandname", brandname);
+  }
 
   const res = await instance.get(
     `/api/v2/booking/booking-phone-number-for-option?${params.toString()}`,
@@ -127,6 +133,7 @@ export const bookingPhone = async ({
   type_number,
   telco,
   search,
+  brandname,
   signal,
 }: {
   offset: number;
@@ -134,11 +141,22 @@ export const bookingPhone = async ({
   telco: string;
   search: string;
   type_number: string;
+  brandname?: string;
   signal?: AbortSignal;
 }) => {
+  const params = new URLSearchParams({
+    filter: search,
+    telco,
+    limit: quantity.toString(),
+    offset: offset.toString(),
+    type_number,
+  });
+  if (brandname) {
+    params.append("brandname", brandname);
+  }
   const res = await instance.get(
-    `/api/v2/booking/booking-phone-number?filter=${search}&telco=${telco}&limit=${quantity}&offset=${offset}&type_number=${type_number}`,
-    { signal }, // Transmit signal in config
+    `/api/v2/booking/booking-phone-number?${params.toString()}`,
+    { signal },
   );
   return res;
 };

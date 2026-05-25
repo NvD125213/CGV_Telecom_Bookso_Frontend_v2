@@ -125,8 +125,8 @@ const ProviderPage = () => {
         typeof (provider as any).users === "string"
           ? ((provider as any).users as string) || "-"
           : Array.isArray((provider as any)?.users?.rule)
-          ? ((provider as any).users.rule as string[]).join(", ")
-          : "-";
+            ? ((provider as any).users.rule as string[]).join(", ")
+            : "-";
 
       return [
         { label: "Mã nhà cung cấp", value: provider.id, hidden: true },

@@ -83,10 +83,10 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
 }: Props<T>) => {
   const dispatch = useDispatch();
   const { selectedIds } = useSelector(
-    (state: RootState) => state.selectedPhone
+    (state: RootState) => state.selectedPhone,
   );
   const [dropdownOpenId, setDropdownOpenId] = useState<string | number | null>(
-    null
+    null,
   );
   const hasActionColumn = onEdit || onDelete || onDetail || actions.length > 0;
 
@@ -397,7 +397,7 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
                                         .filter((action) =>
                                           action.condition
                                             ? action.condition(item)
-                                            : true
+                                            : true,
                                         )
                                         .map((action, index) => (
                                           <button

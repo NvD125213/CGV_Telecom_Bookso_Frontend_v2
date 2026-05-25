@@ -83,7 +83,7 @@ const PhoneModalBook: React.FC<PhoneNumberProps> = ({
             placeholder: "Nhập tên người book số...",
             type: "text",
             value: phone?.user_name || "",
-            onChange: (value) => setValue("user_name", value),
+            onChange: (value) => setValue("user_name", value as any),
             disabled: true,
           },
           {
@@ -91,7 +91,7 @@ const PhoneModalBook: React.FC<PhoneNumberProps> = ({
             label: "Số điện thoại",
             type: "text",
             value: phone?.phone_number || "",
-            onChange: (value) => setValue("phone_number", value),
+            onChange: (value) => setValue("phone_number", value as any),
             disabled: true,
           },
         ]}

@@ -29,6 +29,7 @@ import { CiBoxes } from "react-icons/ci";
 import { MdOutlineStarBorder } from "react-icons/md";
 import { IoIosAddCircleOutline } from "react-icons/io";
 import { CiSettings } from "react-icons/ci";
+import { CiShoppingTag } from "react-icons/ci";
 
 type NavItem = {
   name: string;
@@ -54,6 +55,11 @@ const navItems: NavItem[] = [
     icon: <BsPhone />,
     name: "Định dạng số",
     path: "/type-numbers",
+  },
+  {
+    icon: <CiShoppingTag />,
+    name: "Tên định danh",
+    path: "/brand-names",
   },
   {
     name: "Kênh số",
@@ -221,6 +227,7 @@ const AppSidebar: React.FC = () => {
             user?.role !== 1 &&
             (item.path === "/providers" ||
               item.path === "/type-numbers" ||
+              item.path === "/brand-names" ||
               item.path == "/time-online" ||
               item.path == "/logs" ||
               item.path == "/setting-order")

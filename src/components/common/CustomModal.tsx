@@ -5,7 +5,9 @@ import Label from "../../components/form/Label";
 import TextArea from "../../components/form/input/TextArea";
 import { useState, useRef, useEffect } from "react";
 import { useScreenSize } from "../../hooks/useScreenSize";
-import AutocompleteMultiple from "../../components/ui/autocomplete/auto-complete";
+import AutocompleteMultiple, {
+  Option as AutocompleteOption,
+} from "../../components/ui/autocomplete/auto-complete";
 
 interface Option {
   label: string;
@@ -31,6 +33,7 @@ interface Field {
   onChange: (value: string | number | boolean | Option[]) => void; // <-- Thêm boolean ở đây
   options?: Option[];
   placeholder?: string;
+  fetchOptions?: (query: string) => Promise<AutocompleteOption[]>;
   defaultValue?: string | number;
   disabled?: boolean;
   error?: string;
@@ -70,7 +73,7 @@ const EnhancedSelect: React.FC<{
     ) || [];
 
   const selectedOption = field.options?.find(
-    (opt) => opt.value === field.value
+    (opt) => String(opt.value) === String(field.value),
   );
 
   // Tính toán vị trí dropdown khi mở
@@ -209,14 +212,14 @@ const EnhancedSelect: React.FC<{
                       w-full px-3 py-2 text-left text-xs sm:text-sm
                       transition-colors duration-150 ease-in-out
                       ${
-                        option.value === field.value
+                        String(option.value) === String(field.value)
                           ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium"
                           : "text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700"
                       }
                     `}>
                     <div className="flex items-center justify-between">
                       <span>{option.label}</span>
-                      {option.value === field.value && (
+                      {String(option.value) === String(field.value) && (
                         <svg
                           className="w-4 h-4 text-blue-600 dark:text-blue-400"
                           fill="currentColor"
@@ -324,10 +327,11 @@ const CustomModal: React.FC<CustomModalProps> = ({
                     />
                   ) : field.type === "autocomplete" && field.options ? (
                     <AutocompleteMultiple
-                      value={field.value as any}
+                      value={field.value as AutocompleteOption[]}
                       onChange={(newValue) => field.onChange?.(newValue as any)}
-                      options={(field.options as any) || []}
+                      options={(field.options as AutocompleteOption[]) || []}
                       placeholder={field.placeholder}
+                      fetchOptions={field.fetchOptions}
                     />
                   ) : (
                     <Input
