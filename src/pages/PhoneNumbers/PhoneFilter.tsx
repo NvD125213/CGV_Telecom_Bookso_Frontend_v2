@@ -342,7 +342,11 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
 
   const handleBookNumber = async () => {
     if (selectedIdsFromStore.length == 0) {
-      alert("Vui lòng chọn ít nhất 1 số điện thoại !");
+      Swal.fire(
+        "Thông báo",
+        "Vui lòng chọn ít nhất 1 số điện thoại !",
+        "warning",
+      );
       return;
     }
 
@@ -427,17 +431,18 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
         }
       }
     } catch (err: any) {
-      const error = err.response.data.detail;
-      if (
-        error ==
+      const detail = err.response?.data?.detail;
+      const message =
+        detail ===
         "You have reached your daily booking limit. Please contact your administrator to increase your limit if needed."
-      ) {
-        Swal.fire({
-          icon: "error",
-          title: "Oops...",
-          text: `Bạn đã đạt đến giới hạn đặt sô hàng ngày. Vui lòng liên hệ với quản trị viên của bạn để tăng giới hạn nếu cần.`,
-        });
-      }
+          ? "Bạn đã đạt đến giới hạn đặt số hàng ngày. Vui lòng liên hệ với quản trị viên của bạn để tăng giới hạn nếu cần."
+          : detail || "Đã xảy ra lỗi, vui lòng thử lại.";
+
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: String(message),
+      });
 
       fetchData();
       setSelectedIds([]);
