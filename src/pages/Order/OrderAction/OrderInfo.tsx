@@ -4,6 +4,7 @@ import Label from "../../../components/form/Label";
 import Button from "../../../components/ui/button/Button";
 import { useNavigate } from "react-router-dom";
 import { OutboundDidForm } from "./OutbounCID";
+import { OutboundRouteItem } from "../../Plan/interfaces/Outbound";
 import { useSelector } from "react-redux";
 import { RootState } from "../../../store";
 
@@ -15,7 +16,7 @@ export interface OrderForm {
   total_users: number;
   total_minute: number;
   price_minute_over: number;
-  outbound_did_by_route: Record<any, any>;
+  outbound_did_by_route: OutboundRouteItem[];
   total_price: number;
   status?: number;
   description?: string;
@@ -32,7 +33,7 @@ const defaultForm: OrderForm = {
   total_minute: 0,
   price_minute_over: 0,
   total_price: 0,
-  outbound_did_by_route: {},
+  outbound_did_by_route: [],
   slide_users: [],
   meta: {},
 };
@@ -43,11 +44,11 @@ interface OrderInfoProps {
   currencyFields: any;
   handleChange: <K extends keyof OrderForm>(
     field: K,
-    value: OrderForm[K]
+    value: OrderForm[K],
   ) => void;
   handleCurrencyChange: <K extends keyof OrderForm>(
     field: K,
-    value: OrderForm[K] | string | number | React.ChangeEvent<HTMLInputElement>
+    value: OrderForm[K] | string | number | React.ChangeEvent<HTMLInputElement>,
   ) => void;
   handleSubmit: () => void;
   loading: boolean;
@@ -188,14 +189,14 @@ export const OrderInfo = ({
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
               <p className="text-gray-500 text-xs">
-                💡 Tổng tiền phút gọi:{" "}
+                Tổng tiền phút gọi:{" "}
                 <span className="font-medium text-green-600">
                   {formatCurrency(minutePrice)}
                 </span>
               </p>
               {minPricePerMinute > 0 && (
                 <p className="text-gray-500 text-xs">
-                  📌 Giá tối thiểu/phút:{" "}
+                  Giá tối thiểu/phút:{" "}
                   <span className="font-medium text-blue-600">
                     {formatCurrency(minPricePerMinute)}
                   </span>
@@ -226,8 +227,8 @@ export const OrderInfo = ({
             )}
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div>
+        <div className="flex flex-col gap-6 mb-6">
+          <div className="w-full">
             <OutboundDidForm
               value={form.outbound_did_by_route}
               onChange={(updated) =>
@@ -235,8 +236,6 @@ export const OrderInfo = ({
               }
               isEdit={isEdit}
               isDetail={isDetail}
-              meta={form.meta}
-              onMetaChange={(updated) => handleChange("meta", updated)}
             />
             {formErrors.outbound_did_by_route && (
               <p className="text-red-500 text-sm mt-2">
@@ -244,7 +243,7 @@ export const OrderInfo = ({
               </p>
             )}
           </div>
-          <div>
+          <div className="w-full">
             <Label className="flex gap-2 items-center">
               Giá đặt đơn
               <span className="text-green-600 text-sm font-medium">
@@ -259,7 +258,7 @@ export const OrderInfo = ({
               disabledWhite={true}
             />
             <p className="text-gray-500 text-xs mt-1">
-              💡 Giá được tính tự động dựa trên số phút, số user và số đầu số
+              Giá được tính tự động dựa trên số phút, số user và số đầu số
             </p>
           </div>
         </div>
@@ -314,10 +313,10 @@ export const OrderInfo = ({
                 {form.status === 1
                   ? "Order đã được triển khai thành công"
                   : form.status === 2
-                  ? "Order đang chờ xác nhận"
-                  : form.status === 3
-                  ? "Order đang chờ triển khai"
-                  : "Order đã bị từ chối"}
+                    ? "Order đang chờ xác nhận"
+                    : form.status === 3
+                      ? "Order đang chờ triển khai"
+                      : "Order đã bị từ chối"}
               </p>
             </div>
 

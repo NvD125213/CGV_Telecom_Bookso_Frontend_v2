@@ -1,10 +1,12 @@
+import { OutboundRouteItem } from "./Outbound";
+
 export interface PlanData {
   id: number;
   name: string;
   minutes: number;
   did_count: number;
   price_vnd: number;
-  outbound_did_by_route: Record<string, any>;
+  outbound_did_by_route: OutboundRouteItem[];
   total_users: number;
   meta: Record<string, any>;
   is_active: boolean;
@@ -21,7 +23,7 @@ export const PlanDefault = {
   minutes: 0,
   did_count: 0,
   price_vnd: 0,
-  outbound_did_by_route: {},
+  outbound_did_by_route: [],
   total_users: 1,
   meta: {},
   is_active: true,

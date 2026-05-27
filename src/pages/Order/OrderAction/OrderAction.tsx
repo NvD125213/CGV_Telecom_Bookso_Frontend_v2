@@ -12,6 +12,7 @@ import { configService } from "../../../services/config";
 import { OrderInfo } from "./OrderInfo";
 import { OrderChart } from "./OrderChart";
 import { OrderForm } from "./OrderInfo";
+import { normalizeOutboundDidByRoute } from "../../Plan/interfaces/Outbound";
 
 const defaultForm: OrderForm = {
   customer_name: "",
@@ -22,7 +23,7 @@ const defaultForm: OrderForm = {
   total_minute: 0,
   price_minute_over: 0,
   total_price: 0,
-  outbound_did_by_route: {},
+  outbound_did_by_route: [],
   slide_users: [],
   meta: {},
 };
@@ -89,6 +90,9 @@ export const OrderActionPage = () => {
       setForm({
         ...defaultForm,
         ...data,
+        outbound_did_by_route: normalizeOutboundDidByRoute(
+          data.outbound_did_by_route,
+        ),
       });
       handleCurrencyChange("total_minute", data?.total_minute);
       handleCurrencyChange("total_users", data?.total_users);
@@ -98,6 +102,9 @@ export const OrderActionPage = () => {
       setForm({
         ...defaultForm,
         ...stateData,
+        outbound_did_by_route: normalizeOutboundDidByRoute(
+          stateData.outbound_did_by_route,
+        ),
       });
       handleCurrencyChange("total_minute", stateData?.total_minute);
       handleCurrencyChange("total_users", stateData?.total_users);
@@ -124,9 +131,9 @@ export const OrderActionPage = () => {
     // Chỉ tính toán khi đã có config từ API
     if (!priceConfig) return;
 
-    const total_cid = Object.values(form.outbound_did_by_route).reduce(
-      (acc, val) => acc + (Number(val) || 0),
-      0
+    const total_cid = (form.outbound_did_by_route ?? []).reduce(
+      (acc, item) => acc + Number(item.quantity ?? 0),
+      0,
     );
 
     const minutePrice = getPriceForRange(

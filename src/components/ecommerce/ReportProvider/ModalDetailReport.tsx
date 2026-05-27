@@ -15,14 +15,6 @@ interface ChartDataItem {
   seriesName?: string;
 }
 
-interface BookingStatusValue {
-  provider_name?: string;
-  type_name?: string;
-  booked_at?: string;
-  booked_until?: string;
-  id: number;
-}
-
 interface ModalDetailReportProps {
   visible: boolean;
   onClose: () => void;
@@ -37,6 +29,53 @@ interface RawData {
   values: number[];
 }
 
+type ReportStatusOption = "booked" | "deployed" | "Book combo";
+
+const REPORT_STATUS_OPTIONS: { label: string; value: ReportStatusOption }[] = [
+  { label: "Đã book", value: "booked" },
+  { label: "Đã đặt gói", value: "Book combo" },
+  { label: "Đã triển khai", value: "deployed" },
+];
+
+const isReportStatusOption = (value: string): value is ReportStatusOption =>
+  value === "booked" || value === "deployed" || value === "Book combo";
+
+const getStatusColor = (status: ReportStatusOption): string => {
+  switch (status) {
+    case "booked":
+      return "#3B82F6";
+    case "Book combo":
+      return "#22C55E";
+    case "deployed":
+      return "#FF9800";
+  }
+};
+
+const resolveInitialOption = (seriesName?: string): ReportStatusOption => {
+  if (seriesName && isReportStatusOption(seriesName)) {
+    return seriesName;
+  }
+  return "booked";
+};
+
+const getStatusTitle = (status: ReportStatusOption, name: string) => {
+  switch (status) {
+    case "booked":
+      return `Chi tiết thông tin book của ${name}`;
+    case "Book combo":
+      return `Chi tiết thông tin đặt gói của ${name}`;
+    case "deployed":
+      return `Chi tiết thông tin triển khai của ${name}`;
+  }
+};
+
+const buildFetchKey = (
+  option: ReportStatusOption,
+  optionType: string,
+  name: string,
+  date: string,
+) => JSON.stringify({ option, optionType, name, date });
+
 const ModalDetailReport = ({
   visible,
   onClose,
@@ -44,12 +83,9 @@ const ModalDetailReport = ({
   options,
   date,
 }: ModalDetailReportProps) => {
-  // Khởi tạo option dựa trên data.seriesName
-  const [option, setOption] = useState<"booked" | "deployed">(() => {
-    if (data?.seriesName === "deployed" || data?.seriesName === "booked")
-      return data.seriesName;
-    return "booked";
-  });
+  const [option, setOption] = useState<ReportStatusOption>(() =>
+    resolveInitialOption(data?.seriesName),
+  );
   const [optionType, setOptionType] = useState("provider");
   const [chartData, setChartData] = useState({
     series: [] as Array<{ name: string; data: number[] }>,
@@ -61,25 +97,26 @@ const ModalDetailReport = ({
     values: [],
   });
   const [isLoading, setIsLoading] = useState(false);
-  const isFetching = useRef(false);
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const lastFetchParams = useRef<{
-    option: string;
-    optionType: string;
-    name: string;
-    date: string;
-  } | null>(null);
+  const lastFetchKeyRef = useRef<string | null>(null);
+  const fetchGenerationRef = useRef(0);
 
   const darkMode = document.documentElement.classList.contains("dark");
 
   const seriesName = useMemo(() => {
-    const labelPrefix = option === "booked" ? "Số booked" : "Số triển khai";
+    const labelPrefix =
+      option === "booked"
+        ? "Số booked"
+        : option === "Book combo"
+          ? "Số đã đặt gói"
+          : "Số triển khai";
     const labelSuffix =
       optionType === "provider" ? "/nhà mạng" : "/định dạng số";
     return `${labelPrefix}${labelSuffix}`;
   }, [option, optionType]);
 
-  // Xử lý resize chart
+  const statusColor = getStatusColor(option);
+
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
@@ -94,7 +131,7 @@ const ModalDetailReport = ({
   }, []);
 
   const getResponsiveChartOptions = useCallback(
-    (baseOptions: any, categories: string[], values: number[]) => {
+    (baseOptions: any, categories: string[]) => {
       const screenWidth = window.innerWidth;
       const isMobile = screenWidth < 640;
       const isTablet = screenWidth >= 640 && screenWidth < 1024;
@@ -146,7 +183,7 @@ const ModalDetailReport = ({
             maxWidth: isMobile ? 80 : isTablet ? 100 : 120,
           },
         },
-        colors: option === "booked" ? ["#3B82F6"] : ["#FF9800"],
+        colors: [getStatusColor(option)],
         dataLabels: {
           enabled: true,
           style: {
@@ -185,66 +222,83 @@ const ModalDetailReport = ({
         },
       };
     },
-    [option, optionType, darkMode, chartHeight],
+    [option, darkMode, chartHeight],
   );
 
-  const fetchData = useCallback(async () => {
-    if (!data?.name || !date || isFetching.current) return;
+  // Đồng bộ option khi mở modal từ biểu đồ cha
+  useEffect(() => {
+    if (!visible) return;
+    if (data?.seriesName && isReportStatusOption(data.seriesName)) {
+      setOption(data.seriesName);
+    }
+  }, [visible, data?.seriesName]);
 
-    const currentParams = { option, optionType, name: data.name, date };
-
-    // Kiểm tra xem có cần fetch lại dữ liệu không
-    if (
-      lastFetchParams.current &&
-      JSON.stringify(lastFetchParams.current) === JSON.stringify(currentParams)
-    ) {
+  // Một effect duy nhất gọi API — tránh vòng lặp fetch
+  useEffect(() => {
+    if (!visible || !data?.name || !date) {
       return;
     }
 
+    const fetchKey = buildFetchKey(option, optionType, data.name, date);
+
+    if (lastFetchKeyRef.current === fetchKey) {
+      return;
+    }
+
+    const generation = ++fetchGenerationRef.current;
+    lastFetchKeyRef.current = fetchKey;
+
     setIsLoading(true);
-    isFetching.current = true;
-    lastFetchParams.current = currentParams;
+    setChartData({ series: [], options: {} });
+    setRawData({ categories: [], values: [] });
 
     const [year, month, day] = date.split("/");
-    const params: any = {
-      year: parseInt(year),
-      month: parseInt(month),
+    const params: Record<string, number | string> = {
+      year: parseInt(year, 10),
+      month: parseInt(month, 10),
       username: data.name,
       option,
       option_type: optionType,
     };
-    if (day) params.day = parseInt(day);
+    if (day) params.day = parseInt(day, 10);
 
-    try {
-      const result = await getBookingStatusBySales(params);
-      const categories = Object.keys(result.data);
-      const values = Object.values(result.data) as number[];
-      setRawData({ categories, values });
-    } catch (error) {
-      console.error("Error fetching booking status:", error);
-      // Reset lastFetchParams nếu có lỗi để có thể thử lại
-      lastFetchParams.current = null;
-    } finally {
-      setIsLoading(false);
-      isFetching.current = false;
-    }
-  }, [data?.name, date, option, optionType]);
+    (async () => {
+      try {
+        const result = await getBookingStatusBySales(params);
+        if (generation !== fetchGenerationRef.current) return;
 
-  // Cập nhật chart data khi rawData thay đổi
+        const payload = result?.data ?? {};
+        const categories = Object.keys(payload);
+        const values = Object.values(payload) as number[];
+
+        setRawData({ categories, values });
+      } catch (error) {
+        if (generation !== fetchGenerationRef.current) return;
+        console.error("Error fetching booking status:", error);
+        setRawData({ categories: [], values: [] });
+      } finally {
+        if (generation === fetchGenerationRef.current) {
+          setIsLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      fetchGenerationRef.current += 1;
+    };
+  }, [visible, data?.name, date, option, optionType]);
+
   useEffect(() => {
-    if (rawData.categories.length && rawData.values.length) {
+    if (rawData.categories.length > 0 && rawData.values.length > 0) {
       setChartData({
-        series: [{ name: "data", data: [...rawData.values] }],
-        options: getResponsiveChartOptions(
-          options,
-          rawData.categories,
-          rawData.values,
-        ),
+        series: [{ name: seriesName, data: [...rawData.values] }],
+        options: getResponsiveChartOptions(options, rawData.categories),
       });
+    } else {
+      setChartData({ series: [], options: {} });
     }
-  }, [rawData, options, getResponsiveChartOptions]);
+  }, [rawData, options, getResponsiveChartOptions, seriesName]);
 
-  // Reset state khi modal đóng
   useEffect(() => {
     if (!visible) {
       setOptionType("provider");
@@ -252,36 +306,10 @@ const ModalDetailReport = ({
       setChartData({ series: [], options: {} });
       setRawData({ categories: [], values: [] });
       setIsLoading(false);
-      isFetching.current = false;
-      lastFetchParams.current = null;
+      lastFetchKeyRef.current = null;
+      fetchGenerationRef.current += 1;
     }
   }, [visible]);
-
-  // Khởi tạo và fetch data khi modal mở
-  useEffect(() => {
-    if (visible && data?.name) {
-      // Cập nhật option dựa trên data.seriesName
-      if (data.seriesName === "deployed" || data.seriesName === "booked") {
-        setOption(data.seriesName);
-      }
-      // Fetch data sau khi đã cập nhật option
-      setTimeout(() => fetchData(), 0);
-    }
-  }, [visible, data?.name, data?.seriesName, date]);
-
-  // Fetch data khi option hoặc optionType thay đổi
-  useEffect(() => {
-    if (visible && data?.name && !isLoading) {
-      fetchData();
-    }
-  }, [option, optionType]);
-
-  // Cập nhật option khi data.seriesName thay đổi
-  useEffect(() => {
-    if (data?.seriesName === "deployed" || data?.seriesName === "booked") {
-      setOption(data.seriesName);
-    }
-  }, [data?.seriesName]);
 
   return (
     <div className="flex justify-center px-2 sm:px-4">
@@ -291,9 +319,7 @@ const ModalDetailReport = ({
         className="w-full max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl p-3 sm:p-4 md:p-6 lg:p-8 bg-white dark:bg-gray-800 rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
         <div className="flex flex-col gap-3 sm:gap-4 py-2 sm:py-4">
           <h2 className="text-sm sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-800 dark:text-white capitalize leading-tight">
-            {option === "booked"
-              ? `Chi tiết thông tin book của ${data?.name}`
-              : `Chi tiết thông tin triển khai của ${data?.name}`}
+            {getStatusTitle(option, data?.name ?? "")}
           </h2>
 
           <div className="bg-gray-50 dark:bg-gray-700/50 p-3 sm:p-4 md:p-5 rounded-lg border dark:border-gray-600">
@@ -308,12 +334,13 @@ const ModalDetailReport = ({
                 className="px-2 sm:px-3 py-2 border rounded text-sm dark:bg-gray-700 dark:text-white dark:border-gray-600 w-full"
               />
               <Select
-                options={[
-                  { label: "Đã book", value: "booked" },
-                  { label: "Đã triển khai", value: "deployed" },
-                ]}
+                options={REPORT_STATUS_OPTIONS}
                 value={option}
-                onChange={(value) => setOption(value as "booked" | "deployed")}
+                onChange={(value) => {
+                  if (isReportStatusOption(value)) {
+                    setOption(value);
+                  }
+                }}
                 className="px-2 sm:px-3 py-2 border rounded text-sm dark:bg-gray-700 dark:text-white dark:border-gray-600 w-full"
               />
             </div>
@@ -321,9 +348,7 @@ const ModalDetailReport = ({
             <div className="mb-3 sm:mb-4 flex items-center gap-2">
               <div
                 className="w-3 h-3 rounded-sm"
-                style={{
-                  backgroundColor: option === "booked" ? "#3B82F6" : "#FF9800",
-                }}></div>
+                style={{ backgroundColor: statusColor }}></div>
               <span className="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300">
                 {seriesName}
               </span>

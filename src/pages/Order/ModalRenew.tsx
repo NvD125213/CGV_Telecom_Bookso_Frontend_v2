@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { OutboundDidForm } from "../Plan/OutboundDidForm";
 import {
+  OutboundRouteItem,
+  normalizeOutboundDidByRoute,
+} from "../Plan/interfaces/Outbound";
+import {
   formatNumberWithCommas,
   parseNumberFromFormatted,
 } from "../Plan/helpers/parseNumberFormat";
@@ -15,7 +19,7 @@ export interface RenewData {
   users: number;
   minutes: number;
   price: number;
-  outboundDidByRoute: Record<string, number>;
+  outboundDidByRoute: OutboundRouteItem[];
   meta: Record<string, string>;
 }
 
@@ -28,7 +32,7 @@ interface ModalRenewProps {
     users?: number;
     minutes?: number;
     price?: number;
-    outboundDidByRoute?: Record<string, number>;
+    outboundDidByRoute?: OutboundRouteItem[] | Record<string, number>;
   };
 }
 
@@ -63,20 +67,20 @@ export default function ModalRenew({
   const [totalPrice, setTotalPrice] = useState(0);
 
   const [outboundDidByRoute, setOutboundDidByRoute] = useState<
-    Record<string, number>
-  >(currentData.outboundDidByRoute || {});
+    OutboundRouteItem[]
+  >(() => normalizeOutboundDidByRoute(currentData.outboundDidByRoute));
   const [meta, setMeta] = useState<Record<string, string>>({});
 
   // Fetch price config from API
   const { data: dataConfigOrder } = useApi(() =>
-    configService.getConfigByKey("price_order")
+    configService.getConfigByKey("price_order"),
   );
   const priceConfig = dataConfigOrder?.data?.value || null;
 
   // Handle currency field changes
   const handleCurrencyChange = (
     field: "total_minute" | "total_users",
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const rawValue = e.target.value.replace(/[^0-9]/g, "");
     const formatted = formatNumberWithCommas(rawValue);
@@ -104,22 +108,22 @@ export default function ModalRenew({
   useEffect(() => {
     if (!priceConfig) return;
 
-    const total_cid = Object.values(outboundDidByRoute).reduce(
-      (acc, val) => acc + (Number(val) || 0),
-      0
+    const total_cid = outboundDidByRoute.reduce(
+      (acc, item) => acc + (Number(item.quantity) || 0),
+      0,
     );
 
     const minutePrice = getPriceForRange(
       totalMinute,
-      priceConfig.call_minutes_package || []
+      priceConfig.call_minutes_package || [],
     );
     const userPrice = getPriceForRange(
       totalUsers,
-      priceConfig.user_package || []
+      priceConfig.user_package || [],
     );
     const cidPrice = getPriceForRange(
       total_cid,
-      priceConfig.prefix_package_phones || []
+      priceConfig.prefix_package_phones || [],
     );
 
     const calculatedTotal =
@@ -150,7 +154,7 @@ export default function ModalRenew({
       errors.total_users = "Số user không được để trống";
     }
 
-    if (!outboundDidByRoute || Object.keys(outboundDidByRoute).length === 0) {
+    if (!outboundDidByRoute?.length) {
       errors.outbound_did_by_route = "Vui lòng chọn ít nhất 1 nhà cung cấp";
     }
 
@@ -304,7 +308,7 @@ export default function ModalRenew({
             disabledWhite={true}
           />
           <p className="text-gray-500 text-xs mt-1">
-            💡 Giá được tính tự động dựa trên số phút, số user và số đầu số
+            Giá được tính tự động dựa trên số phút, số user và số đầu số
           </p>
         </div>
 

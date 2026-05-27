@@ -15,6 +15,7 @@ import ResponsiveFilterWrapper from "../../components/common/FlipperWrapper";
 import TableMobile from "../../mobiles/TableMobile";
 import { useScreenSize } from "../../hooks/useScreenSize";
 import { LabelValueItem } from "../../mobiles/TableMobile";
+import EmptyState from "../../components/EmptyData";
 
 type PickerType = "time" | "date" | "datetime" | "month" | "year";
 
@@ -52,17 +53,17 @@ const SessionPage = () => {
   // Initialize searchDate with current yyyy-mm or URL param
   const currentDate = new Date();
   const defaultDate = `${currentDate.getFullYear()}-${String(
-    currentDate.getMonth() + 1
+    currentDate.getMonth() + 1,
   ).padStart(2, "0")}-${String(currentDate.getDate()).padStart(2, "0")}`;
   const [historySession, setHistorySession] = useState<SessionRow[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>(
-    searchParams.get("search") || ""
+    searchParams.get("search") || "",
   );
   const [searchQuery, setSearchQuery] = useState<string>(
-    searchParams.get("search") || ""
+    searchParams.get("search") || "",
   );
   const [searchDate, setSearchDate] = useState<string>(
-    searchParams.get("date") || defaultDate
+    searchParams.get("date") || defaultDate,
   );
 
   const [pageSize, setPageSize] = useState<number>(() => {
@@ -123,7 +124,7 @@ const SessionPage = () => {
     search: string = "",
     currentPage: number,
     size: number,
-    date: string = ""
+    date: string = "",
   ) => {
     setError(null);
     setLoading(true);
@@ -159,7 +160,7 @@ const SessionPage = () => {
         (item, index) => ({
           ...item,
           id: item.username || index,
-        })
+        }),
       );
       setHistorySession(transformedData);
       setTotalPages(res.data.total_pages || 0);
@@ -205,12 +206,12 @@ const SessionPage = () => {
     } else if (pickerType === "month") {
       isoDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
         2,
-        "0"
+        "0",
       )}`;
     } else {
       isoDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
         2,
-        "0"
+        "0",
       )}-${String(date.getDate()).padStart(2, "0")}`;
     }
 
@@ -329,7 +330,7 @@ const SessionPage = () => {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                 </div>
               ) : errorData ? (
-                <div className="text-center py-8 text-red-500">{errorData}</div>
+                <EmptyState />
               ) : (
                 <TableMobile
                   data={mobileData}

@@ -39,6 +39,7 @@ interface Props<T> {
     label: string;
     type?: string;
     classname?: string;
+    cellClassName?: string;
     render?: (item: T) => {
       text: React.ReactNode; // Cho phép ReactNode thay vì chỉ string
       classname?: string;
@@ -330,7 +331,7 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
                               key={col.key}
                               className={`px-5 py-3 text-gray-500 dark:text-gray-300 ${
                                 isManyColumns ? "text-[13px]" : "text-sm"
-                              }`}>
+                              } ${col.cellClassName ?? ""}`}>
                               {col.type === "button" ? (
                                 <button className={className}>{content}</button>
                               ) : col.type === "span" ? (

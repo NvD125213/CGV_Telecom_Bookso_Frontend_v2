@@ -151,7 +151,7 @@ export const PlanList = () => {
         Swal.fire(
           "Lỗi",
           error?.response?.data?.detail || "Xảy ra lỗi",
-          "error"
+          "error",
         );
       }
     }
@@ -172,7 +172,7 @@ export const PlanList = () => {
         )}
       </div>
       <ComponentCard>
-        <div className="max-w-7xl mx-auto">
+        <div>
           {/* --- Bộ lọc query --- */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8 p-4">
             {/* Tìm kiếm */}
@@ -249,7 +249,7 @@ export const PlanList = () => {
                 Array.from({ length: 3 }).map((_, i) => (
                   <div
                     key={i}
-                    className="flex-shrink-0 min-w-[40%] p-4 border border-gray-200 rounded-xl shadow animate-pulse snap-start bg-white dark:bg-gray-800">
+                    className="flex-shrink-0 min-w-[35%] p-4 border border-gray-200 rounded-xl shadow animate-pulse snap-start bg-white dark:bg-gray-800">
                     <Skeleton height={180} className="mb-4 rounded-lg" />
                     <Skeleton
                       count={3}
@@ -263,7 +263,7 @@ export const PlanList = () => {
                 plans.items.map((plan) => (
                   <div
                     key={plan.id}
-                    className="flex-shrink-0 min-w-[40%] snap-start">
+                    className="flex-shrink-0 min-w-[35%] snap-start">
                     <PricingCard
                       data={plan}
                       onSelect={handleSelect}

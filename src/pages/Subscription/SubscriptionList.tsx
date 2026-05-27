@@ -1,9 +1,19 @@
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
+import ResponsiveFilterWrapper from "../../components/common/FlipperWrapper";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useIsMobile } from "../../hooks/useScreenSize";
+import TableMobile, {
+  ActionButton,
+  LabelValueItem,
+} from "../../mobiles/TableMobile";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import DeleteIcon from "@mui/icons-material/Delete";
+import CheckIcon from "@mui/icons-material/Check";
+import RotateLeftIcon from "@mui/icons-material/RotateLeft";
+import { formatCurrency } from "../../helper/formatCurrency";
 import {
   subscriptionService,
   getQuota,
@@ -64,6 +74,49 @@ const getCurrentMonth = () => {
   const year = now.getFullYear();
   const month = (now.getMonth() + 1).toString().padStart(2, "0");
   return `${year}-${month}`;
+};
+
+const formatSubDate = (date: string | Date | undefined) =>
+  date
+    ? new Date(date).toLocaleString("vi-VN", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "-";
+
+const getSubscriptionStatusText = (status: number) => {
+  switch (status) {
+    case 1:
+      return "Hoạt động";
+    case 2:
+      return "Chờ duyệt";
+    case 0:
+      return "Hết hạn";
+    case 3:
+      return "Đã xóa";
+    default:
+      return "Đã thu hồi";
+  }
+};
+
+const calculatePaidAmount = (item: any) => {
+  let paid = 0;
+  if (item.main_sub?.is_payment === true) {
+    paid += item.main_sub.price || 0;
+  }
+  if (Array.isArray(item.list_sub_plan)) {
+    for (const sub of item.list_sub_plan) {
+      const st = Number(sub.status);
+      if (st !== 0 && st !== 1) continue;
+      if (sub.is_payment === true) {
+        paid += sub.price || 0;
+      }
+    }
+  }
+  return paid;
 };
 
 const SubsciptionList = () => {
@@ -522,6 +575,190 @@ const SubsciptionList = () => {
     loadRenewPlans(1);
   }, []);
 
+  const findSubById = useCallback(
+    (id: string) => mapData.find((s) => String(s.id) === String(id)),
+    [mapData],
+  );
+
+  const convertToMobileData = useMemo((): LabelValueItem[][] => {
+    return mapData.map((item) => {
+      const paid = calculatePaidAmount(item);
+      const progressText =
+        item.totalProgress > 0
+          ? `${Number(item.currentProgress || 0).toLocaleString("vi-VN")} / ${Number(item.totalProgress).toLocaleString("vi-VN")} phút`
+          : "Không có dữ liệu";
+
+      return [
+        { label: "ID", value: item.id, hidden: true },
+        {
+          label: "Khách hàng",
+          value: item.customer_name || "-",
+          fieldName: "customer_name",
+          hideLabel: true,
+        },
+        { label: "Sales", value: item.username || "-" },
+        { label: "Gói chính", value: item.root_plan_id || "-" },
+        {
+          label: "Trạng thái",
+          value: getSubscriptionStatusText(Number(item.status)),
+        },
+        {
+          label: "CID",
+          value: Number(item.total_did || 0).toLocaleString("vi-VN"),
+        },
+        {
+          label: "Số phút",
+          value: Number(item.total_minutes || 0).toLocaleString("vi-VN"),
+        },
+        { label: "Ngày tạo", value: formatSubDate(item.created_at) },
+        { label: "Lưu lượng", value: progressText },
+        {
+          label: "Thanh toán",
+          value: `${formatCurrency(paid)} / ${formatCurrency(item.total_price || 0)}`,
+        },
+      ];
+    });
+  }, [mapData]);
+
+  const mobileActions = useMemo((): ActionButton[] => {
+    const actions: ActionButton[] = [
+      {
+        icon: <VisibilityIcon />,
+        label: "Chi tiết",
+        color: "primary",
+        onClick: (id: string) => {
+          const item = findSubById(id);
+          if (!item || item.status === 3) return;
+          navigate(`/subscriptions/detail/${item.id}`);
+        },
+      },
+      {
+        icon: <RotateLeftIcon />,
+        label: "Gia hạn",
+        color: "info",
+        onClick: (id: string) => {
+          const item = findSubById(id);
+          if (!item || item.status === 3) return;
+          setRenewData(item);
+          setOpenModalRenew(true);
+        },
+      },
+    ];
+
+    if (user.sub === "VANLTT" || user.sub === "HUYLQ") {
+      actions.push({
+        icon: <CheckIcon />,
+        label: "Xác nhận TT",
+        color: "success",
+        onClick: (id: string) => {
+          const item = findSubById(id);
+          if (!item || item.status === 3) return;
+          handleConfirmPayment(item);
+        },
+      });
+    }
+
+    actions.push({
+      icon: <DeleteIcon />,
+      label: "Xóa",
+      color: "error",
+      onClick: (id: string) => {
+        const item = findSubById(id);
+        if (!item || item.status !== 2) return;
+        handleDelete(id);
+      },
+    });
+
+    return actions;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [findSubById, navigate, user.sub]);
+
+  const filterBlock = (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="min-w-0">
+        <Label>Tìm kiếm</Label>
+        <Input
+          type="text"
+          placeholder="Tìm theo tên khách hàng, mst..."
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          className="w-full border border-gray-300 px-3 py-2 rounded-md"
+        />
+      </div>
+
+      <div className="min-w-0">
+        <Label>Thời gian tạo</Label>
+        <Input
+          type="month"
+          value={query.created_month || ""}
+          onChange={(e) =>
+            setQuery({
+              ...query,
+              created_month: e.target.value || undefined,
+              page: 1,
+            })
+          }
+          className="w-full border border-gray-300 px-3 py-2 rounded-md"
+        />
+      </div>
+
+      <div className="min-w-0">
+        <Label>Trạng thái thanh toán</Label>
+        <Select
+          options={[
+            { label: "Tất cả", value: "" },
+            { label: "Đã thanh toán", value: "true" },
+            { label: "Chưa thanh toán", value: "false" },
+          ]}
+          onChange={(value) =>
+            setQuery({
+              ...query,
+              is_payment: value === "" ? undefined : value === "true",
+              page: 1,
+            })
+          }
+          placeholder="Trạng thái thanh toán"
+        />
+      </div>
+
+      <div className="min-w-0">
+        <Label>Trạng thái</Label>
+        <Select
+          options={[
+            { label: "Tất cả", value: "" },
+            { label: "Hoạt động", value: "1" },
+            { label: "Chờ duyệt", value: "2" },
+            { label: "Hết hạn", value: "0" },
+            { label: "Đã thu hồi", value: "3" },
+          ]}
+          onChange={(value) => setQuery({ ...query, status: value, page: 1 })}
+          placeholder="Trạng thái"
+        />
+      </div>
+
+      <div className="min-w-0 sm:col-span-2 lg:col-span-1">
+        <Label>Gói chính</Label>
+        <Select
+          options={[
+            { label: "Tất cả gói", value: "" },
+            ...(rootPlansData?.data?.items?.map((plan: any) => ({
+              label: plan.name,
+              value: plan.id.toString(),
+            })) || []),
+          ]}
+          onChange={(value) =>
+            setQuery({
+              ...query,
+              root_plan_id: value ? Number(value) : undefined,
+              page: 1,
+            })
+          }
+          placeholder="Chọn gói"
+        />
+      </div>
+    </div>
+  );
+
   /* ========== VT_CID / viettelCID — tạm tắt ==========
   // Load quota viettel theo tháng
   const CACHE_TIME = 5 * 60 * 1000;
@@ -703,138 +940,85 @@ const SubsciptionList = () => {
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Danh sách đăng ký gói" />
+      {isMobile ? null : <PageBreadcrumb pageTitle="Danh sách đăng ký gói" />}
       <ComponentCard>
-        <div className="max-w-7xl mx-auto">
-          {/* --- Bộ lọc query --- */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8 p-4">
-            <div className="w-full">
-              <Label>Tìm kiếm</Label>
-              <Input
-                type="text"
-                placeholder="Tìm theo tên khách hàng, mst..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="w-full border border-gray-300 px-3 py-2 rounded-md"
-              />
-            </div>
+        <ResponsiveFilterWrapper drawerTitle="Bộ lọc đăng ký gói">
+          {filterBlock}
+        </ResponsiveFilterWrapper>
 
-            {/* Tháng tạo */}
-            <div className="w-full">
-              <Label>Thời gian tạo</Label>
-              <Input
-                type="month"
-                value={query.created_month || ""}
-                onChange={(e) =>
-                  setQuery({
-                    ...query,
-                    created_month: e.target.value || undefined,
-                    page: 1,
-                  })
-                }
-                className="w-full border border-gray-300 px-3 py-2 rounded-md"
-              />
-            </div>
+        {error && <div className="mb-4 text-red-500 px-1">{error}</div>}
 
-            {/* Trạng thái thanh toán */}
-            <div className="w-full">
-              <Label>Trạng thái thanh toán</Label>
-              <Select
-                options={[
-                  { label: "Tất cả", value: "" },
-                  { label: "Đã thanh toán", value: "true" },
-                  { label: "Chưa thanh toán", value: "false" },
-                ]}
-                onChange={(value) =>
-                  setQuery({
-                    ...query,
-                    is_payment: value === "" ? undefined : value === "true",
-                  })
-                }
-                placeholder="Trạng thái thanh toán"
-              />
-            </div>
-
-            {/* Trạng thái */}
-            <div className="w-full">
-              <Label>Trạng thái</Label>
-              <Select
-                options={[
-                  { label: "Tất cả", value: "" },
-                  { label: "Hoạt động", value: "1" },
-                  { label: "Chờ duyệt", value: "2" },
-                  { label: "Hết hạn", value: "0" },
-                  { label: "Đã thu hồi", value: "3" },
-                ]}
-                onChange={(value) => setQuery({ ...query, status: value })}
-                placeholder="Trạng thái"
-              />
-            </div>
-
-            {/* Gói chính */}
-            <div className="w-full">
-              <Label>Gói chính</Label>
-              <Select
-                options={[
-                  { label: "Tất cả gói", value: "" },
-                  ...(rootPlansData?.data?.items?.map((plan: any) => ({
-                    label: plan.name,
-                    value: plan.id.toString(),
-                  })) || []),
-                ]}
-                onChange={(value) =>
-                  setQuery({
-                    ...query,
-                    root_plan_id: value ? Number(value) : undefined,
-                  })
-                }
-                placeholder="Chọn gói"
-              />
-            </div>
+        {isMobile ? (
+          <div className="mt-2">
+            {loading || isLoadingPlans ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-500" />
+              </div>
+            ) : convertToMobileData.length === 0 ? (
+              <div className="py-12 text-center text-sm text-gray-500 dark:text-gray-400">
+                Không tìm thấy dữ liệu phù hợp
+              </div>
+            ) : (
+              <>
+                <TableMobile
+                  pageTitle="Danh sách đăng ký gói"
+                  data={convertToMobileData}
+                  actions={mobileActions}
+                  hideCheckbox={true}
+                  hidePagination={true}
+                  showAllData={true}
+                  useTailwindStyling={true}
+                  disabledReset={true}
+                  labelClassNames={{
+                    "Khách hàng":
+                      "text-base font-semibold text-gray-800 dark:text-gray-100",
+                    "Trạng thái": "text-[13px]",
+                  }}
+                  valueClassNames={{
+                    "Khách hàng":
+                      "text-lg font-bold text-gray-900 dark:text-white",
+                  }}
+                />
+                <div className="mt-4 px-1">
+                  <Pagination
+                    data={pagination}
+                    onChange={handlePaginationChange}
+                  />
+                </div>
+              </>
+            )}
           </div>
-
-          {error && <div className="text-red-500 mb-4">{error}</div>}
-
-          {isMobile ? (
-            <div className="text-center text-gray-500">
-              Chế độ mobile chưa được hỗ trợ cho bảng này
-            </div>
-          ) : (
-            <>
-              <CustomSubscriptionTable
-                // VT_CID — tạm tắt
-                // viettelCID={isCurrentMonth ? viettelCID : undefined}
-                dataRaw={mapData}
-                isLoading={loading || isLoadingPlans}
-                role={user.role}
-                quotaMonth={query.created_month || getCurrentMonth()}
-                onQuotaMonthChange={(val) =>
-                  setQuery({
-                    ...query,
-                    created_month: val,
-                    page: 1,
-                  })
-                }
-                onEdit={(item) => {
-                  navigate(`/subscriptions/edit/${item.id}`);
-                }}
-                onReload={() => {
-                  return fetchSubscriptions();
-                }}
-                onRenew={(item) => {
-                  setRenewData(item);
-                  setOpenModalRenew(true);
-                }}
-                onConfirm={(item) => handleConfirmPayment(item)}
-                onDetail={(item) =>
-                  navigate(`/subscriptions/detail/${item.id}`)
-                }
-                onDelete={(id) => handleDelete(id)}
-              />
-              <Pagination data={pagination} onChange={handlePaginationChange} />
-            </>
-          )}
-        </div>
+        ) : (
+          <>
+            <CustomSubscriptionTable
+              dataRaw={mapData}
+              isLoading={loading || isLoadingPlans}
+              role={user.role}
+              quotaMonth={query.created_month || getCurrentMonth()}
+              onQuotaMonthChange={(val) =>
+                setQuery({
+                  ...query,
+                  created_month: val,
+                  page: 1,
+                })
+              }
+              onEdit={(item) => {
+                navigate(`/subscriptions/edit/${item.id}`);
+              }}
+              onReload={() => {
+                return fetchSubscriptions();
+              }}
+              onRenew={(item) => {
+                setRenewData(item);
+                setOpenModalRenew(true);
+              }}
+              onConfirm={(item) => handleConfirmPayment(item)}
+              onDetail={(item) => navigate(`/subscriptions/detail/${item.id}`)}
+              onDelete={(id) => handleDelete(id)}
+            />
+            <Pagination data={pagination} onChange={handlePaginationChange} />
+          </>
+        )}
       </ComponentCard>
 
       <ModalRenew

@@ -124,10 +124,11 @@ function PhoneNumbers() {
   const initialBrandname = searchParams.get("brandname") || "";
   const [searchBrandname, setSearchBrandname] =
     useState<string>(initialBrandname);
-  const [selectedBrand, setSelectedBrand] = useState<AutocompleteOption[]>(() =>
-    initialBrandname
-      ? [{ label: initialBrandname, value: initialBrandname }]
-      : [],
+  const [selectedBrand, setSelectedBrand] = useState<AutocompleteOption[]>(
+    () =>
+      initialBrandname
+        ? [{ label: initialBrandname, value: initialBrandname }]
+        : [],
   );
 
   const [safeData, setSafeData] = useState<IPhoneNumber[]>([]);
@@ -804,6 +805,7 @@ function PhoneNumbers() {
                       options={[
                         { label: "Có sẵn", value: "available" },
                         { label: "Đã đặt", value: "booked" },
+                        { label: "Đặt gói", value: "Book combo" },
                         { label: "Đã triển khai", value: "released" },
                       ]}
                       placeholder="Lựa chọn trạng thái"
@@ -898,8 +900,7 @@ function PhoneNumbers() {
                             ? [options[options.length - 1]]
                             : options;
                         setSelectedBrand(single);
-                        const name =
-                          single.length > 0 ? single[0].label : "";
+                        const name = single.length > 0 ? single[0].label : "";
                         setSearchBrandname(name);
                         setOffset(0);
                         fetchData(

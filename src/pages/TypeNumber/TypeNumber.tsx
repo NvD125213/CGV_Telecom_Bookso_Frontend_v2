@@ -15,6 +15,7 @@ import { useScreenSize } from "../../hooks/useScreenSize";
 import { LabelValueItem, ActionButton } from "../../mobiles/TableMobile";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import EmptyState from "../../components/EmptyData";
 
 function convertSecondsToTime(seconds: number): string {
   if (!seconds || seconds < 0) return "0s";
@@ -210,21 +211,26 @@ const TypeNumberPages = () => {
           ) : (
             // Hiển thị ReusableTable cho desktop
             <ComponentCard>
-              <ReusableTable
-                error={errorData}
-                disabledReset={true}
-                disabled={true}
-                role={user.role}
-                title="Danh sách định dạng số"
-                data={types}
-                columns={columns}
-                onEdit={(item) => {
-                  setType(item);
-                  setOpenModal(!openModal);
-                }}
-                isLoading={loading}
-                onDelete={(id) => handleDelete(String(id))}
-              />
+              {types.length === 0 ? (
+                <EmptyState />
+              ) : (
+                <ReusableTable
+                  error={errorData}
+                  showId={false}
+                  disabledReset={true}
+                  disabled={true}
+                  role={user.role}
+                  title="Danh sách định dạng số"
+                  data={types}
+                  columns={columns}
+                  onEdit={(item) => {
+                    setType(item);
+                    setOpenModal(!openModal);
+                  }}
+                  isLoading={loading}
+                  onDelete={(id) => handleDelete(String(id))}
+                />
+              )}
             </ComponentCard>
           )}
         </div>

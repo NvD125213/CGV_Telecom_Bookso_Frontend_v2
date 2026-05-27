@@ -7,7 +7,11 @@ interface PlanData {
   minutes: number;
   did_count: number;
   price_vnd: number;
-  outbound_did_by_route: Record<string, any>;
+  outbound_did_by_route: {
+    brandname_id: number | null;
+    provider: string | null;
+    quantity: number | null;
+  }[];
   total_users: number;
   meta: Record<string, any>;
   is_active: boolean;

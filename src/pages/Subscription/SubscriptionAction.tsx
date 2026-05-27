@@ -31,6 +31,7 @@ import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
 import DualProgress from "../../components/progress-bar/DualProgress";
 import { OutboundDidDisplay } from "./OutboundDidDisplay";
+import { normalizeOutboundDidByRoute } from "../Plan/interfaces/Outbound";
 
 export interface PhoneNumber {
   phone_number: string;
@@ -634,11 +635,7 @@ export const SubcriptionActionPage = () => {
         Swal.fire("Lỗi", "Không thể xóa gói này.", "error");
       }
     } catch (error: any) {
-      Swal.fire(
-        "Lỗi",
-        error?.response?.data?.detail || "Xảy ra lỗi",
-        "error",
-      );
+      Swal.fire("Lỗi", error?.response?.data?.detail || "Xảy ra lỗi", "error");
     }
   };
 
@@ -897,6 +894,14 @@ export const SubcriptionActionPage = () => {
     return { paid, unpaid };
   }, [items]);
 
+  const outboundDidRoutes = useMemo(
+    () =>
+      normalizeOutboundDidByRoute(
+        plan?.outbound_did_by_route ?? planData?.outbound_did_by_route,
+      ),
+    [plan?.outbound_did_by_route, planData?.outbound_did_by_route],
+  );
+
   return (
     <>
       <PageBreadcrumb
@@ -945,11 +950,7 @@ export const SubcriptionActionPage = () => {
       )}
 
       <ComponentCard>
-        <div
-          className={`grid gap-6 ${
-            isHavingID ? "md:grid-cols-2 grid-cols-1" : "grid-cols-1"
-          }`}>
-          {" "}
+        <div className="grid grid-cols-1 gap-6">
           <div>
             <Label>Tên khách hàng</Label>
             <Input
@@ -1048,37 +1049,32 @@ export const SubcriptionActionPage = () => {
             </>
           )}
           {/* Hiển thị Outbound CID Configuration */}
-          {(plan?.outbound_did_by_route || planData?.outbound_did_by_route) && (
+          {outboundDidRoutes.length > 0 && isHavingID && (
             <div>
               <OutboundDidDisplay
-                value={
-                  (plan?.outbound_did_by_route ||
-                    planData?.outbound_did_by_route) as Record<string, any>
-                }
+                value={outboundDidRoutes}
                 title="Cấu hình Outbound CID"
               />
             </div>
           )}
-          <div className="flex flex-col gap-4">
-            {isDetail && form.slide_users?.length > 0 && (
-              <div>
-                <Label>Danh sách mã trượt</Label>
-                <SlideForm
-                  value={form.slide_users as string[]}
-                  onChange={(updated) => handleChange("slide_users", updated)}
-                />
-              </div>
-            )}
-            {isHavingID && form.slide_users.length > 0 && (
-              <div>
-                <DualProgress
-                  total={totalMinutes}
-                  current={comboDetailData.total_call_out}
-                  label="Số phút gọi"
-                />
-              </div>
-            )}
-          </div>
+          {isDetail && form.slide_users?.length > 0 && (
+            <div>
+              <Label>Danh sách mã trượt</Label>
+              <SlideForm
+                value={form.slide_users as string[]}
+                onChange={(updated) => handleChange("slide_users", updated)}
+              />
+            </div>
+          )}
+          {isHavingID && form.slide_users.length > 0 && (
+            <div>
+              <DualProgress
+                total={totalMinutes}
+                current={comboDetailData.total_call_out}
+                label="Số phút gọi"
+              />
+            </div>
+          )}
         </div>
 
         {/* --- Submit --- */}
@@ -1407,7 +1403,7 @@ export const SubcriptionActionPage = () => {
                 Array.from({ length: 3 }).map((_, i) => (
                   <div
                     key={i}
-                    className="flex-shrink-0 min-w-[40%] p-4 border border-gray-200 rounded-xl shadow animate-pulse snap-start bg-white dark:bg-gray-800">
+                    className="flex-shrink-0 min-w-[35%] p-4 border border-gray-200 rounded-xl shadow animate-pulse snap-start bg-white dark:bg-gray-800">
                     <Skeleton height={180} className="mb-4 rounded-lg" />
                     <Skeleton
                       count={3}
@@ -1433,7 +1429,7 @@ export const SubcriptionActionPage = () => {
                 plansData?.data?.children?.map((plan: PlanData) => (
                   <div
                     key={plan.id}
-                    className="flex-shrink-0 min-w-[40%] snap-start">
+                    className="flex-shrink-0 min-w-[35%] snap-start">
                     <PricingCard
                       data={plan}
                       showBadge={false}

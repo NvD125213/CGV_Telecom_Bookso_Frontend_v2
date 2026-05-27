@@ -26,6 +26,7 @@ export interface LabelValueItem {
   label: string;
   value: string | number;
   fieldName?: string;
+  valueClassName?: string;
   hidden?: boolean;
   hideLabel?: boolean;
   hideValue?: boolean;
@@ -132,6 +133,7 @@ const CardMobile: React.FC<CardMobileProps> = ({
         .map((item) => ({
           key: item.label,
           value: String(item.value),
+          valueClassName: item.valueClassName,
           hideLabel: item.hideLabel,
           hideValue: item.hideValue,
         }));
@@ -246,7 +248,7 @@ const CardMobile: React.FC<CardMobileProps> = ({
             className={`${tailwindStyles.content} ${contentClassName || ""}`}>
             {/* Grid layout: mỗi dòng là 1 cặp label-value, chia 2 cột */}
             <div className="flex flex-col gap-1">
-              {entries.map(({ key, value, hideLabel, hideValue }) => (
+              {entries.map(({ key, value, valueClassName, hideLabel, hideValue }) => (
                 <div
                   key={key}
                   className={`flex mb-1 min-h-[30px] bg-transparent ${
@@ -365,7 +367,7 @@ const CardMobile: React.FC<CardMobileProps> = ({
           }}>
           {/* Grid layout: mỗi dòng là 1 cặp label-value, chia 2 cột */}
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            {entries.map(({ key, value, hideLabel, hideValue }) => (
+            {entries.map(({ key, value, valueClassName, hideLabel, hideValue }) => (
               <Box
                 key={key}
                 className={`${fieldClassName || ""} ${

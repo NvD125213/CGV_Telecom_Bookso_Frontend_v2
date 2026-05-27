@@ -21,6 +21,7 @@ import Select from "../../components/form/Select";
 import TableMobile, { LabelValueItem } from "../../mobiles/TableMobile";
 import ResponsiveFilterWrapper from "../../components/common/FlipperWrapper";
 import { useScreenSize } from "../../hooks/useScreenSize";
+import EmptyState from "../../components/EmptyData";
 
 // Define types for different data sources
 type DataSource = "gvoice" | "vpbx" | "gigafone";
@@ -224,7 +225,7 @@ const DigitalChannel = () => {
   useEffect(() => {
     if (dataSource === "vpbx" && searchQuery) {
       const filteredData = allVPBXData.filter((item) =>
-        item.phone_number.toLowerCase().includes(searchQuery.toLowerCase())
+        item.phone_number.toLowerCase().includes(searchQuery.toLowerCase()),
       );
 
       const currentPage = Number(page) || 1;
@@ -352,7 +353,7 @@ const DigitalChannel = () => {
               { label: "Giá tại Viettel", value: item.vtl_fee ?? "N/A" },
               { label: "Giá tại VMS", value: item.vms_fee ?? "N/A" },
               { label: "Giá tại VNPT", value: item.vnpt_fee ?? "N/A" },
-              { label: "Giá khác", value: item.other_fee ?? "N/A" }
+              { label: "Giá khác", value: item.other_fee ?? "N/A" },
             );
           }
 
@@ -407,7 +408,6 @@ const DigitalChannel = () => {
         *Chức năng thử nghiệm
       </span>
       <div className="space-y-6">
-        {error && <div className="text-red-500">{error}</div>}
         <ComponentCard>
           <ResponsiveFilterWrapper>
             <div
@@ -483,38 +483,44 @@ const DigitalChannel = () => {
             />
           ) : (
             <>
-              <ReusableTable<TableData>
-                error={errorData}
-                disabledReset={true}
-                title={getTableTitle()}
-                showId={false}
-                data={data?.data.map((item) => ({
-                  ...item,
-                  id: item.phone_number,
-                }))}
-                columns={
-                  getColumns() as {
-                    key: string;
-                    label: string;
-                    type?: string;
-                    classname?: string;
-                  }[]
-                }
-                isLoading={loading}
-                disabled={true}
-              />
-              <Pagination
-                limit={Number(perPage) || 10}
-                offset={(Number(page) || 1) - 1}
-                totalPages={data?.pagination.total_pages ?? 1}
-                totalResults={data?.pagination.total_results}
-                paginationMode={dataSource === "vpbx" ? "total" : "page"}
-                onPageChange={(limit, newOffset) =>
-                  onPaginationChange(limit, newOffset)
-                }
-                onLimitChange={handleLimitChange}
-                showLimitSelector={false}
-              />
+              {data?.data && data?.data.length > 0 ? (
+                <div>
+                  <ReusableTable<TableData>
+                    error={errorData}
+                    disabledReset={true}
+                    title={getTableTitle()}
+                    showId={false}
+                    data={data?.data.map((item) => ({
+                      ...item,
+                      id: item.phone_number,
+                    }))}
+                    columns={
+                      getColumns() as {
+                        key: string;
+                        label: string;
+                        type?: string;
+                        classname?: string;
+                      }[]
+                    }
+                    isLoading={loading}
+                    disabled={true}
+                  />
+                  <Pagination
+                    limit={Number(perPage) || 10}
+                    offset={(Number(page) || 1) - 1}
+                    totalPages={data?.pagination.total_pages ?? 1}
+                    totalResults={data?.pagination.total_results}
+                    paginationMode={dataSource === "vpbx" ? "total" : "page"}
+                    onPageChange={(limit, newOffset) =>
+                      onPaginationChange(limit, newOffset)
+                    }
+                    onLimitChange={handleLimitChange}
+                    showLimitSelector={false}
+                  />
+                </div>
+              ) : (
+                <EmptyState />
+              )}
             </>
           )}
         </ComponentCard>

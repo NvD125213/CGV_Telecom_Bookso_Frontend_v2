@@ -44,8 +44,8 @@ function logoutAndRedirect() {
   document.location.href = "/signin";
 }
 const axiosInstance = axios.create({
-  // baseURL: "https://bookso.cgvtelecom.vn:8000/",
   baseURL: "https://bookso.cgvtelecom.vn:8000/",
+  // baseURL: "http://103.216.124.164:8000/",
 });
 
 let isAlertShown = false;
@@ -70,7 +70,7 @@ axiosInstance.interceptors.request.use(
     if (resetTimerFn) resetTimerFn();
     return config;
   },
-  (err) => Promise.reject(err)
+  (err) => Promise.reject(err),
 );
 
 // Response Interceptor
@@ -96,7 +96,7 @@ axiosInstance.interceptors.response.use(
           "https://bookso.cgvtelecom.vn:8000/api/v1/auth/access_token_by_refresh_token",
           {
             headers: { Authorization: `Bearer ${refreshToken}` },
-          }
+          },
         );
 
         const newAccessToken = res.data?.access_token;
@@ -134,7 +134,7 @@ axiosInstance.interceptors.response.use(
     }
 
     return Promise.reject(err);
-  }
+  },
 );
 
 export default axiosInstance;

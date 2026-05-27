@@ -13,6 +13,7 @@ import { sortByPriority } from "../../helper/priorityProviderList";
 import TableMobile from "../../mobiles/TableMobile";
 import { Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import { useIsMobile } from "../../hooks/useScreenSize";
+import EmptyState from "../../components/EmptyData";
 import { LabelValueItem, ActionButton } from "../../mobiles/TableMobile";
 
 const columns: { key: keyof IProvider; label: string }[] = [
@@ -223,22 +224,26 @@ const ProviderPage = () => {
             </ComponentCard>
           ) : (
             <ComponentCard>
-              <ReusableTable
-                showId={false}
-                error={errorData}
-                role={user.role}
-                disabledReset={true}
-                title="Danh sách số điện thoại"
-                data={providers}
-                columns={columns}
-                onEdit={(item) => {
-                  setProvider(item);
-                  setOpenModal(!openModal);
-                }}
-                disabled={true}
-                isLoading={loading}
-                onDelete={(id) => handleDelete(String(id))}
-              />
+              {providers.length === 0 ? (
+                <EmptyState />
+              ) : (
+                <ReusableTable
+                  showId={false}
+                  error={errorData}
+                  role={user.role}
+                  disabledReset={true}
+                  title="Danh sách số điện thoại"
+                  data={providers}
+                  columns={columns}
+                  onEdit={(item) => {
+                    setProvider(item);
+                    setOpenModal(!openModal);
+                  }}
+                  disabled={true}
+                  isLoading={loading}
+                  onDelete={(id) => handleDelete(String(id))}
+                />
+              )}
             </ComponentCard>
           )}
         </div>

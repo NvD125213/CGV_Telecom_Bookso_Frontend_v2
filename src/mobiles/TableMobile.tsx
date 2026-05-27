@@ -36,6 +36,7 @@ const PageBreadcrumb = lazy(
 export interface LabelValueItem {
   label: string;
   value: string | number;
+  valueClassName?: string;
   hidden?: boolean;
   hideLabel?: boolean;
   hideValue?: boolean;

@@ -204,13 +204,10 @@ export const CustomSubscriptionTable = ({
   return (
     <div className="space-y-3">
       {/* Summary Cards - Compact */}
-      <div className="flex gap-2 justify-end items-center">
-        {/* Chọn tháng/năm */}
-
-        <div className="flex gap-2 justify-end items-center">
-          {/* Tổng doanh thu */}
-          <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-green-300 bg-green-50 dark:bg-green-500/10">
-            <span className="text-xs font-semibold text-green-600 dark:text-green-400 whitespace-nowrap">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end sm:items-stretch">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:justify-end">
+          <div className="flex flex-1 items-center justify-between gap-1.5 rounded-lg border border-green-300 bg-green-50 px-3 py-2 dark:bg-green-500/10 sm:flex-initial sm:justify-start">
+            <span className="text-xs font-semibold whitespace-nowrap text-green-600 dark:text-green-400">
               Tổng doanh thu:
             </span>
             <span className="text-sm font-bold text-green-700 dark:text-green-400">
@@ -220,9 +217,8 @@ export const CustomSubscriptionTable = ({
             </span>
           </div>
 
-          {/* Chưa thanh toán */}
-          <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-red-300 bg-red-50 dark:bg-red-500/10">
-            <span className="text-xs font-semibold text-red-600 dark:text-red-400 whitespace-nowrap">
+          <div className="flex flex-1 items-center justify-between gap-1.5 rounded-lg border border-red-300 bg-red-50 px-3 py-2 dark:bg-red-500/10 sm:flex-initial sm:justify-start">
+            <span className="text-xs font-semibold whitespace-nowrap text-red-600 dark:text-red-400">
               Chưa thanh toán:
             </span>
             <span className="text-sm font-bold text-red-700 dark:text-red-400">
@@ -242,7 +238,7 @@ export const CustomSubscriptionTable = ({
         transition={{ duration: 0.4, delay: 0.15 }}>
         <div className="overflow-x-auto">
           <div className="inline-block min-w-full">
-            <div className="max-h-[600px] overflow-y-auto dark:bg-black">
+            <div className="max-h-[min(600px,70vh)] overflow-y-auto dark:bg-black">
               <Table className="dark:text-white text-sm">
                 {/* Header */}
                 <TableHeader className="relative top-0 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">

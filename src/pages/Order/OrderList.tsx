@@ -22,7 +22,7 @@ import { IoIosAdd } from "react-icons/io";
 import ActionMenu from "./ActionMenu";
 import DualProgress from "../../components/progress-bar/DualProgress";
 import Swal from "sweetalert2";
-import ModalRenew from "./ModalRenew";
+import ModalRenew, { RenewData } from "./ModalRenew";
 import { getQuota } from "../../services/subcription";
 
 interface OrderData {
@@ -448,7 +448,7 @@ const OrderList = () => {
           (q: any) =>
             (q.total_call_out || 0) > 0 ||
             (q.total_call_in || 0) > 0 ||
-            (q.total_sms || 0) > 0
+            (q.total_sms || 0) > 0,
         );
         setQuotaData(filtered);
       } catch (err) {
@@ -536,7 +536,7 @@ const OrderList = () => {
           Swal.fire(
             "Đã xóa!",
             `Order cho khách hàng "${data.customer_name}" đã được xóa !`,
-            "success"
+            "success",
           );
           fetchOrders();
         } else {
@@ -546,7 +546,7 @@ const OrderList = () => {
         Swal.fire(
           "Lỗi",
           error?.response?.data?.detail || "Xảy ra lỗi",
-          "error"
+          "error",
         );
       }
     }
@@ -588,13 +588,7 @@ const OrderList = () => {
     }
   };
 
-  const handleRenewWithNewInfo = async (newData: {
-    users: number;
-    minutes: number;
-    price: number;
-    outboundDidByRoute: Record<string, number>;
-    meta: Record<string, string>;
-  }) => {
+  const handleRenewWithNewInfo = async (newData: RenewData) => {
     if (!currentItem) return;
 
     const dataSubmit = {
@@ -628,7 +622,7 @@ const OrderList = () => {
           Swal.fire(
             "Đã gia hạn!",
             "Gia hạn với thông tin mới thành công.",
-            "success"
+            "success",
           );
           setOpenModalRenew(false);
           fetchOrders();
@@ -639,7 +633,7 @@ const OrderList = () => {
         Swal.fire(
           "Lỗi",
           error?.response?.data?.detail || "Xảy ra lỗi khi gia hạn",
-          "error"
+          "error",
         );
       }
     }
@@ -660,7 +654,7 @@ const OrderList = () => {
         </button>
       </div>
       <ComponentCard>
-        <div className="max-w-7xl mx-auto">
+        <div>
           {/* --- Bộ lọc query --- */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8 p-4">
             <div className="w-full">
@@ -748,7 +742,7 @@ const OrderList = () => {
           users: currentItem?.total_users || 0,
           minutes: currentItem?.total_minute || 0,
           price: currentItem?.total_price || 0,
-          outboundDidByRoute: currentItem?.outbound_did_by_route || {},
+          outboundDidByRoute: currentItem?.outbound_did_by_route ?? [],
         }}
         onRenewWithOldInfo={() => handleRenewWithOldInfo(currentItem)}
         onRenewWithNewInfo={handleRenewWithNewInfo}

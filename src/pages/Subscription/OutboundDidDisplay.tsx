@@ -1,38 +1,64 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
+import AutoSelect from "../../components/autoCompleteSwitch/AutoSelect";
+import { useBrandNameList } from "../../hooks/api-hooks/v3/useBrandname";
 import { formatNumberWithCommas } from "../Plan/helpers/parseNumberFormat";
+import {
+  normalizeOutboundDidByRoute,
+  OutboundDidValue,
+} from "../Plan/interfaces/Outbound";
 
 interface OutboundDidDisplayProps {
-  value: Record<string, any>;
+  value?: OutboundDidValue;
   title?: string;
 }
 
-interface RouteEntry {
-  key: string;
-  value: string | number;
-}
+const readOnlyInputClass =
+  "text-gray-900 bg-gray-200 cursor-not-allowed border border-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600";
 
 export const OutboundDidDisplay = ({
   value,
   title = "Cấu hình Outbound CID",
 }: OutboundDidDisplayProps) => {
-  const [routes, setRoutes] = useState<RouteEntry[]>([]);
-
-  // Cập nhật routes khi value thay đổi
-  useEffect(() => {
-    if (value && Object.keys(value).length > 0) {
-      const formattedRoutes = Object.entries(value).map(([key, val]) => ({
-        key,
-        value: formatNumberWithCommas(val.toString()),
-      }));
-      setRoutes(formattedRoutes);
-    } else {
-      setRoutes([]);
-    }
+  const routes = useMemo(() => {
+    return normalizeOutboundDidByRoute(value).filter(
+      (item) =>
+        item.provider != null ||
+        item.brandname_id != null ||
+        item.quantity != null,
+    );
   }, [value]);
 
-  // Nếu không có dữ liệu, không hiển thị gì
+  const { data: brandNameListData } = useBrandNameList({
+    page: 1,
+    size: 100,
+    is_active: true,
+    order_by: "created_at",
+    order_dir: "desc",
+  });
+
+  const brandOptions = useMemo(() => {
+    const fromApi = (brandNameListData?.items ?? []).map((brand) => ({
+      label: brand.name,
+      value: String(brand.id),
+    }));
+
+    const selectedIds = routes
+      .map((r) => r.brandname_id)
+      .filter(
+        (id): id is number =>
+          id != null && !fromApi.some((o) => o.value === String(id)),
+      );
+
+    const fromSaved = selectedIds.map((id) => ({
+      label: `Brand #${id}`,
+      value: String(id),
+    }));
+
+    return [...fromApi, ...fromSaved];
+  }, [brandNameListData, routes]);
+
   if (routes.length === 0) {
     return null;
   }
@@ -40,26 +66,42 @@ export const OutboundDidDisplay = ({
   return (
     <div>
       <Label>{title}</Label>
-      <div className="flex flex-col gap-4 mt-3">
+      <div className="flex flex-col gap-3 mt-3">
         {routes.map((route, index) => (
           <div key={index} className="flex items-center gap-2">
-            {/* Provider name */}
             <div className="flex-1 min-w-0">
               <Input
                 type="text"
-                value={route.key}
-                disabledWhite={true}
-                className="text-gray-900 bg-gray-200 cursor-not-allowed border border-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
+                value={route.provider ?? ""}
+                disabledWhite
+                placeholder="-"
+                className={readOnlyInputClass}
               />
             </div>
 
-            {/* Value */}
+            <div className="flex-1 min-w-0">
+              <AutoSelect
+                options={brandOptions}
+                value={
+                  route.brandname_id != null ? String(route.brandname_id) : ""
+                }
+                placeholder="-"
+                disabled
+                disabledWhite={true}
+              />
+            </div>
+
             <div className="w-24 flex-shrink-0">
               <Input
                 type="text"
-                value={route.value}
-                disabledWhite={true}
-                className="text-gray-900 bg-gray-200 cursor-not-allowed border border-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
+                value={
+                  route.quantity != null
+                    ? formatNumberWithCommas(String(route.quantity))
+                    : ""
+                }
+                disabledWhite
+                placeholder="-"
+                className={readOnlyInputClass}
               />
             </div>
           </div>

@@ -17,6 +17,7 @@ interface BookedBySales {
   user_name: string;
   quantity: number;
   booked: number;
+  booked_combo?: number;
   deployed: number;
 }
 
@@ -34,6 +35,7 @@ interface ChartDataItem {
   total?: number;
   value?: number;
   booked?: number;
+  booked_combo?: number;
   deployed?: number;
   seriesName?: string;
 }
@@ -247,8 +249,12 @@ const ProviderReport = () => {
             return {
               name: item.user_name || "Unknown",
               booked: item.booked || 0,
+              booked_combo: item.booked_combo || 0,
               deployed: item.deployed || 0,
-              total: (item.booked || 0) + (item.deployed || 0),
+              total:
+                (item.booked || 0) +
+                (item.booked_combo || 0) +
+                (item.deployed || 0),
             };
           })
           .sort((a, b) => (b.total || 0) - (a.total || 0));
@@ -268,7 +274,16 @@ const ProviderReport = () => {
       return;
     }
 
-    const seriesName = seriesIndex === 0 ? "booked" : "deployed";
+    const seriesName =
+      selectedData === "booked_by_sales"
+        ? seriesIndex === 0
+          ? "booked"
+          : seriesIndex === 1
+            ? "Book combo"
+            : "deployed"
+        : seriesIndex === 0
+          ? "booked"
+          : "deployed";
 
     const options = {
       chart: {
@@ -285,12 +300,29 @@ const ProviderReport = () => {
           distributed: false,
         },
       },
-      colors: seriesIndex === 0 ? ["#3B82F6"] : ["#FF9800"],
+      colors:
+        selectedData === "booked_by_sales"
+          ? seriesIndex === 0
+            ? ["#3B82F6"]
+            : seriesIndex === 1
+              ? ["#22C55E"]
+              : ["#FF9800"]
+          : seriesIndex === 0
+            ? ["#3B82F6"]
+            : ["#FF9800"],
       xaxis: {
         categories: [clickedItem.name],
         title: {
           text:
-            seriesIndex === 0 ? "Số lượng đã book" : "Số lượng đã triển khai",
+            selectedData === "booked_by_sales"
+              ? seriesIndex === 0
+                ? "Số lượng đã book"
+                : seriesIndex === 1
+                  ? "Số lượng đã đặt gói"
+                  : "Số lượng đã triển khai"
+              : seriesIndex === 0
+                ? "Số lượng đã book"
+                : "Số lượng đã triển khai",
           style: { fontSize: "16px", fontWeight: 600 },
         },
       },
@@ -751,9 +783,15 @@ const ProviderReport = () => {
 
       const minBarLength = 30;
       const trueBookedData = sortedData.map((item) => item.booked || 0);
+      const trueBookedComboData = sortedData.map(
+        (item) => item.booked_combo || 0,
+      );
       const trueDeployedData = sortedData.map((item) => item.deployed || 0);
 
       const renderBookedData = trueBookedData.map((val) =>
+        val === 0 ? 0 : val + minBarLength,
+      );
+      const renderBookedComboData = trueBookedComboData.map((val) =>
         val === 0 ? 0 : val + minBarLength,
       );
       const renderDeployedData = trueDeployedData.map((val) =>
@@ -761,7 +799,12 @@ const ProviderReport = () => {
       );
 
       const maxValue = Math.max(
-        ...sortedData.map((item) => (item.booked || 0) + (item.deployed || 0)),
+        ...sortedData.map(
+          (item) =>
+            (item.booked || 0) +
+            (item.booked_combo || 0) +
+            (item.deployed || 0),
+        ),
       );
 
       // Kiểm tra maxValue để tránh NaN
@@ -789,6 +832,10 @@ const ProviderReport = () => {
           {
             name: "Đã book",
             data: renderBookedData,
+          },
+          {
+            name: "Đã đặt gói",
+            data: renderBookedComboData,
           },
           {
             name: "Đã triển khai",
@@ -915,13 +962,17 @@ const ProviderReport = () => {
               w: any;
             }) {
               const data = sortedData[dataPointIndex];
-              const total = (data.booked || 0) + (data.deployed || 0);
+              const total =
+                (data.booked || 0) +
+                (data.booked_combo || 0) +
+                (data.deployed || 0);
               return `<div class="p-2">
-<div class="dark:text-white"><b>${data.name}</b></div>
-<div class="dark:text-white">Đã book: <b>${data.booked}</b></div>
-<div class="dark:text-white">Đã triển khai: ${data.deployed}</div>
-<div class="dark:text-white"><b>Tổng: ${total}</b></div>
-</div>`;
+                <div class="dark:text-white"><b>${data.name}</b></div>
+                <div class="dark:text-white">Đã book: <b>${data.booked}</b></div>
+                <div class="dark:text-white">Đã đặt gói: ${data.booked_combo || 0}</div>
+                <div class="dark:text-white">Đã triển khai: ${data.deployed}</div>
+                <div class="dark:text-white"><b>Tổng: ${total}</b></div>
+                </div>`;
             },
           },
           fill: {
@@ -940,7 +991,7 @@ const ProviderReport = () => {
               highlightDataSeries: true,
             },
           },
-          colors: ["#3B82F6", "#FF9800"],
+          colors: ["#3B82F6", "#22C55E", "#FF9800"],
           dataLabels: {
             enabled: true,
             formatter: function (
@@ -950,7 +1001,9 @@ const ProviderReport = () => {
               const displayVal =
                 seriesIndex === 0
                   ? trueBookedData[dataPointIndex]
-                  : trueDeployedData[dataPointIndex];
+                  : seriesIndex === 1
+                    ? trueBookedComboData[dataPointIndex]
+                    : trueDeployedData[dataPointIndex];
 
               return displayVal > 0 ? displayVal.toFixed(0) : "";
             },

@@ -1,10 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useApi } from "../../hooks/useApi";
 import { getProviders } from "../../services/provider";
+import { useBrandNameList } from "../../hooks/api-hooks/v3/useBrandname";
+import { useDebounce } from "../../hooks/useDebounce";
+import AutoSelect from "../../components/autoCompleteSwitch/AutoSelect";
 import {
   RouteEntry,
   MetaEntry,
   OutboundDidFormProps,
+  OutboundRouteItem,
+  normalizeOutboundDidByRoute,
 } from "./interfaces/Outbound";
 import {
   parseNumberFromFormatted,
@@ -14,6 +19,34 @@ import Label from "../../components/form/Label";
 import { IoIosAdd, IoIosRemove } from "react-icons/io";
 import Select from "../../components/form/Select";
 import Input from "../../components/form/input/InputField";
+import { IProvider } from "../../types/provider";
+
+const createRouteId = () =>
+  `route-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
+const valueToRoutes = (
+  value: OutboundRouteItem[],
+  prev: RouteEntry[] = [],
+): RouteEntry[] => {
+  if (!value.length) return [];
+
+  return value.map((item, index) => ({
+    id: prev[index]?.id ?? createRouteId(),
+    provider: item.provider ?? "",
+    brandname_id: item.brandname_id != null ? String(item.brandname_id) : "",
+    quantity:
+      item.quantity != null
+        ? formatNumberWithCommas(String(item.quantity))
+        : "",
+  }));
+};
+
+const routesToValue = (list: RouteEntry[]): OutboundRouteItem[] =>
+  list.map((r) => ({
+    brandname_id: r.brandname_id ? Number(r.brandname_id) : null,
+    provider: r.provider.trim() ? r.provider.trim() : null,
+    quantity: r.quantity.trim() ? parseNumberFromFormatted(r.quantity) : null,
+  }));
 
 export const OutboundDidForm = ({
   value,
@@ -22,31 +55,73 @@ export const OutboundDidForm = ({
   onMetaChange,
   hide,
 }: OutboundDidFormProps) => {
+  const normalizedValue = useMemo(
+    () => normalizeOutboundDidByRoute(value),
+    [value],
+  );
+
   const { data: dataProviders, isLoading, error } = useApi(getProviders);
 
-  const [routes, setRoutes] = useState<RouteEntry[]>(
-    Object.keys(value).length > 0
-      ? Object.entries(value).map(([key, val]) => ({ key, value: val }))
-      : []
+  const [routes, setRoutes] = useState<RouteEntry[]>(() =>
+    valueToRoutes(normalizedValue),
   );
   const [metaRoutes, setMetaRoutes] = useState<MetaEntry[]>(
-    Object.entries(meta).map(([key, val]) => ({ key, value: val }))
+    Object.entries(meta).map(([key, val]) => ({ key, value: val })),
   );
 
-  const routeOptions = isLoading
+  const providerOptions = isLoading
     ? [{ label: "Đang tải...", value: "" }]
     : error
-    ? [{ label: "Lỗi tải dữ liệu", value: "" }]
-    : dataProviders?.map((p: any) => ({
-        label: p.name,
-        value: p.name,
-      })) ?? [];
+      ? [{ label: "Lỗi tải dữ liệu", value: "" }]
+      : ((dataProviders as IProvider[] | undefined)?.map((p) => ({
+          label: p.name,
+          value: p.name,
+        })) ?? []);
+
+  const [brandSearch, setBrandSearch] = useState("");
+  const [brandSelectOpen, setBrandSelectOpen] = useState(false);
+  const debouncedBrandSearch = useDebounce(brandSearch, 300);
+
+  const {
+    data: brandNameListData,
+    isLoading: isBrandLoading,
+    isError: isBrandError,
+  } = useBrandNameList(
+    {
+      page: 1,
+      size: 20,
+      is_active: true,
+      search: debouncedBrandSearch.trim() || undefined,
+      order_by: "created_at",
+      order_dir: "desc",
+    },
+    { enabled: brandSelectOpen },
+  );
+
+  const brandOptions = useMemo(() => {
+    if (isBrandError) {
+      return [{ label: "Lỗi tải dữ liệu", value: "" }];
+    }
+
+    const fromApi = (brandNameListData?.items ?? []).map((brand) => ({
+      label: brand.name,
+      value: String(brand.id),
+    }));
+
+    const selectedIds = routes
+      .map((r) => r.brandname_id)
+      .filter((id) => id && !fromApi.some((o) => o.value === id));
+
+    const fromSaved = selectedIds.map((id) => ({
+      label: `Brand #${id}`,
+      value: id,
+    }));
+
+    return [...fromApi, ...fromSaved];
+  }, [brandNameListData, isBrandError, routes]);
 
   const updateParent = (list: RouteEntry[]) => {
-    const obj = Object.fromEntries(
-      list.map((r) => [r.key, parseNumberFromFormatted(r.value as any)])
-    );
-    onChange(obj);
+    onChange(routesToValue(list));
   };
 
   const updateMetaParent = (list: MetaEntry[]) => {
@@ -54,10 +129,16 @@ export const OutboundDidForm = ({
     onMetaChange(obj);
   };
 
-  // Outbound handlers
   const handleAdd = () => {
-    const newRoutes = [...routes, { key: "", value: "" }];
-    setRoutes(newRoutes);
+    setRoutes([
+      ...routes,
+      {
+        id: createRouteId(),
+        provider: "",
+        brandname_id: "",
+        quantity: "",
+      },
+    ]);
   };
 
   const handleRemove = (index: number) => {
@@ -66,22 +147,26 @@ export const OutboundDidForm = ({
     updateParent(newRoutes);
   };
 
-  const handleChange = (index: number, field: "key" | "value", val: any) => {
+  const handleChange = (
+    index: number,
+    field: "provider" | "brandname_id" | "quantity",
+    val: string,
+  ) => {
     const newRoutes = [...routes];
 
-    if (field === "value") {
-      // Chỉ cho phép nhập số, có phẩy
-      const formatted = formatNumberWithCommas(val);
-      newRoutes[index] = { ...newRoutes[index], value: formatted as any };
+    if (field === "quantity") {
+      newRoutes[index] = {
+        ...newRoutes[index],
+        quantity: formatNumberWithCommas(val),
+      };
     } else {
-      newRoutes[index] = { ...newRoutes[index], key: val };
+      newRoutes[index] = { ...newRoutes[index], [field]: val };
     }
 
     setRoutes(newRoutes);
     updateParent(newRoutes);
   };
 
-  // Meta handlers
   const handleMetaAdd = () => {
     const newRoutes = [...metaRoutes, { key: "", value: "" }];
     setMetaRoutes(newRoutes);
@@ -96,7 +181,7 @@ export const OutboundDidForm = ({
   const handleMetaChange = (
     index: number,
     field: "key" | "value",
-    val: any
+    val: string,
   ) => {
     const newRoutes = [...metaRoutes];
     newRoutes[index] = {
@@ -107,25 +192,16 @@ export const OutboundDidForm = ({
     updateMetaParent(newRoutes);
   };
 
-  // Cập nhật thay đổi khi vào mode edit
   useEffect(() => {
-    setRoutes(
-      Object.keys(value).length > 0
-        ? Object.entries(value).map(([key, val]) => ({
-            key,
-            value: formatNumberWithCommas(val.toString()),
-          }))
-        : []
-    );
-  }, [value]);
+    setRoutes((prev) => valueToRoutes(normalizedValue, prev));
+  }, [normalizedValue]);
 
   useEffect(() => {
     setMetaRoutes(
-      Object.entries(meta).map(([key, val]) => ({ key, value: val }))
+      Object.entries(meta).map(([key, val]) => ({ key, value: val })),
     );
   }, [meta]);
 
-  // Determine which sections to show
   const showOutbound = hide !== "outbound";
   const showMeta = hide !== "meta";
 
@@ -135,13 +211,12 @@ export const OutboundDidForm = ({
         className={`grid ${
           showOutbound && showMeta ? "grid-cols-2" : "grid-cols-1"
         } gap-8`}>
-        {/* Outbound DID Section */}
         {showOutbound && (
           <div>
             <Label>Cấu hình Outbound CID</Label>
             <div className="flex flex-col gap-3 mt-3">
               {routes.map((route, index) => (
-                <div key={index} className="flex items-center gap-2">
+                <div key={route.id} className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => handleRemove(index)}
@@ -151,18 +226,32 @@ export const OutboundDidForm = ({
 
                   <div className="flex-1 min-w-0">
                     <Select
-                      options={routeOptions}
-                      value={route.key}
-                      onChange={(val) => handleChange(index, "key", val)}
+                      options={providerOptions}
+                      value={route.provider}
+                      onChange={(val) => handleChange(index, "provider", val)}
+                    />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <AutoSelect
+                      options={brandOptions}
+                      value={route.brandname_id}
+                      placeholder="Chọn brandname..."
+                      loading={brandSelectOpen && isBrandLoading}
+                      onOpenChange={setBrandSelectOpen}
+                      onSearchChange={setBrandSearch}
+                      onChange={(val) =>
+                        handleChange(index, "brandname_id", val)
+                      }
                     />
                   </div>
 
                   <div className="w-24 flex-shrink-0">
                     <Input
                       type="text"
-                      value={route.value}
+                      value={route.quantity}
                       onChange={(e) =>
-                        handleChange(index, "value", e.target.value)
+                        handleChange(index, "quantity", e.target.value)
                       }
                       placeholder="0"
                     />
@@ -181,7 +270,6 @@ export const OutboundDidForm = ({
           </div>
         )}
 
-        {/* Meta Section */}
         {showMeta && (
           <div>
             <Label>Cấu hình Meta</Label>

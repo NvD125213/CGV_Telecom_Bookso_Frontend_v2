@@ -1,5 +1,6 @@
 import ComboQuotaChart from "../ChartOrder";
 import { SlideForm } from "../SlideForm";
+import { OutboundRouteItem } from "../../Plan/interfaces/Outbound";
 
 export interface OrderForm {
   customer_name: string;
@@ -8,7 +9,7 @@ export interface OrderForm {
   quantity: number;
   total_users: number;
   total_minute: number;
-  outbound_did_by_route: Record<any, any>;
+  outbound_did_by_route: OutboundRouteItem[];
   total_price: number;
   status?: number;
   description?: string;

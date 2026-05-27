@@ -3,6 +3,7 @@ export interface IHistoryBooked {
   user_name: string;
   status: string;
   brandname_name: string;
+  raw_status: string;
   brandname_id: number;
   created_at: string; // ISO date string
   updated_at: string; // ISO date string

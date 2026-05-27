@@ -22,6 +22,10 @@ import { users } from "../../constants/user";
 import { Option } from "../../components/ui/autocomplete/auto-complete";
 import { OutboundDidForm } from "./OutboundDidForm";
 import { PlanDefault } from "./interfaces/PlanForm";
+import {
+  normalizeOutboundDidByRoute,
+  OutboundRouteItem,
+} from "./interfaces/Outbound";
 import { useCurrencyInput, useMultiCurrencyInput } from "./hooks/useCurrency";
 
 export interface PlanForm {
@@ -30,7 +34,7 @@ export interface PlanForm {
   minutes: number;
   did_count: number;
   price_vnd: number;
-  outbound_did_by_route: Record<any, any>;
+  outbound_did_by_route: OutboundRouteItem[];
   total_users: number;
   meta: Record<any, any>;
   is_active: boolean;
@@ -68,7 +72,7 @@ export const PlanActionPage = () => {
       order_by: "created_at",
       order_dir: "desc",
       is_root: "true",
-    })
+    }),
   );
 
   /** --- Load data if update mode --- */
@@ -77,7 +81,15 @@ export const PlanActionPage = () => {
       try {
         setLoading(true);
         const res = await planService.getById(Number(id));
-        if (res?.data) setForm(res.data);
+        if (res?.data) {
+          setForm({
+            ...PlanDefault,
+            ...res.data,
+            outbound_did_by_route: normalizeOutboundDidByRoute(
+              res.data.outbound_did_by_route,
+            ),
+          });
+        }
       } catch {
         Swal.fire("Lỗi", "Không thể tải thông tin gói cước", "error");
       } finally {
@@ -115,9 +127,9 @@ export const PlanActionPage = () => {
       setLoading(true);
 
       const newErrors = validateForm(form);
-      const totalOutbound = Object.values(form.outbound_did_by_route).reduce(
-        (sum, v) => sum + Number(v),
-        0
+      const totalOutbound = (form.outbound_did_by_route ?? []).reduce(
+        (sum, item) => sum + Number(item.quantity ?? 0),
+        0,
       );
 
       if (!(totalOutbound == form.did_count)) {
@@ -156,6 +168,7 @@ export const PlanActionPage = () => {
         const errors: string[] = [];
 
         if (!form.name?.trim()) errors.push("Tên gói không được để trống");
+        console.log("form", form);
 
         const result = await planService.create(form as any);
         if (result.status == 200) {
@@ -177,14 +190,14 @@ export const PlanActionPage = () => {
 
   // Gọi hook currency để xử lý giá tiền
   const { currency, handleCurrency, setCurrency } = useCurrencyInput((value) =>
-    handleChange("price_vnd", value)
+    handleChange("price_vnd", value),
   );
 
   // Chuyển tiền sang string khi render lên UI
   useEffect(() => {
     if (isUpdate && form.price_vnd !== null && form.price_vnd !== undefined) {
       const formattedValue = new Intl.NumberFormat("vi-VN").format(
-        Number(form.price_vnd)
+        Number(form.price_vnd),
       );
       setCurrency(formattedValue);
     }
@@ -254,7 +267,7 @@ export const PlanActionPage = () => {
         Swal.fire(
           "Lỗi",
           error?.response?.data?.detail || "Xảy ra lỗi",
-          "error"
+          "error",
         );
       }
     }
@@ -281,7 +294,7 @@ export const PlanActionPage = () => {
   const { currencyFields, handleCurrencyChange } = useMultiCurrencyInput(
     form,
     handleChange,
-    fieldsToFormat
+    fieldsToFormat,
   );
 
   return (
@@ -402,7 +415,8 @@ export const PlanActionPage = () => {
           <div>
             <div className="grid grid-cols-1 gap-4 mt-2">
               <OutboundDidForm
-                value={form.outbound_did_by_route}
+                value={form.outbound_did_by_route ?? []}
+                hide="meta"
                 onChange={(updated) =>
                   handleChange("outbound_did_by_route", updated)
                 }
@@ -458,7 +472,7 @@ export const PlanActionPage = () => {
                   {children.map((plan: any) => (
                     <div
                       key={plan.id}
-                      className="flex-shrink-0 min-w-[40%] snap-start">
+                      className="flex-shrink-0 min-w-[35%] snap-start">
                       <PricingCard
                         data={plan}
                         buttonText="Chi tiết"
@@ -510,8 +524,8 @@ export const PlanActionPage = () => {
               {loading
                 ? "Đang lưu..."
                 : isUpdate
-                ? "Cập nhật gói cước"
-                : "Tạo gói cước"}
+                  ? "Cập nhật gói cước"
+                  : "Tạo gói cước"}
             </button>
           )}
         </div>
