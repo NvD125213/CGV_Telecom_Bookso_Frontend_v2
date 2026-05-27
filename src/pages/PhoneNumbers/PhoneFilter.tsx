@@ -48,6 +48,7 @@ import AutocompleteMultiple, {
 } from "../../components/ui/autocomplete/auto-complete";
 import { useDispatch } from "react-redux";
 import FloatingActionPanel from "../../components/common/FloatingActionPanel";
+import EmptyState from "../../components/EmptyData";
 
 interface PhoneNumberProps {
   total_pages: number;
@@ -759,11 +760,12 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
                       "text-[14px] border border-green-500 text-green-500 uppercase px-9 py-1 rounded-full text-center shadow-sm dark:shadow-green-400/40 bg-green-100 dark:bg-green-500/40 backdrop-blur-sm dark:border-green-400",
                   }}
                 />
-              ) : (
+              ) : safeData && safeData.length > 0 ? (
                 <>
                   <ReusableTable
                     role={user.role}
                     isLoading={loading}
+                    showId={false}
                     title="Danh sách số điện thoại"
                     classname="not-allow-select"
                     data={safeData}
@@ -801,6 +803,8 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
                     }}
                   />
                 </>
+              ) : (
+                <EmptyState />
               )}
             </ComponentCard>
           </div>

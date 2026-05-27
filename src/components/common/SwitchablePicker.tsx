@@ -34,6 +34,7 @@ const PickerWithType: React.FC<PickerWithTypeProps> = ({
       height: 42,
       fontSize: "0.875rem",
       paddingRight: "8px",
+      width: "100%",
     },
     "& .MuiInputBase-input": {
       padding: "10px 12px",
@@ -52,7 +53,7 @@ const PickerWithType: React.FC<PickerWithTypeProps> = ({
     "& .MuiOutlinedInput-root": {
       paddingRight: "8px",
     },
-    width: 200,
+    width: "100%",
   };
 
   const commonProps = {
@@ -88,14 +89,17 @@ interface PickerDateTimeProps {
   value?: Date | null;
   onChange?: (value: Date | null) => void;
   onTypeChange?: (type: PickerType) => void;
+  pickerType?: PickerType;
 }
 
 const SwitchablePicker: React.FC<PickerDateTimeProps> = ({
   value,
   onChange,
   onTypeChange,
+  pickerType: pickerTypeProp,
 }) => {
-  const [type, setType] = useState<PickerType>("date");
+  const [internalType, setInternalType] = useState<PickerType>("date");
+  const type = pickerTypeProp ?? internalType;
   const [internalValue, setInternalValue] = useState<Date | null>(null);
   const { theme } = useTheme();
 
@@ -166,7 +170,9 @@ const SwitchablePicker: React.FC<PickerDateTimeProps> = ({
 
   const handleChangeType = (event: React.ChangeEvent<{ value: unknown }>) => {
     const newType = event.target.value as PickerType;
-    setType(newType);
+    if (pickerTypeProp === undefined) {
+      setInternalType(newType);
+    }
     if (onTypeChange) onTypeChange(newType);
   };
 
@@ -186,8 +192,12 @@ const SwitchablePicker: React.FC<PickerDateTimeProps> = ({
           zIndex={0}
           gap={2}
           alignItems="center"
-          sx={{ bgcolor: "background.default" }}>
-          <FormControl size="small">
+          sx={{
+            bgcolor: "background.default",
+            width: "100%",
+          }}>
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            {" "}
             <Select
               id="picker-type"
               value={type}
@@ -203,11 +213,13 @@ const SwitchablePicker: React.FC<PickerDateTimeProps> = ({
               <MenuItem value="year">Year</MenuItem>
             </Select>
           </FormControl>
-          <PickerWithType
-            type={type}
-            onChange={handleChange}
-            value={onChange ? value : internalValue}
-          />
+          <div className="w-full">
+            <PickerWithType
+              type={type}
+              onChange={handleChange}
+              value={onChange ? value : internalValue}
+            />
+          </div>
         </Box>
       </LocalizationProvider>
     </ThemeProvider>

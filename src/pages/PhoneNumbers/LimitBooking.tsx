@@ -20,6 +20,8 @@ import ResponsiveFilterWrapper from "../../components/common/FlipperWrapper";
 import { useScreenSize } from "../../hooks/useScreenSize";
 import { FiEdit } from "react-icons/fi";
 import { useTheme } from "../../context/ThemeContext";
+import Label from "../../components/form/Label";
+import EmptyState from "../../components/EmptyData";
 
 const columns: { key: keyof ILimitBooking; label: string }[] = [
   { key: "username", label: "Sale" },
@@ -31,17 +33,18 @@ const columns: { key: keyof ILimitBooking; label: string }[] = [
 const LimitBookingPage = () => {
   const { theme } = useTheme();
   const [limitBooking, setLimitBooking] = useState<ILimitBooking[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [loadingLimit, setLoadingLimit] = useState(false);
   const [errorData, setErrorData] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [pickerType, setPickerType] = useState<"date" | "month" | "year">(
-    "date"
+    "date",
   );
   const { isMobile } = useScreenSize();
 
   const getAllData = useCallback(async (filter = {}) => {
     setLoading(true);
+    setErrorData("");
     try {
       const res = await getAllBookingLimit(filter);
       if (res.status === 200) {
@@ -51,9 +54,9 @@ const LimitBookingPage = () => {
           updated_at: formatDate(item.updated_at),
         }));
         setLimitBooking(formatData);
-        setErrorData(res.data.length === 0 ? "Không có dữ liệu !" : "");
       }
     } catch (error: any) {
+      setLimitBooking([]);
       setErrorData(error.response?.data?.detail || "Lỗi xảy ra !");
     } finally {
       setLoading(false);
@@ -132,7 +135,7 @@ const LimitBookingPage = () => {
           if (res.status === 200) {
             Swal.fire("Thay đổi số lượng thành công!", "", "success");
             setLoadingLimit(false);
-            getAllData();
+            handleSearch();
           }
         } catch (error: any) {
           Swal.fire("Oops...", `${error}`, "error");
@@ -189,7 +192,8 @@ const LimitBookingPage = () => {
           <div className="space-y-6">
             <ComponentCard>
               <ResponsiveFilterWrapper drawerTitle="Tìm kiếm theo khoảng thời gian">
-                <div className="flex flex-wrap w-full items-center justify-end gap-3 mb-4">
+                <div className="flex flex-wrap w-full items-center gap-3 mb-4">
+                  <Label className="">Thời gian tìm kiếm</Label>
                   <SwitchablePicker
                     value={selectedDate}
                     onChange={(date) => {
@@ -201,28 +205,47 @@ const LimitBookingPage = () => {
                   />
                 </div>
               </ResponsiveFilterWrapper>
-              {isMobile ? (
-                <TableMobile
-                  data={dataMobile}
-                  pageTitle="Danh sách giới hạn đặt"
-                  hideCheckbox={true}
-                  disabledReset={true}
-                  hidePagination={true}
-                  useTailwindStyling={false}
-                  showAllData={true}
-                  valueSxProps={valueSxProps}
-                  actions={actions as ActionButton[]}
-                />
-              ) : (
-                <ReusableTable
-                  error={errorData}
-                  title="Danh sách giới hạn của từng sale"
-                  data={limitBooking}
-                  columns={columns}
-                  isLoading={loading}
-                  onEdit={(row) => handleLimitBooking(row)}
-                />
+              {errorData && !loading && limitBooking.length === 0 ? (
+                <div className="mt-4 text-red-500 dark:text-red-400">
+                  {errorData}
+                </div>
+              ) : null}
+              {!loading && limitBooking.length === 0 && !errorData && (
+                <EmptyState />
               )}
+              {loading || limitBooking.length > 0 ? (
+                isMobile ? (
+                  loading ? (
+                    <div className="mt-4 flex items-center justify-center py-8">
+                      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-500" />
+                    </div>
+                  ) : (
+                    <TableMobile
+                      data={dataMobile}
+                      pageTitle="Danh sách giới hạn đặt"
+                      hideCheckbox={true}
+                      disabledReset={true}
+                      hidePagination={true}
+                      useTailwindStyling={false}
+                      showAllData={true}
+                      valueSxProps={valueSxProps}
+                      actions={actions as ActionButton[]}
+                    />
+                  )
+                ) : (
+                  <ReusableTable
+                    error={errorData}
+                    title="Danh sách giới hạn của từng sale"
+                    data={limitBooking}
+                    columns={columns}
+                    showId={false}
+                    disabledReset={true}
+                    disabled={true}
+                    isLoading={loading}
+                    onEdit={(row) => handleLimitBooking(row)}
+                  />
+                )
+              ) : null}
             </ComponentCard>
           </div>
         </>

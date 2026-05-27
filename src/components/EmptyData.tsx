@@ -1,4 +1,9 @@
-export default function EmptyState() {
+interface EmptyStateProps {
+  title?: string;
+  description?: string;
+}
+
+export default function EmptyState({ title, description }: EmptyStateProps) {
   return (
     <div className="flex min-h-[300px] dark:bg-gray-800 dark:border-gray-700 w-full items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8">
       <div className="text-center">
@@ -21,13 +26,13 @@ export default function EmptyState() {
 
         {/* Title */}
         <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-          Không có dữ liệu
+          {title || "Không có dữ liệu"}
         </h2>
 
         {/* Description */}
         <p className="mt-2 max-w-sm text-sm text-gray-500">
-          Hiện tại chưa có dữ liệu nào để hiển thị. Hãy thử thêm mới hoặc kiểm
-          tra lại bộ lọc tìm kiếm.
+          {description ||
+            "Hiện tại chưa có dữ liệu nào để hiển thị. Hãy thử thêm mới hoặc kiểm tra lại bộ lọc tìm kiếm."}
         </p>
       </div>
     </div>

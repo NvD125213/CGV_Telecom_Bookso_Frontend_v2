@@ -44,6 +44,8 @@ import ResponsiveFilterWrapper from "../../components/common/FlipperWrapper";
 import { useScreenSize } from "../../hooks/useScreenSize";
 import FloatingActionPanel from "../../components/common/FloatingActionPanel";
 import ComponentCard from "../../components/common/ComponentCard";
+import EmptyState from "../../components/EmptyData";
+import { useDebounce } from "../../hooks/useDebounce";
 
 interface PhoneNumberProps {
   total_pages: number;
@@ -115,6 +117,7 @@ function PhoneNumbers() {
   const [search, setSearch] = useState<string>(
     searchParams.get("search") || "",
   );
+  const debouncedSearch = useDebounce(search, 400);
   const [searchProvider, setSearchProvider] = useState<string>(
     searchParams.get("provider") || "",
   );
@@ -195,6 +198,7 @@ function PhoneNumbers() {
   );
 
   const prevSelectedIdsRef = useRef(selectedIdsFromStore);
+  const skipFilterOffsetResetRef = useRef(true);
 
   // Add cleanup effect specifically for booked status
   useEffect(() => {
@@ -222,15 +226,6 @@ function PhoneNumbers() {
     dispatch(resetSelectedIds());
     setSelectedIds([]);
     setSelectedRows([]);
-    fetchData(
-      quantity,
-      value,
-      0,
-      search,
-      searchProvider,
-      searchTypeNumber,
-      searchBrandname,
-    );
   };
 
   const fetchData = async (
@@ -335,16 +330,32 @@ function PhoneNumbers() {
   };
 
   useEffect(() => {
+    if (skipFilterOffsetResetRef.current) {
+      skipFilterOffsetResetRef.current = false;
+      return;
+    }
+    setOffset(0);
+  }, [debouncedSearch, searchProvider, searchTypeNumber, searchBrandname]);
+
+  useEffect(() => {
     fetchData(
       quantity,
       status,
       offset,
-      search,
+      debouncedSearch,
       searchProvider,
       searchTypeNumber,
       searchBrandname,
     ); // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quantity, status, offset]);
+  }, [
+    quantity,
+    status,
+    offset,
+    debouncedSearch,
+    searchProvider,
+    searchTypeNumber,
+    searchBrandname,
+  ]);
 
   const handleGetById = async (id: number) => {
     try {
@@ -361,44 +372,6 @@ function PhoneNumbers() {
     } catch (error) {
       console.error("Failed to fetch phone data:", error);
       Swal.fire("Lỗi", "Không thể tải dữ liệu chi tiết", "error");
-    }
-  };
-
-  const handleSearch = (term: string) => {
-    const regexPattern = term.replace(/\*/g, ".*");
-    const regex = new RegExp(`^${regexPattern}$`, "i");
-    return data?.phone_numbers.filter((phone) =>
-      regex.test(phone.phone_number),
-    );
-  };
-
-  const handleOnKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      if (search == "") {
-        const originalData = data?.phone_numbers ?? [];
-        fetchData(
-          quantity,
-          status,
-          offset,
-          search,
-          searchProvider,
-          searchTypeNumber,
-          searchBrandname,
-        );
-        setError(originalData.length === 0 ? "Không có dữ liệu" : "");
-      } else {
-        const result = handleSearch(search) ?? [];
-        fetchData(
-          quantity,
-          status,
-          offset,
-          search,
-          searchProvider,
-          searchTypeNumber,
-          searchBrandname,
-        );
-        setError(result.length === 0 ? "Không có dữ liệu" : "");
-      }
     }
   };
 
@@ -431,7 +404,7 @@ function PhoneNumbers() {
             quantity,
             status,
             offset,
-            search,
+            debouncedSearch,
             searchProvider,
             searchTypeNumber,
             searchBrandname,
@@ -539,7 +512,7 @@ function PhoneNumbers() {
               quantity,
               status,
               offset,
-              search,
+              debouncedSearch,
               searchProvider,
               searchTypeNumber,
               searchBrandname,
@@ -563,7 +536,7 @@ function PhoneNumbers() {
         quantity,
         status,
         offset,
-        search,
+        debouncedSearch,
         searchProvider,
         searchTypeNumber,
         searchBrandname,
@@ -809,7 +782,7 @@ function PhoneNumbers() {
                         { label: "Đã triển khai", value: "released" },
                       ]}
                       placeholder="Lựa chọn trạng thái"
-                      defaultValue={status}
+                      value={status}
                       onChange={handleChangeStatus}
                       className="dark:bg-dark-900"
                     />
@@ -822,7 +795,6 @@ function PhoneNumbers() {
                       placeholder="Nhập đầu số..."
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      onKeyDown={handleOnKeyDown}
                     />
                   </div>
                   <div>
@@ -838,20 +810,8 @@ function PhoneNumbers() {
                         })) || []),
                       ]}
                       placeholder="Chọn nhà cung cấp..."
-                      defaultValue={searchProvider}
-                      onChange={(value) => {
-                        setSearchProvider(value);
-                        setOffset(0);
-                        fetchData(
-                          quantity,
-                          status,
-                          0,
-                          search,
-                          value,
-                          searchTypeNumber,
-                          searchBrandname,
-                        );
-                      }}
+                      value={searchProvider}
+                      onChange={setSearchProvider}
                       className="dark:bg-dark-900"
                     />
                   </div>
@@ -868,20 +828,8 @@ function PhoneNumbers() {
                         })) || []),
                       ]}
                       placeholder="Chọn định dạng số..."
-                      defaultValue={searchTypeNumber}
-                      onChange={(value) => {
-                        setSearchTypeNumber(value);
-                        setOffset(0);
-                        fetchData(
-                          quantity,
-                          status,
-                          0,
-                          search,
-                          searchProvider,
-                          value,
-                          searchBrandname,
-                        );
-                      }}
+                      value={searchTypeNumber}
+                      onChange={setSearchTypeNumber}
                       className="dark:bg-dark-900"
                     />
                   </div>
@@ -902,16 +850,6 @@ function PhoneNumbers() {
                         setSelectedBrand(single);
                         const name = single.length > 0 ? single[0].label : "";
                         setSearchBrandname(name);
-                        setOffset(0);
-                        fetchData(
-                          quantity,
-                          status,
-                          0,
-                          search,
-                          searchProvider,
-                          searchTypeNumber,
-                          name,
-                        );
                       }}
                     />
                   </div>
@@ -988,13 +926,14 @@ function PhoneNumbers() {
                     "Trạng thái": getStatusClass(),
                   }}
                 />
-              ) : (
+              ) : safeData && safeData.length > 0 ? (
                 <>
                   <ReusableTable
                     disabled={status === "available" || status === "released"}
                     disabledReset={
                       status === "available" || status === "released"
                     }
+                    showId={false}
                     isLoading={loading}
                     onCheck={(selectedIds, selectedRows) => {
                       setSelectedIds(selectedIds.map((id) => Number(id)));
@@ -1035,6 +974,8 @@ function PhoneNumbers() {
                     }}
                   />
                 </>
+              ) : (
+                <EmptyState />
               )}
               <PhoneModalDetail
                 role={user.role}
@@ -1043,7 +984,7 @@ function PhoneNumbers() {
                     quantity,
                     status,
                     offset,
-                    search,
+                    debouncedSearch,
                     searchProvider,
                     searchTypeNumber,
                     searchBrandname,

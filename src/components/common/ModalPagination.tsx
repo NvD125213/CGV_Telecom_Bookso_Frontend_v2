@@ -14,8 +14,8 @@ import { IProvider, IReportDetail, ITypeNumber } from "../../types";
 import Input from "../form/input/InputField";
 import Select from "../form/Select";
 import Pagination from "../pagination/pagination";
-import Button from "../ui/button/Button";
 import ReusableTable from "./ReusableTable";
+import { useDebounce } from "../../hooks/useDebounce";
 import { setRevokeSuccess, triggerRefresh } from "../../store/reportSlice";
 import { resetSelectedIds } from "../../store/selectedPhoneSlice";
 import { getPhoneByID } from "../../services/phoneNumber";
@@ -28,6 +28,7 @@ import ResponsiveFilterWrapper from "./FlipperWrapper";
 import CustomModal from "./CustomModal";
 import ViewIcon from "@mui/icons-material/Visibility";
 import FloatingActionPanel from "./FloatingActionPanel";
+import EmptyState from "../EmptyData";
 
 interface Column {
   key: string;
@@ -79,21 +80,18 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
   const [searchNumber, setSearchNumber] = useState("");
   const [searchTelco, setSearchTelco] = useState("");
   const [searchTypeNumber, setSearchTypeNumber] = useState("");
-  const [apiSearchParams, setApiSearchParams] = useState({
-    username: "",
-    number: "",
-    telco: "",
-    typeNumber: "",
-  });
+  const debouncedUserName = useDebounce(searchUserName, 400);
+  const debouncedNumber = useDebounce(searchNumber, 400);
 
   // Sử dụng useRef để theo dõi các thay đổi và tránh gọi API không cần thiết
   const hasFetchedRef = useRef(false);
   const lastFetchParamsRef = useRef<any>(null);
   const isInitialMountRef = useRef(true);
+  const skipSearchEffectRef = useRef(true);
 
   const [data, setData] = useState<any[]>([]);
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [pagination, setPagination] = useState({
     limit: [10, 20, 50, 100].includes(pageSize) ? pageSize : 10,
     offset: currentPage,
@@ -119,10 +117,10 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
           : new Date().getFullYear(),
       month: typeof month === "number" ? month : new Date().getMonth() + 1,
       day: day ? Number(day) : undefined,
-      telco: apiSearchParams.telco || telco,
-      filter: apiSearchParams.number || filter,
-      type_number: apiSearchParams.typeNumber || type_number,
-      username: apiSearchParams.username || username,
+      telco: searchTelco || telco,
+      filter: debouncedNumber || filter,
+      type_number: searchTypeNumber || type_number,
+      username: debouncedUserName || username,
     }),
     [
       isOpen,
@@ -136,9 +134,25 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
       filter,
       type_number,
       username,
-      apiSearchParams,
+      debouncedUserName,
+      debouncedNumber,
+      searchTelco,
+      searchTypeNumber,
     ],
   );
+
+  useEffect(() => {
+    if (!isOpen) {
+      skipSearchEffectRef.current = true;
+      return;
+    }
+    if (skipSearchEffectRef.current) {
+      skipSearchEffectRef.current = false;
+      return;
+    }
+    setPagination((prev) => ({ ...prev, offset: 0 }));
+    lastFetchParamsRef.current = null;
+  }, [debouncedUserName, debouncedNumber, searchTelco, searchTypeNumber, isOpen]);
 
   // Kiểm tra xem có cần fetch data hay không
   const shouldFetchData = useCallback(() => {
@@ -228,14 +242,10 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
       setSearchNumber("");
       setSearchTelco("");
       setSearchTypeNumber("");
-      setApiSearchParams({
-        username: "",
-        number: "",
-        telco: "",
-        typeNumber: "",
-      });
+      skipSearchEffectRef.current = true;
       setError("");
       setData([]);
+      setIsLoading(true);
       setPagination({
         limit: [10, 20, 50, 100].includes(pageSize) ? pageSize : 10,
         offset: currentPage,
@@ -264,15 +274,6 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  // Handle empty data state
-  useEffect(() => {
-    if (!isLoading && data.length === 0 && isOpen) {
-      setError("Không có dữ liệu");
-    } else {
-      setError("");
-    }
-  }, [data, isLoading, isOpen]);
 
   // Fix: Separate handlers for desktop and mobile pagination
   const handlePageChange = (newLimit: number, newOffset: number) => {
@@ -535,7 +536,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
         </div>
 
         <ResponsiveFilterWrapper>
-          <div className="grid gap-4 py-3 md:grid-cols-5">
+          <div className="grid gap-4 py-3 md:grid-cols-2 lg:grid-cols-4">
             <div>
               <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                 Tìm kiếm theo nhân viên
@@ -573,11 +574,10 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
                     key: type.id,
                   })),
                 ]}
+                value={searchTypeNumber}
                 className="dark:bg-black dark:text-white "
-                onChange={(value: any) => {
-                  setSearchTypeNumber(value);
-                }}
-                placeholder="Chọn nhà mạng"
+                onChange={(value) => setSearchTypeNumber(value)}
+                placeholder="Chọn loại số"
               />
             </div>
             <div>
@@ -593,28 +593,11 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
                     key: provider.id,
                   })),
                 ]}
+                value={searchTelco}
                 className="dark:bg-black dark:text-white "
-                onChange={(value: any) => {
-                  setSearchTelco(value);
-                }}
-                placeholder="Chọn loại số"
+                onChange={(value) => setSearchTelco(value)}
+                placeholder="Chọn nhà mạng"
               />
-            </div>
-            <div className="flex justify-start items-end gap-2">
-              <Button
-                onClick={() => {
-                  setApiSearchParams({
-                    username: searchUserName,
-                    number: searchNumber,
-                    telco: searchTelco,
-                    typeNumber: searchTypeNumber,
-                  });
-                  // Force refetch khi thay đổi search params
-                  lastFetchParamsRef.current = null;
-                }}
-                className="px-4 py-3 max-h-[44px] text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                Tìm kiếm
-              </Button>
             </div>
           </div>
         </ResponsiveFilterWrapper>
@@ -631,69 +614,85 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
           )}
         </FloatingActionPanel>
 
-        {isMobile ? (
-          <TableMobile
-            pageTitle={`Danh sách số ${option}`}
-            data={mobileData}
-            hideCheckbox={option == "booked" ? false : true}
-            hidePagination={false}
-            disabledReset={option == "booked" ? false : true}
-            useTailwindStyling={true}
-            showAllData={false}
-            actions={actions}
-            itemsPerPageOptions={[10, 20, 50, 100]}
-            totalPages={pagination.totalPages}
-            currentPage={pagination.offset + 1}
-            onPageChange={handleMobilePageChange}
-            onItemsPerPageChange={handleMobileItemsPerPageChange}
-            labelClassNames={{
-              "Nhà cung cấp": "text-[13px]",
-              "Trạng thái": "text-[13px]",
-              "Loại số": "text-[13px]",
-              "Số điện thoại": "text-[13px]",
-            }}
-            valueClassNames={{
-              "Số điện thoại":
-                "text-[12px] tracking-wider bg-blue-100 dark:bg-blue-500/40 align-middle rounded-full border border-blue-200 py-1 dark:border-blue-400 shadow-sm dark:shadow-blue-400/30 backdrop-blur-sm font-semibold dark:text-[#03e3fc]",
-              "Nhà cung cấp": "text-[13px] backdrop-blur-sm dark:text-gray-200",
-              "Loại số": "text-[13px] backdrop-blur-sm dark:text-gray-200",
-              "Nhà mạng": "text-[13px] backdrop-blur-sm dark:text-gray-200",
-              "Trạng thái": getStatusClass(),
-            }}
-          />
-        ) : (
-          <>
-            <ReusableTable
-              title={title}
-              error={error}
-              data={data}
-              columns={columns}
-              selectedIds={selectedIdsProp}
-              role={user.role}
-              setSelectedIds={setSelectedIdsProp}
-              pagination={{
-                currentPage: pagination.offset,
-                pageSize: pagination.limit,
-              }}
-              onCheck={(selectedIds) => {
-                if (setSelectedIdsProp) {
-                  setSelectedIdsProp(selectedIds.map((id) => Number(id)));
-                }
-              }}
-              isLoading={isLoading}
-            />
-
-            <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-              <Pagination
-                limit={pagination.limit}
-                offset={pagination.offset}
+        {error && !isLoading && data.length === 0 ? (
+          <div className="mt-4 text-red-500 dark:text-red-400">{error}</div>
+        ) : null}
+        {!isLoading && data.length === 0 && !error ? <EmptyState /> : null}
+        {isLoading || data.length > 0 ? (
+          isMobile ? (
+            isLoading ? (
+              <div className="mt-4 flex items-center justify-center py-8">
+                <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-500" />
+              </div>
+            ) : (
+              <TableMobile
+                pageTitle={`Danh sách số ${option}`}
+                data={mobileData}
+                hideCheckbox={option == "booked" ? false : true}
+                hidePagination={false}
+                disabledReset={option == "booked" ? false : true}
+                useTailwindStyling={true}
+                showAllData={false}
+                actions={actions}
+                itemsPerPageOptions={[10, 20, 50, 100]}
                 totalPages={pagination.totalPages}
-                onPageChange={handlePageChange}
-                onLimitChange={handleLimitChange}
+                currentPage={pagination.offset + 1}
+                onPageChange={handleMobilePageChange}
+                onItemsPerPageChange={handleMobileItemsPerPageChange}
+                labelClassNames={{
+                  "Nhà cung cấp": "text-[13px]",
+                  "Trạng thái": "text-[13px]",
+                  "Loại số": "text-[13px]",
+                  "Số điện thoại": "text-[13px]",
+                }}
+                valueClassNames={{
+                  "Số điện thoại":
+                    "text-[12px] tracking-wider bg-blue-100 dark:bg-blue-500/40 align-middle rounded-full border border-blue-200 py-1 dark:border-blue-400 shadow-sm dark:shadow-blue-400/30 backdrop-blur-sm font-semibold dark:text-[#03e3fc]",
+                  "Nhà cung cấp":
+                    "text-[13px] backdrop-blur-sm dark:text-gray-200",
+                  "Loại số": "text-[13px] backdrop-blur-sm dark:text-gray-200",
+                  "Nhà mạng": "text-[13px] backdrop-blur-sm dark:text-gray-200",
+                  "Trạng thái": getStatusClass(),
+                }}
               />
-            </div>
-          </>
-        )}
+            )
+          ) : (
+            <>
+              <ReusableTable
+                title={title}
+                error={error}
+                data={data}
+                showId={false}
+                columns={columns}
+                selectedIds={selectedIdsProp}
+                role={user.role}
+                setSelectedIds={setSelectedIdsProp}
+                pagination={{
+                  currentPage: pagination.offset,
+                  pageSize: pagination.limit,
+                }}
+                onCheck={(selectedIds) => {
+                  if (setSelectedIdsProp) {
+                    setSelectedIdsProp(selectedIds.map((id) => Number(id)));
+                  }
+                }}
+                isLoading={isLoading}
+              />
+
+              {!isLoading && (
+                <div className="mt-6 flex items-center gap-3 px-2 lg:justify-end">
+                  <Pagination
+                    limit={pagination.limit}
+                    offset={pagination.offset}
+                    totalPages={pagination.totalPages}
+                    onPageChange={handlePageChange}
+                    onLimitChange={handleLimitChange}
+                  />
+                </div>
+              )}
+            </>
+          )
+        ) : null}
       </div>
     </Modal>
   );

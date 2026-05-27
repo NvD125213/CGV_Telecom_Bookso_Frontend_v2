@@ -47,6 +47,38 @@ const valueClassNames = {
 
 type SessionRow = SessionData & { id: string | number };
 
+const inferPickerTypeFromDate = (date: string): PickerType => {
+  const parts = date.split("-");
+  if (parts.length === 1) return "year";
+  if (parts.length === 2) return "month";
+  return "date";
+};
+
+const parseSearchDateToDate = (searchDate: string): Date | null => {
+  if (!searchDate) return null;
+  const parts = searchDate.split("-");
+  if (parts.length === 1) {
+    return new Date(Number(parts[0]), 0, 1);
+  }
+  if (parts.length === 2) {
+    return new Date(Number(parts[0]), Number(parts[1]) - 1, 1);
+  }
+  if (parts.length === 3) {
+    return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  }
+  return null;
+};
+
+const formatDateForPickerType = (date: Date, type: PickerType): string => {
+  if (type === "year") {
+    return date.getFullYear().toString();
+  }
+  if (type === "month") {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  }
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+};
+
 const SessionPage = () => {
   const { isMobile } = useScreenSize();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -79,7 +111,10 @@ const SessionPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorData, setErrorData] = useState("");
-  const [pickerType, setPickerType] = useState<PickerType>("date");
+  const initialDate = searchParams.get("date") || defaultDate;
+  const [pickerType, setPickerType] = useState<PickerType>(() =>
+    inferPickerTypeFromDate(initialDate),
+  );
 
   useEffect(() => {
     const newParams = new URLSearchParams(searchParams);
@@ -200,20 +235,7 @@ const SessionPage = () => {
       return;
     }
 
-    let isoDate = "";
-    if (pickerType === "year") {
-      isoDate = date.getFullYear().toString();
-    } else if (pickerType === "month") {
-      isoDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-        2,
-        "0",
-      )}`;
-    } else {
-      isoDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-        2,
-        "0",
-      )}-${String(date.getDate()).padStart(2, "0")}`;
-    }
+    const isoDate = formatDateForPickerType(date, pickerType);
 
     setSearchDate(isoDate);
     setPage(1);
@@ -234,12 +256,20 @@ const SessionPage = () => {
   };
 
   const handlePickerTypeChange = (type: PickerType) => {
-    if (type === "time" || type === "datetime") return; // Chỉ cho phép date, month, year
+    if (type === "time" || type === "datetime") return;
+    const baseDate =
+      parseSearchDateToDate(searchDate) ?? parseSearchDateToDate(defaultDate)!;
+    const isoDate = formatDateForPickerType(baseDate, type);
+
     setPickerType(type);
-    // Reset date when changing picker type
-    setSearchDate("");
+    setSearchDate(isoDate);
+    setPage(1);
+
     const newParams = new URLSearchParams(searchParams);
-    newParams.delete("date");
+    newParams.set("page", "1");
+    newParams.set("page_size", String(pageSize));
+    if (searchQuery) newParams.set("search", searchQuery);
+    newParams.set("date", isoDate);
     setSearchParams(newParams);
   };
 
@@ -266,10 +296,14 @@ const SessionPage = () => {
 
   useEffect(() => {
     const search = searchParams.get("search") || "";
-    const date = searchParams.get("date") || defaultDate;
+    const dateParam = searchParams.get("date");
+    const date = dateParam || defaultDate;
     setSearchTerm(search);
     setSearchQuery(search);
     setSearchDate(date);
+    if (dateParam) {
+      setPickerType(inferPickerTypeFromDate(dateParam));
+    }
   }, [searchParams]);
 
   const onPaginationChange = (newOffset: number) => {
@@ -301,9 +335,10 @@ const SessionPage = () => {
         {error && <div className="text-red-500">{error}</div>}
         <ComponentCard>
           <ResponsiveFilterWrapper drawerTitle="Bộ lọc tìm kiếm">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div className="w-full sm:w-auto">
+            <div className="grid grid-col gap-4">
+              <div className="w-full">
                 <Label>Tìm kiếm</Label>
+
                 <Input
                   placeholder="Tìm theo tên tài khoản..."
                   value={searchTerm}
@@ -311,10 +346,13 @@ const SessionPage = () => {
                   onKeyDown={handleSearchKeyDown}
                 />
               </div>
-              <div className="w-full sm:w-auto">
+
+              <div className="w-full">
                 <Label>Ngày hoạt động</Label>
+
                 <SwitchablePicker
-                  value={searchDate ? new Date(searchDate) : null}
+                  pickerType={pickerType}
+                  value={parseSearchDateToDate(searchDate)}
                   onChange={handleDateChange}
                   onTypeChange={handlePickerTypeChange}
                 />
@@ -347,25 +385,33 @@ const SessionPage = () => {
             </div>
           ) : (
             <>
-              <ReusableTable
-                showId={false}
-                error={errorData}
-                role={user.role}
-                title="Lịch sử online"
-                data={historySession}
-                disabledReset={true}
-                columns={columns}
-                isLoading={loading}
-              />
-              <Pagination
-                limit={pageSize}
-                offset={page - 1}
-                totalPages={totalPages}
-                onPageChange={(_limit, newOffset) =>
-                  onPaginationChange(newOffset)
-                }
-                onLimitChange={handleLimitChange}
-              />
+              {errorData ? (
+                <EmptyState />
+              ) : (
+                <>
+                  <ReusableTable
+                    showId={false}
+                    error={errorData}
+                    role={user.role}
+                    title="Lịch sử online"
+                    disabled={true}
+                    data={historySession}
+                    disabledReset={true}
+                    columns={columns}
+                    isLoading={loading}
+                  />
+
+                  <Pagination
+                    limit={pageSize}
+                    offset={page - 1}
+                    totalPages={totalPages}
+                    onPageChange={(_limit, newOffset) =>
+                      onPaginationChange(newOffset)
+                    }
+                    onLimitChange={handleLimitChange}
+                  />
+                </>
+              )}
             </>
           )}
         </ComponentCard>

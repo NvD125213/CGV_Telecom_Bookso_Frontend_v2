@@ -32,6 +32,7 @@ import clsx from "clsx";
 import FloatingActionPanel from "../../components/common/FloatingActionPanel";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import { MdOutlineSelectAll } from "react-icons/md";
+import EmptyState from "../../components/EmptyData";
 
 const STATUS_BADGE_BASE =
   "inline-flex max-w-fit shrink-0 items-center whitespace-nowrap px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs";
@@ -492,27 +493,33 @@ const HistoryBooked = () => {
       {isMobile ? null : <PageBreadcrumb pageTitle="Lịch sử đặt số" />}{" "}
       <ResponsiveFilterWrapper drawerTitle="Bộ lọc" pageTitle="Lịch sử đặt số">
         <div
-          className={`w-full gap-3 mb-4 flex ${
-            isMobile ? "block space-y-3" : ""
+          className={`w-full mb-4 grid gap-3 ${
+            isMobile ? "grid-cols-1" : "grid-cols-2"
           }`}>
-          <div>
+          <div className="w-full">
             <Label>Thông tin lọc</Label>
-            <div className="flex gap-2">
+
+            <div className="w-full">
               <SwitchablePicker
                 value={selectedDate}
                 onChange={handleDateChange}
                 onTypeChange={handlePickerTypeChange}
               />
-              <Select
-                options={[
-                  { label: "Đã book", value: "booked" },
-                  { label: "Triển khai", value: "released" },
-                ]}
-                className="border rounded-md px-3 py-3 w-full md:w-auto dark:bg-black dark:text-white"
-                onChange={(value) => handleStatusChange(value as StatusType)}
-                placeholder="Chọn trạng thái"
-              />
             </div>
+          </div>
+
+          <div className="w-full">
+            <Label>Trạng thái</Label>
+
+            <Select
+              options={[
+                { label: "Đã book", value: "booked" },
+                { label: "Triển khai", value: "released" },
+              ]}
+              className="border rounded-md px-3 py-3 w-full dark:bg-black dark:text-white"
+              onChange={(value) => handleStatusChange(value as StatusType)}
+              placeholder="Chọn trạng thái"
+            />
           </div>
         </div>
       </ResponsiveFilterWrapper>
@@ -577,25 +584,7 @@ const HistoryBooked = () => {
           <>
             {!loading && (!data || data.length === 0) ? (
               // Empty State
-              <div className="bg-white rounded-lg border p-8">
-                <div className="text-center py-12">
-                  <svg
-                    className="w-20 h-20 text-gray-300 mx-auto mb-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                  <h3 className="text-lg text-gray-700 mb-2">
-                    Không có dữ liệu
-                  </h3>
-                </div>
-              </div>
+              <EmptyState />
             ) : (
               <>
                 <ReusableTable

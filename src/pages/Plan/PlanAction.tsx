@@ -27,6 +27,7 @@ import {
   OutboundRouteItem,
 } from "./interfaces/Outbound";
 import { useCurrencyInput, useMultiCurrencyInput } from "./hooks/useCurrency";
+import EmptyState from "../../components/EmptyData";
 
 export interface PlanForm {
   name: string;
@@ -500,9 +501,10 @@ export const PlanActionPage = () => {
                 )}
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-500">
-                <p>Không có gói con nào</p>
-              </div>
+              <EmptyState
+                title="Không có gói con nào"
+                description="Hiện tại chưa có gói con nào để hiển thị. Hãy thử thêm mới hoặc kiểm tra lại bộ lọc tìm kiếm."
+              />
             )}
           </div>
         )}
