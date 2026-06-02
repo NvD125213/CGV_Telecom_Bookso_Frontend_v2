@@ -5,11 +5,11 @@ import { useSelector } from "react-redux";
 import { RootState } from "../../store";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useIsMobile } from "../../hooks/useScreenSize";
-import TableMobile, {
-  ActionButton,
-  LabelValueItem,
-} from "../../mobiles/TableMobile";
-import VisibilityIcon from "@mui/icons-material/Visibility";
+import {
+  CardSubcriptionMobileList,
+  SubscriptionCardAction,
+} from "../../components/common/CardSubcriptionMobile";
+import { LabelValueItem } from "../../components/common/CardMobile";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CheckIcon from "@mui/icons-material/Check";
 import RotateLeftIcon from "@mui/icons-material/RotateLeft";
@@ -30,6 +30,7 @@ import { useNavigate } from "react-router-dom";
 import { CustomSubscriptionTable } from "./SubscriptionTable";
 import ModalRenew from "./ModalRenew";
 import Swal from "sweetalert2";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 
 interface SubcriptionData {
   id: number;
@@ -620,8 +621,8 @@ const SubsciptionList = () => {
     });
   }, [mapData]);
 
-  const mobileActions = useMemo((): ActionButton[] => {
-    const actions: ActionButton[] = [
+  const mobileActions = useMemo((): SubscriptionCardAction[] => {
+    const actions: SubscriptionCardAction[] = [
       {
         icon: <VisibilityIcon />,
         label: "Chi tiết",
@@ -938,88 +939,84 @@ const SubsciptionList = () => {
   }, [slideUsers.length, isCurrentMonth]); // Re-run khi số lượng slideUsers hoặc isCurrentMonth thay đổi
   ========== /VT_CID ========== */
 
+  const subscriptionListContent = (
+    <>
+      <ResponsiveFilterWrapper drawerTitle="Bộ lọc đăng ký gói">
+        {filterBlock}
+      </ResponsiveFilterWrapper>
+
+      {error && <div className="mb-4 px-1 text-red-500">{error}</div>}
+
+      {isMobile ? (
+        <div className="mt-2">
+          {loading || isLoadingPlans ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-500" />
+            </div>
+          ) : convertToMobileData.length === 0 ? (
+            <div className="py-12 text-center text-sm text-gray-500 dark:text-gray-400">
+              Không tìm thấy dữ liệu phù hợp
+            </div>
+          ) : (
+            <>
+              <CardSubcriptionMobileList
+                data={convertToMobileData}
+                subscriptions={mapData}
+                actions={mobileActions}
+                onReload={fetchSubscriptions}
+                userSub={user.sub}
+              />
+              <div className="mt-4 px-1">
+                <Pagination
+                  data={pagination}
+                  onChange={handlePaginationChange}
+                />
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+        <>
+          <CustomSubscriptionTable
+            dataRaw={mapData}
+            isLoading={loading || isLoadingPlans}
+            role={user.role}
+            quotaMonth={query.created_month || getCurrentMonth()}
+            onQuotaMonthChange={(val) =>
+              setQuery({
+                ...query,
+                created_month: val,
+                page: 1,
+              })
+            }
+            onEdit={(item) => {
+              navigate(`/subscriptions/edit/${item.id}`);
+            }}
+            onReload={() => {
+              return fetchSubscriptions();
+            }}
+            onRenew={(item) => {
+              setRenewData(item);
+              setOpenModalRenew(true);
+            }}
+            onConfirm={(item) => handleConfirmPayment(item)}
+            onDetail={(item) => navigate(`/subscriptions/detail/${item.id}`)}
+            onDelete={(id) => handleDelete(id)}
+          />
+          <Pagination data={pagination} onChange={handlePaginationChange} />
+        </>
+      )}
+    </>
+  );
+
   return (
     <>
-      {isMobile ? null : <PageBreadcrumb pageTitle="Danh sách đăng ký gói" />}
-      <ComponentCard>
-        <ResponsiveFilterWrapper drawerTitle="Bộ lọc đăng ký gói">
-          {filterBlock}
-        </ResponsiveFilterWrapper>
-
-        {error && <div className="mb-4 text-red-500 px-1">{error}</div>}
-
-        {isMobile ? (
-          <div className="mt-2">
-            {loading || isLoadingPlans ? (
-              <div className="flex justify-center items-center py-12">
-                <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-500" />
-              </div>
-            ) : convertToMobileData.length === 0 ? (
-              <div className="py-12 text-center text-sm text-gray-500 dark:text-gray-400">
-                Không tìm thấy dữ liệu phù hợp
-              </div>
-            ) : (
-              <>
-                <TableMobile
-                  pageTitle="Danh sách đăng ký gói"
-                  data={convertToMobileData}
-                  actions={mobileActions}
-                  hideCheckbox={true}
-                  hidePagination={true}
-                  showAllData={true}
-                  useTailwindStyling={true}
-                  disabledReset={true}
-                  labelClassNames={{
-                    "Khách hàng":
-                      "text-base font-semibold text-gray-800 dark:text-gray-100",
-                    "Trạng thái": "text-[13px]",
-                  }}
-                  valueClassNames={{
-                    "Khách hàng":
-                      "text-lg font-bold text-gray-900 dark:text-white",
-                  }}
-                />
-                <div className="mt-4 px-1">
-                  <Pagination
-                    data={pagination}
-                    onChange={handlePaginationChange}
-                  />
-                </div>
-              </>
-            )}
-          </div>
-        ) : (
-          <>
-            <CustomSubscriptionTable
-              dataRaw={mapData}
-              isLoading={loading || isLoadingPlans}
-              role={user.role}
-              quotaMonth={query.created_month || getCurrentMonth()}
-              onQuotaMonthChange={(val) =>
-                setQuery({
-                  ...query,
-                  created_month: val,
-                  page: 1,
-                })
-              }
-              onEdit={(item) => {
-                navigate(`/subscriptions/edit/${item.id}`);
-              }}
-              onReload={() => {
-                return fetchSubscriptions();
-              }}
-              onRenew={(item) => {
-                setRenewData(item);
-                setOpenModalRenew(true);
-              }}
-              onConfirm={(item) => handleConfirmPayment(item)}
-              onDetail={(item) => navigate(`/subscriptions/detail/${item.id}`)}
-              onDelete={(id) => handleDelete(id)}
-            />
-            <Pagination data={pagination} onChange={handlePaginationChange} />
-          </>
-        )}
-      </ComponentCard>
+      <PageBreadcrumb pageTitle="Danh sách đăng ký gói" />
+      {isMobile ? (
+        <div>{subscriptionListContent}</div>
+      ) : (
+        <ComponentCard>{subscriptionListContent}</ComponentCard>
+      )}
 
       <ModalRenew
         open={openModalRenew}

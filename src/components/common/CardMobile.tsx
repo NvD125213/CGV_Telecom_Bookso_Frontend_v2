@@ -32,6 +32,14 @@ export interface LabelValueItem {
   hideValue?: boolean;
 }
 
+interface CardEntry {
+  key: string;
+  value: string;
+  valueClassName?: string;
+  hideLabel?: boolean;
+  hideValue?: boolean;
+}
+
 interface ActionButton {
   icon: React.ReactNode;
   label: string;
@@ -54,7 +62,7 @@ interface CardMobileProps {
   selected?: boolean;
   onSelectionChange?: (
     selected: boolean,
-    data: InfoObject | LabelValueItem[]
+    data: InfoObject | LabelValueItem[],
   ) => void;
 
   // Tailwind className props
@@ -125,7 +133,7 @@ const CardMobile: React.FC<CardMobileProps> = ({
   };
 
   // Lấy entries và giữ lại thông tin hideLabel/hideValue
-  const getEntries = () => {
+  const getEntries = (): CardEntry[] => {
     if (isLabelValueFormat(data)) {
       // LabelValueItem[] format - lọc bỏ các trường hidden
       return data
@@ -142,6 +150,7 @@ const CardMobile: React.FC<CardMobileProps> = ({
       return Object.entries(data).map(([key, value]) => ({
         key,
         value: String(value),
+        valueClassName: undefined,
         hideLabel: false,
         hideValue: false,
       }));
@@ -204,7 +213,7 @@ const CardMobile: React.FC<CardMobileProps> = ({
     : actions;
 
   const handleSelectionChange = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     if (onSelectionChange) {
       onSelectionChange(event.target.checked, data);
@@ -248,41 +257,51 @@ const CardMobile: React.FC<CardMobileProps> = ({
             className={`${tailwindStyles.content} ${contentClassName || ""}`}>
             {/* Grid layout: mỗi dòng là 1 cặp label-value, chia 2 cột */}
             <div className="flex flex-col gap-1">
-              {entries.map(({ key, value, valueClassName, hideLabel, hideValue }) => (
-                <div
-                  key={key}
-                  className={`flex mb-1 min-h-[30px] bg-transparent ${
-                    hideLabel || hideValue
-                      ? "flex-row items-center justify-center"
-                      : "flex-row items-center justify-between"
-                  }`}>
-                  {!hideLabel && (
-                    <div
-                      className={`w-1/2 text-left text-[13px] font-semibold flex items-center justify-start ${
-                        hideValue ? "justify-center w-full text-center" : ""
-                      } ${
-                        theme === "dark" ? "text-gray-300" : "text-gray-600"
-                      } ${labelClassName || ""} ${labelClassNames[key] || ""}`}>
-                      {formatKey(key)}
-                    </div>
-                  )}
-                  {!hideValue && (
-                    <div
-                      className={`w-1/2 break-words flex items-center ${
-                        hideLabel
-                          ? "justify-center w-full text-center"
-                          : "text-right justify-center"
-                      } ${theme === "dark" ? "text-white" : "text-gray-900"} ${
-                        valueClassName || ""
-                      } ${valueClassNames[key] || ""}`}
-                      style={{
-                        ...getValueSxStyles(key), // Apply sx styles cho Tailwind
-                      }}>
-                      {value}
-                    </div>
-                  )}
-                </div>
-              ))}
+              {entries.map(
+                ({
+                  key,
+                  value,
+                  valueClassName: entryValueClassName,
+                  hideLabel,
+                  hideValue,
+                }) => (
+                  <div
+                    key={key}
+                    className={`flex mb-1 min-h-[30px] bg-transparent ${
+                      hideLabel || hideValue
+                        ? "flex-row items-center justify-center"
+                        : "flex-row items-center justify-between"
+                    }`}>
+                    {!hideLabel && (
+                      <div
+                        className={`w-1/2 text-left text-[13px] font-semibold flex items-center justify-start ${
+                          hideValue ? "justify-center w-full text-center" : ""
+                        } ${
+                          theme === "dark" ? "text-gray-300" : "text-gray-600"
+                        } ${labelClassName || ""} ${labelClassNames[key] || ""}`}>
+                        {formatKey(key)}
+                      </div>
+                    )}
+                    {!hideValue && (
+                      <div
+                        className={`w-1/2 break-words flex items-center ${
+                          hideLabel
+                            ? "justify-center w-full text-center"
+                            : "text-right justify-center"
+                        } ${theme === "dark" ? "text-white" : "text-gray-900"} ${
+                          valueClassName || ""
+                        } ${entryValueClassName || ""} ${
+                          valueClassNames[key] || ""
+                        }`}
+                        style={{
+                          ...getValueSxStyles(key), // Apply sx styles cho Tailwind
+                        }}>
+                        {value}
+                      </div>
+                    )}
+                  </div>
+                ),
+              )}
             </div>
 
             {(allActions.length > 0 || selectable) && (
@@ -318,7 +337,7 @@ const CardMobile: React.FC<CardMobileProps> = ({
                         actionButtonClassName || ""
                       } ${action.className || ""} ${getActionButtonStyle(
                         action.color,
-                        theme
+                        theme,
                       )}`}>
                       {action.icon}
                     </button>
@@ -367,59 +386,69 @@ const CardMobile: React.FC<CardMobileProps> = ({
           }}>
           {/* Grid layout: mỗi dòng là 1 cặp label-value, chia 2 cột */}
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            {entries.map(({ key, value, valueClassName, hideLabel, hideValue }) => (
-              <Box
-                key={key}
-                className={`${fieldClassName || ""} ${
-                  fieldClassNames[key] || ""
-                }`}
-                sx={{
-                  display: "flex",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent:
-                    hideLabel || hideValue ? "center" : "space-between",
-                  minHeight: 20,
-                  background: "transparent",
-                }}>
-                {!hideLabel && (
-                  <div
-                    className={`${labelClassName || ""} ${
-                      labelClassNames[key] || ""
-                    } flex items-center justify-start ${
-                      hideValue ? "justify-center w-full text-center" : ""
-                    }`}
-                    style={{
-                      textAlign: hideValue ? "center" : "left",
-                      width: hideValue ? "100%" : "50%",
-                    }}>
-                    <Label
-                      className={`font-semibold ${
-                        theme === "dark" ? "text-gray-300" : "text-gray-600"
-                      } text-xs leading-tight`}>
-                      {formatKey(key)}
-                    </Label>
-                  </div>
-                )}
-                {!hideValue && (
-                  <Box
-                    className={`w-1/2 break-words flex items-center ${
-                      hideLabel
-                        ? "justify-center w-full text-center"
-                        : "text-right justify-end"
-                    } ${theme === "dark" ? "text-white" : "text-gray-900"} ${
-                      valueClassName || ""
-                    } ${valueClassNames[key] || ""}`}
-                    sx={{
-                      textAlign: hideLabel ? "center" : "right",
-                      width: hideLabel ? "100%" : "50%",
-                      ...getValueSxStyles(key),
-                    }}>
-                    {value}
-                  </Box>
-                )}
-              </Box>
-            ))}
+            {entries.map(
+              ({
+                key,
+                value,
+                valueClassName: entryValueClassName,
+                hideLabel,
+                hideValue,
+              }) => (
+                <Box
+                  key={key}
+                  className={`${fieldClassName || ""} ${
+                    fieldClassNames[key] || ""
+                  }`}
+                  sx={{
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent:
+                      hideLabel || hideValue ? "center" : "space-between",
+                    minHeight: 20,
+                    background: "transparent",
+                  }}>
+                  {!hideLabel && (
+                    <div
+                      className={`${labelClassName || ""} ${
+                        labelClassNames[key] || ""
+                      } flex items-center justify-start ${
+                        hideValue ? "justify-center w-full text-center" : ""
+                      }`}
+                      style={{
+                        textAlign: hideValue ? "center" : "left",
+                        width: hideValue ? "100%" : "50%",
+                      }}>
+                      <Label
+                        className={`font-semibold ${
+                          theme === "dark" ? "text-gray-300" : "text-gray-600"
+                        } text-xs leading-tight`}>
+                        {formatKey(key)}
+                      </Label>
+                    </div>
+                  )}
+                  {!hideValue && (
+                    <Box
+                      className={`w-1/2 break-words flex items-center ${
+                        hideLabel
+                          ? "justify-center w-full text-center"
+                          : "text-right justify-end"
+                      } ${theme === "dark" ? "text-white" : "text-gray-900"} ${
+                        valueClassName || ""
+                      } ${entryValueClassName || ""} ${
+                        valueClassNames[key] || ""
+                      }`}
+                      sx={{
+                        textAlign: hideLabel ? "center" : "right",
+                        width: hideLabel ? "100%" : "50%",
+                        ...getValueSxStyles(key),
+                      }}>
+                      {value}
+                    </Box>
+                  )}
+                </Box>
+              ),
+            )}
           </Box>
 
           {(allActions.length > 0 || selectable) && (
@@ -484,22 +513,22 @@ const CardMobile: React.FC<CardMobileProps> = ({
                           color: getActionColor(action.color, theme),
                           backgroundColor: getActionBackground(
                             action.color,
-                            theme
+                            theme,
                           ),
                           border: `1px solid ${getActionBorder(
                             action.color,
-                            theme
+                            theme,
                           )}`,
                           borderRadius: 1.5,
                           transition: "all 0.2s ease",
                           "&:hover": {
                             backgroundColor: getActionHoverBackground(
                               action.color,
-                              theme
+                              theme,
                             ),
                             borderColor: getActionHoverBorder(
                               action.color,
-                              theme
+                              theme,
                             ),
                             transform: "scale(1.05)",
                           },

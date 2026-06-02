@@ -124,22 +124,26 @@ const ProviderPage = () => {
       // users ở state đang là chuỗi hiển thị hoặc rỗng
       const usersDisplay =
         typeof (provider as any).users === "string"
-          ? ((provider as any).users as string) || "-"
+          ? ((provider as any).users as string) || "Không có"
           : Array.isArray((provider as any)?.users?.rule)
             ? ((provider as any).users.rule as string[]).join(", ")
-            : "-";
+            : "Không có";
 
       return [
         { label: "Mã nhà cung cấp", value: provider.id, hidden: true },
-        { label: "Nhà cung cấp", value: provider.name || "-", hideLabel: true },
+        {
+          label: "Nhà cung cấp",
+          value: provider.name || "Không có",
+          hideLabel: true,
+        },
         {
           label: "Người được phép sử dụng",
           value: usersDisplay,
         },
-        { label: "Mô tả", value: provider.description || "-" },
+        { label: "Mô tả", value: provider.description || "Không có" },
         {
           label: "Hạn mức cảnh báo",
-          value: provider.phone_number_limit_alert?.toString() ?? "-",
+          value: provider.phone_number_limit_alert?.toString() ?? "Không có",
         },
       ];
     });
@@ -191,23 +195,22 @@ const ProviderPage = () => {
           {error && <div className="text-red-500">{error}</div>}
 
           {isMobile ? (
-            <ComponentCard>
-              <TableMobile
-                pageTitle="Nhà cung cấp"
-                disabledReset={true}
-                data={mobileData}
-                actions={actions}
-                hideCheckbox={true}
-                hidePagination={true}
-                showAllData={true}
-                useTailwindStyling={true}
-                labelClassNames={{
-                  "Nhà cung cấp": `
+            <TableMobile
+              pageTitle="Nhà cung cấp"
+              disabledReset={true}
+              data={mobileData}
+              actions={actions}
+              hideCheckbox={true}
+              hidePagination={true}
+              showAllData={true}
+              useTailwindStyling={true}
+              labelClassNames={{
+                "Nhà cung cấp": `
                   text-[18px] font-extrabold uppercase
                 `,
-                }}
-                valueClassNames={{
-                  "Nhà cung cấp": `
+              }}
+              valueClassNames={{
+                "Nhà cung cấp": `
                     text-base font-semibold 
                     bg-blue-50 text-blue-800
                     dark:bg-blue-900 dark:text-blue-100
@@ -219,9 +222,17 @@ const ProviderPage = () => {
                     whitespace-nowrap
                     font-sans
                   `,
-                }}
-              />
-            </ComponentCard>
+                "Người được phép sử dụng": `
+                    justify-end
+                  `,
+                "Mô tả": `
+                    justify-end text-sm
+                  `,
+                "Hạn mức cảnh báo": `
+                    justify-end text-sm
+                  `,
+              }}
+            />
           ) : (
             <ComponentCard>
               {providers.length === 0 ? (

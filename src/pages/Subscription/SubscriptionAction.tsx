@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Input from "../../components/form/input/InputField";
 import Select from "../../components/form/Select";
@@ -32,6 +38,14 @@ import { ApexOptions } from "apexcharts";
 import DualProgress from "../../components/progress-bar/DualProgress";
 import { OutboundDidDisplay } from "./OutboundDidDisplay";
 import { normalizeOutboundDidByRoute } from "../Plan/interfaces/Outbound";
+import { useIsMobile } from "../../hooks/useScreenSize";
+import TableMobile, {
+  ActionButton,
+  LabelValueItem,
+} from "../../mobiles/TableMobile";
+import { PencilIcon } from "../../icons";
+import { RiDeleteBinLine } from "react-icons/ri";
+import { GiConfirmed } from "react-icons/gi";
 
 export interface PhoneNumber {
   phone_number: string;
@@ -114,6 +128,22 @@ export const SlideForm = ({ value, onChange }: SlideFormProps) => {
         {/* Input */}
       </div>
     </div>
+  );
+};
+
+const CardWrapper = ({
+  children,
+  className = "",
+  isMobile,
+}: {
+  children: ReactNode;
+  className?: string;
+  isMobile: boolean;
+}) => {
+  return isMobile ? (
+    <div className={className}>{children}</div>
+  ) : (
+    <ComponentCard className={className}>{children}</ComponentCard>
   );
 };
 
@@ -548,23 +578,8 @@ export const SubcriptionActionPage = () => {
     }
   };
 
-  // Phone numbers columns for ReusableTable
-  const phoneColumns: {
-    key: keyof PhoneNumber;
-    label: string;
-    type?: string;
-    classname?: string;
-  }[] = [
-    { key: "phone_number", label: "Số điện thoại" },
-    { key: "provider_name", label: "Provider" },
-    { key: "type_name", label: "Type" },
-    {
-      key: "status",
-      label: "Trạng thái",
-      classname:
-        "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500",
-    },
-  ];
+  const phoneStatusBadgeClass =
+    "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500";
 
   const getItemColumns = () => [
     { key: "plan_name", label: "Gói bổ sung" },
@@ -596,6 +611,51 @@ export const SubcriptionActionPage = () => {
     },
     { key: "is_payment", label: "Thanh toán" },
   ];
+
+  const getItemStatusLabel = (status?: number) => {
+    if (status === 1) return "Hoạt động";
+    if (status === 2) return "Đang chờ";
+    return "Hết hạn";
+  };
+
+  const paginatedPhones = useMemo(
+    () =>
+      (form.phone_numbers ?? []).slice(
+        phonePagination.offset,
+        phonePagination.offset + phonePagination.limit,
+      ),
+    [form.phone_numbers, phonePagination.offset, phonePagination.limit],
+  );
+
+  const convertItemsToMobileData = (
+    data: SubscriptionItem[],
+  ): LabelValueItem[][] =>
+    data.map((item) => [
+      { label: "id", value: item.id ?? 0, hidden: true },
+      {
+        label: "Gói bổ sung",
+        value: item.plan?.name || "-",
+        hideLabel: true,
+      },
+      {
+        label: "Số lượng",
+        value: item.quantity?.toLocaleString("vi-VN") ?? "-",
+      },
+      {
+        label: "Giá (VND)",
+        value: (
+          item.price_override_vnd ??
+          item.plan?.price_vnd ??
+          0
+        ).toLocaleString("vi-VN"),
+      },
+      { label: "Ghi chú", value: item.note || "-" },
+      { label: "Trạng thái", value: getItemStatusLabel(item.status) },
+      {
+        label: "Thanh toán",
+        value: item.is_payment ? "Đã thanh toán" : "Chưa thanh toán",
+      },
+    ]);
 
   const [modal, setModal] = useState<boolean>(false);
   const [selectedDataSubItem, setSelectedDataSubItem] = useState<any | null>(
@@ -714,59 +774,100 @@ export const SubcriptionActionPage = () => {
     return () => clearTimeout(handler);
   }, [isHavingID, selectedMonth, selectedYear, form.slide_users]);
 
-  // Tạo chart options cho quota data
-  const getQuotaChartOptions = (): ApexOptions => {
-    const dates = comboDetailData.quota_data.map((item) => {
-      const date = new Date(item.datemon);
-      return `${date.getDate()}/${date.getMonth() + 1}`;
-    });
-
-    return {
-      chart: {
-        type: "line",
-        height: 350,
-        toolbar: {
-          show: true,
-        },
-        fontFamily: "'Roboto', 'Arial', sans-serif",
-      },
-
-      stroke: {
-        curve: "smooth",
-        width: 2,
-      },
-      colors: ["#465FFF"],
-      xaxis: {
-        categories: dates,
-
-        title: {
-          text: "Thời gian",
-          style: {
-            fontSize: "14px",
-          },
-        },
-      },
-      yaxis: {
-        title: {
-          text: "Gọi ra",
-          style: {
-            fontSize: "14px",
-          },
-        },
-      },
-      dataLabels: {
-        enabled: false,
-      },
-      legend: {
-        show: false,
-      },
-      tooltip: {
-        y: {
-          formatter: (val: number) => `${val}`,
-        },
-      },
-    };
+  const formatQuotaAxisValue = (val: number) => {
+    const n = Number(val);
+    if (!Number.isFinite(n)) return String(val);
+    if (Math.abs(n) >= 1_000_000) {
+      return `${(n / 1_000_000).toFixed(1)}M`;
+    }
+    if (Math.abs(n) >= 1_000) {
+      return `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}K`;
+    }
+    return n.toLocaleString("vi-VN");
   };
+
+  // Tạo chart options cho quota data
+  const getQuotaChartOptions = useCallback(
+    (compact = false): ApexOptions => {
+      const dates = comboDetailData.quota_data.map((item) => {
+        const date = new Date(item.datemon);
+        return `${date.getDate()}/${date.getMonth() + 1}`;
+      });
+
+      const axisFontSize = compact ? "10px" : "12px";
+
+      return {
+        chart: {
+          type: "line",
+          toolbar: {
+            show: !compact,
+            tools: {
+              download: !compact,
+              selection: false,
+              zoom: !compact,
+              zoomin: !compact,
+              zoomout: !compact,
+              pan: false,
+              reset: !compact,
+            },
+          },
+          fontFamily: "'Roboto', 'Arial', sans-serif",
+        },
+        stroke: {
+          curve: "smooth",
+          width: compact ? 1.5 : 2,
+        },
+        colors: ["#465FFF"],
+        grid: {
+          padding: {
+            left: compact ? 4 : 12,
+            right: compact ? 8 : 16,
+          },
+        },
+        xaxis: {
+          categories: dates,
+          tickAmount: compact
+            ? Math.min(6, Math.max(dates.length - 1, 1))
+            : undefined,
+          title: {
+            text: compact ? "" : "Thời gian",
+            style: { fontSize: axisFontSize },
+          },
+          labels: {
+            rotate: compact && dates.length > 4 ? -45 : 0,
+            hideOverlappingLabels: true,
+            style: { fontSize: axisFontSize },
+          },
+        },
+        yaxis: {
+          tickAmount: compact ? 4 : 6,
+          forceNiceScale: true,
+          min: 0,
+          title: {
+            text: compact ? "" : "Gọi ra",
+            style: { fontSize: axisFontSize },
+          },
+          labels: {
+            formatter: (val) =>
+              compact ? formatQuotaAxisValue(val) : val.toLocaleString("vi-VN"),
+            style: { fontSize: axisFontSize },
+          },
+        },
+        dataLabels: {
+          enabled: false,
+        },
+        legend: {
+          show: false,
+        },
+        tooltip: {
+          y: {
+            formatter: (val: number) => val.toLocaleString("vi-VN"),
+          },
+        },
+      };
+    },
+    [comboDetailData.quota_data],
+  );
 
   const getQuotaChartSeries = () => {
     return [
@@ -864,6 +965,42 @@ export const SubcriptionActionPage = () => {
     });
   };
 
+  const itemMobileActions: ActionButton[] = useMemo(
+    () => [
+      {
+        icon: <PencilIcon className="h-4 w-4" />,
+        label: "Chỉnh sửa",
+        onClick: (id) => {
+          const originalItem = items.find((i) => String(i.id) === String(id));
+          if (originalItem) handleEditItem(originalItem);
+        },
+        color: "primary",
+      },
+      {
+        icon: <RiDeleteBinLine className="h-4 w-4" />,
+        label: "Xóa",
+        onClick: (id) => handleDeleteItem(Number(id)),
+        color: "error",
+      },
+      {
+        icon: <GiConfirmed className="h-4 w-4" />,
+        label: "Xác nhận thanh toán",
+        onClick: (id) => {
+          const originalItem = items.find((i) => String(i.id) === String(id));
+          if (originalItem) {
+            handleConfirmPayment({
+              ...originalItem,
+              customer_name: form.customer_name,
+            });
+          }
+        },
+        color: "success",
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [items, form.customer_name],
+  );
+
   // Tính tổng minutes từ plan gốc + các subscription items
   const totalMinutes = useMemo(() => {
     // Minutes từ plan gốc
@@ -902,17 +1039,28 @@ export const SubcriptionActionPage = () => {
     [plan?.outbound_did_by_route, planData?.outbound_did_by_route],
   );
 
+  const isMobile = useIsMobile();
+
+  const quotaChartOptions = useMemo(
+    () => getQuotaChartOptions(isMobile),
+    [getQuotaChartOptions, isMobile],
+  );
+
+  const quotaChartHeight = isMobile ? 220 : 350;
+
   return (
     <>
-      <PageBreadcrumb
-        pageTitle={
-          isEdit ? "Chỉnh sửa thông tin book gói" : "Thông tin book gói"
-        }
-      />
+      {isMobile ? null : (
+        <PageBreadcrumb
+          pageTitle={
+            isEdit ? "Chỉnh sửa thông tin book gói" : "Thông tin book gói"
+          }
+        />
+      )}
 
       {/* Hiển thị thông tin gói cước đã chọn */}
       {((!isHavingID && plan) || (isHavingID && planData)) && (
-        <ComponentCard className="mb-6">
+        <CardWrapper className="mb-6" isMobile={isMobile}>
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
             <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300 mb-2">
               Gói cước đã chọn
@@ -946,10 +1094,10 @@ export const SubcriptionActionPage = () => {
               </tbody>
             </table>
           </div>
-        </ComponentCard>
+        </CardWrapper>
       )}
 
-      <ComponentCard>
+      <CardWrapper isMobile={isMobile}>
         <div className="grid grid-cols-1 gap-6">
           <div>
             <Label>Tên khách hàng</Label>
@@ -1099,54 +1247,51 @@ export const SubcriptionActionPage = () => {
             </button>
           )}
         </div>
-      </ComponentCard>
+      </CardWrapper>
 
       {isHavingID &&
         ((form.phone_numbers && form.phone_numbers.length > 0) ||
           (items && items.length > 0)) && (
-          <ComponentCard className="mt-6">
-            {/* Tab Navigation */}
-            <div className="border-b border-gray-200 dark:border-gray-700 mb-4">
-              <div className="border-b border-gray-200 dark:border-gray-700 mb-4">
-                <div className="flex items-center justify-between">
-                  {/* Tabs */}
-                  <nav className="-mb-px flex space-x-8">
-                    <button
-                      onClick={() => setActiveTab("items")}
-                      className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                        activeTab === "items"
-                          ? "border-indigo-500 text-indigo-600"
-                          : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                      }`}>
-                      Gói bổ sung ({items.length})
-                    </button>
+          <CardWrapper className="mt-6" isMobile={isMobile}>
+            <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <nav className="-mb-px flex gap-4 overflow-x-auto pb-1 sm:gap-8">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("items")}
+                    className={`shrink-0 border-b-2 px-1 py-3 text-xs font-medium whitespace-nowrap sm:py-4 sm:text-sm ${
+                      activeTab === "items"
+                        ? "border-indigo-500 text-indigo-600"
+                        : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                    }`}>
+                    Gói bổ sung ({items.length})
+                  </button>
 
-                    <button
-                      onClick={() => setActiveTab("phones")}
-                      className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                        activeTab === "phones"
-                          ? "border-indigo-500 text-indigo-600"
-                          : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                      }`}>
-                      Số điện thoại ({form.phone_numbers?.length || 0})
-                    </button>
-                  </nav>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("phones")}
+                    className={`shrink-0 border-b-2 px-1 py-3 text-xs font-medium whitespace-nowrap sm:py-4 sm:text-sm ${
+                      activeTab === "phones"
+                        ? "border-indigo-500 text-indigo-600"
+                        : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                    }`}>
+                    Số điện thoại ({form.phone_numbers?.length || 0})
+                  </button>
+                </nav>
 
-                  {/* Stats */}
-                  <div className="flex gap-6 text-sm text-gray-600 dark:text-gray-400">
-                    <p>
-                      Đã thanh toán:{" "}
-                      <span className="font-semibold">
-                        {totalAddOnPrice.paid.toLocaleString()} VND
-                      </span>
-                    </p>
-                    <p>
-                      Chưa thanh toán:{" "}
-                      <span className="font-semibold">
-                        {totalAddOnPrice.unpaid.toLocaleString()} VND
-                      </span>
-                    </p>
-                  </div>
+                <div className="grid grid-cols-1 gap-2 text-right text-xs text-gray-600 sm:grid-cols-2 sm:gap-6 sm:text-sm dark:text-gray-400 lg:shrink-0">
+                  <p className="sm:col-start-2">
+                    Đã thanh toán:{" "}
+                    <span className="font-semibold text-gray-800 dark:text-gray-200">
+                      {totalAddOnPrice.paid.toLocaleString()} VND
+                    </span>
+                  </p>
+                  <p className="sm:col-start-2">
+                    Chưa thanh toán:{" "}
+                    <span className="font-semibold text-gray-800 dark:text-gray-200">
+                      {totalAddOnPrice.unpaid.toLocaleString()} VND
+                    </span>
+                  </p>
                 </div>
               </div>
             </div>
@@ -1155,19 +1300,71 @@ export const SubcriptionActionPage = () => {
               form.phone_numbers &&
               form.phone_numbers.length > 0 && (
                 <>
-                  <ReusableTable
-                    title="Danh sách số điện thoại"
-                    data={form.phone_numbers.slice(
-                      phonePagination.offset,
-                      phonePagination.offset + phonePagination.limit,
-                    )}
-                    columns={phoneColumns}
-                    isLoading={loading}
-                    error=""
-                    disabled={true}
-                    disabledReset={true}
-                    showId={false}
-                  />
+                  <div>
+                    <p className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Danh sách số điện thoại
+                    </p>
+                    <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                      <table className="w-full min-w-[28rem] text-left text-xs sm:text-sm">
+                        <thead className="bg-gray-50 text-gray-600 dark:bg-gray-800/60 dark:text-gray-300">
+                          <tr>
+                            <th className="whitespace-nowrap px-3 py-2 font-medium">
+                              Số điện thoại
+                            </th>
+                            <th className="whitespace-nowrap px-3 py-2 font-medium">
+                              Provider
+                            </th>
+                            <th className="whitespace-nowrap px-3 py-2 font-medium">
+                              Type
+                            </th>
+                            <th className="whitespace-nowrap px-3 py-2 font-medium">
+                              Trạng thái
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                          {loading ? (
+                            <tr>
+                              <td
+                                colSpan={4}
+                                className="px-3 py-8 text-center text-gray-500 dark:text-gray-400">
+                                Đang tải...
+                              </td>
+                            </tr>
+                          ) : paginatedPhones.length === 0 ? (
+                            <tr>
+                              <td
+                                colSpan={4}
+                                className="px-3 py-8 text-center text-gray-500 dark:text-gray-400">
+                                Không có dữ liệu
+                              </td>
+                            </tr>
+                          ) : (
+                            paginatedPhones.map((phone) => (
+                              <tr
+                                key={phone.id}
+                                className="text-gray-700 dark:text-gray-300">
+                                <td className="whitespace-nowrap px-3 py-2 font-medium">
+                                  {phone.phone_number || "-"}
+                                </td>
+                                <td className="px-3 py-2">
+                                  {phone.provider_name || "-"}
+                                </td>
+                                <td className="px-3 py-2">
+                                  {phone.type_name || "-"}
+                                </td>
+                                <td className="px-3 py-2">
+                                  <span className={phoneStatusBadgeClass}>
+                                    {phone.status || "-"}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                   {form.phone_numbers.length > phonePagination.limit && (
                     <div className="mt-4">
                       <PaginationComponent
@@ -1184,55 +1381,91 @@ export const SubcriptionActionPage = () => {
               )}
 
             {activeTab === "items" && items && items.length > 0 && (
-              <ReusableTable
-                title="Danh sách gói bổ sung"
-                data={items.map((item) => ({
-                  ...item,
-                  id: item.id || 0,
-                  plan_name: item.plan?.name || "-", // Thêm plan_name
-                  price_override_vnd:
-                    item.price_override_vnd?.toLocaleString("vi-VN"),
-                  note: item.note || "-",
-                  quantity: item.quantity?.toLocaleString("vi-VN"),
-                  is_payment: item.is_payment
-                    ? "Đã thanh toán"
-                    : "Chưa thanh toán",
-                }))}
-                columns={getItemColumns()}
-                isLoading={itemsLoading}
-                error=""
-                disabled={true}
-                disabledReset={true}
-                onConfirm={(item) => handleConfirmPayment(item)}
-                role={1}
-                onEdit={(item) => {
-                  const originalItem = items.find(
-                    (i) => i.id === (item as any).id,
-                  );
-                  if (originalItem) {
-                    handleEditItem(originalItem);
-                  }
-                }}
-                onDelete={(id) => handleDeleteItem(Number(id))}
-                showId={false}
-              />
+              <>
+                {isMobile ? (
+                  itemsLoading ? (
+                    <div className="flex justify-center py-12">
+                      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-indigo-600" />
+                    </div>
+                  ) : (
+                    <TableMobile
+                      data={convertItemsToMobileData(items)}
+                      actions={itemMobileActions}
+                      hideCheckbox
+                      hidePagination
+                      showAllData
+                      disabled
+                      disabledReset
+                      useTailwindStyling
+                      labelClassNames={{
+                        "Gói bổ sung": "text-base font-extrabold uppercase",
+                      }}
+                      valueClassNames={{
+                        "Gói bổ sung": `
+                          text-base font-semibold
+                          bg-blue-50 text-blue-800
+                          dark:bg-blue-900 dark:text-blue-100
+                          px-4 py-2 rounded-lg
+                          border border-blue-200 dark:border-blue-700
+                          text-center shadow-sm font-sans
+                        `,
+                      }}
+                    />
+                  )
+                ) : (
+                  <div className="overflow-x-auto">
+                    <ReusableTable
+                      title="Danh sách gói bổ sung"
+                      data={items.map((item) => ({
+                        ...item,
+                        id: item.id || 0,
+                        plan_name: item.plan?.name || "-",
+                        price_override_vnd:
+                          item.price_override_vnd?.toLocaleString("vi-VN"),
+                        note: item.note || "-",
+                        quantity: item.quantity?.toLocaleString("vi-VN"),
+                        is_payment: item.is_payment
+                          ? "Đã thanh toán"
+                          : "Chưa thanh toán",
+                      }))}
+                      columns={getItemColumns()}
+                      isLoading={itemsLoading}
+                      error=""
+                      disabled={true}
+                      disabledReset={true}
+                      onConfirm={(item) => handleConfirmPayment(item)}
+                      role={1}
+                      onEdit={(item) => {
+                        const originalItem = items.find(
+                          (i) => i.id === (item as any).id,
+                        );
+                        if (originalItem) {
+                          handleEditItem(originalItem);
+                        }
+                      }}
+                      onDelete={(id) => handleDeleteItem(Number(id))}
+                      showId={false}
+                    />
+                  </div>
+                )}
+              </>
             )}
 
             {(activeTab === "phones" &&
               (!form.phone_numbers || form.phone_numbers.length === 0)) ||
             (activeTab === "items" && (!items || items.length === 0)) ? (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              <div className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                 Không có dữ liệu
               </div>
             ) : null}
-          </ComponentCard>
+          </CardWrapper>
         )}
 
       {/* Hiển thị combo detail */}
       {isHavingID &&
         form.slide_users &&
         (form.slide_users as string[]).length > 0 && (
-          <ComponentCard className="mt-6">
+          <CardWrapper className="mt-6" isMobile={isMobile}>
             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
               Chi tiết combo
             </h3>
@@ -1267,27 +1500,29 @@ export const SubcriptionActionPage = () => {
             {/* Biểu đồ Quota */}
             {comboDetailData.quota_data?.length > 0 && (
               <div>
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="text-md font-semibold text-gray-700 dark:text-gray-300">
+                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <h4 className="text-sm font-semibold text-gray-700 sm:text-md dark:text-gray-300">
                     Biểu đồ sử dụng (call_out)
                   </h4>
-                  <div className="flex gap-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-gray-600 dark:text-gray-400">
-                        Tổng:
-                      </span>
-                      <span className="text-indigo-600 dark:text-indigo-400 font-bold">
-                        {comboDetailData.total_call_out.toLocaleString("vi-VN")}
-                      </span>
-                    </div>
+                  <div className="text-xs sm:text-sm">
+                    <span className="font-semibold text-gray-600 dark:text-gray-400">
+                      Tổng:{" "}
+                    </span>
+                    <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                      {comboDetailData.total_call_out.toLocaleString("vi-VN")}
+                    </span>
                   </div>
                 </div>
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                <div className="overflow-hidden rounded-lg border border-gray-200 bg-white p-2 sm:p-4 dark:border-gray-700 dark:bg-gray-800">
                   <Chart
-                    options={getQuotaChartOptions()}
+                    key={
+                      isMobile ? "quota-chart-mobile" : "quota-chart-desktop"
+                    }
+                    options={quotaChartOptions}
                     series={getQuotaChartSeries()}
                     type="line"
-                    height={350}
+                    height={quotaChartHeight}
+                    width="100%"
                   />
                 </div>
               </div>
@@ -1374,65 +1609,95 @@ export const SubcriptionActionPage = () => {
                   )}
               </>
             )}
-          </ComponentCard>
+          </CardWrapper>
         )}
 
       {/* Hiển thị danh sách plans để thêm vào subscription */}
       {isHavingID && (
-        <ComponentCard className="mt-6">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+        <CardWrapper className="mt-6" isMobile={isMobile}>
+          <h3 className="mb-3 text-base font-semibold text-gray-800 sm:mb-4 sm:text-lg dark:text-gray-200">
             Chọn gói bổ sung
           </h3>
 
-          <div className="relative">
-            {/* Nút scroll trái */}
-            {canScrollLeft &&
-              plansData?.data?.children &&
-              plansData.data.children.length > 0 && (
-                <button
-                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-white rounded-full shadow hover:bg-gray-100"
-                  onClick={() => scroll("left")}>
-                  <FiChevronLeft size={20} />
-                </button>
+          <div
+            className={`relative ${
+              (plansData?.data?.children?.length ?? 0) > 1
+                ? "px-9 sm:px-10"
+                : ""
+            }`}>
+            {!isLoadingPlans &&
+              (plansData?.data?.children?.length ?? 0) > 1 && (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Gói trước"
+                    disabled={!canScrollLeft}
+                    className="absolute left-0 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white shadow-md hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700 sm:h-9 sm:w-9"
+                    onClick={() => scroll("left")}>
+                    <FiChevronLeft
+                      size={18}
+                      className="text-gray-700 dark:text-white"
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Gói sau"
+                    disabled={!canScrollRight}
+                    className="absolute right-0 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white shadow-md hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700 sm:h-9 sm:w-9"
+                    onClick={() => scroll("right")}>
+                    <FiChevronRight
+                      size={18}
+                      className="text-gray-700 dark:text-white"
+                    />
+                  </button>
+                </>
               )}
 
             <div
               ref={scrollRef}
-              className="flex w-full overflow-x-auto scroll-smooth snap-x snap-mandatory gap-4 pb-4 hide-scrollbar">
+              className="hide-scrollbar flex w-full snap-x snap-mandatory gap-2 overflow-x-auto scroll-smooth pb-3 sm:gap-4 sm:pb-4">
               {isLoadingPlans ? (
-                Array.from({ length: 3 }).map((_, i) => (
+                Array.from({ length: isMobile ? 1 : 3 }).map((_, i) => (
                   <div
                     key={i}
-                    className="flex-shrink-0 min-w-[35%] p-4 border border-gray-200 rounded-xl shadow animate-pulse snap-start bg-white dark:bg-gray-800">
-                    <Skeleton height={180} className="mb-4 rounded-lg" />
+                    className="w-[calc(100%-0.25rem)] flex-shrink-0 snap-start rounded-xl border border-gray-200 bg-white p-3 shadow animate-pulse dark:border-gray-700 dark:bg-gray-800 sm:min-w-[55%] sm:p-4 md:min-w-[45%] lg:min-w-[35%]">
+                    <Skeleton
+                      height={isMobile ? 140 : 180}
+                      className="mb-3 rounded-lg sm:mb-4"
+                    />
                     <Skeleton
                       count={3}
-                      height={20}
+                      height={16}
                       className="mb-2 rounded-md"
                     />
-                    <Skeleton height={40} className="mt-4 rounded-md" />
+                    <Skeleton height={36} className="mt-3 rounded-md sm:mt-4" />
                   </div>
                 ))
               ) : !plansData?.data?.children ||
                 plansData.data.children.length === 0 ? (
-                <div className="w-full flex items-center justify-center py-12">
+                <div className="flex w-full items-center justify-center py-10 sm:py-12">
                   <div className="text-center">
-                    <p className="text-gray-500 dark:text-gray-400 text-lg mb-2">
+                    <p className="mb-1 text-base text-gray-500 sm:mb-2 sm:text-lg dark:text-gray-400">
                       Không có gói cước phù hợp
                     </p>
-                    <p className="text-gray-400 dark:text-gray-500 text-sm">
+                    <p className="text-xs text-gray-400 sm:text-sm dark:text-gray-500">
                       Không tìm thấy gói cước bổ sung cho hợp đồng này
                     </p>
                   </div>
                 </div>
               ) : (
-                plansData?.data?.children?.map((plan: PlanData) => (
+                plansData.data.children.map((plan: PlanData) => (
                   <div
                     key={plan.id}
-                    className="flex-shrink-0 min-w-[35%] snap-start">
+                    className={`flex-shrink-0 snap-start sm:min-w-[55%] md:min-w-[45%] lg:min-w-[35%] ${
+                      plansData.data.children.length === 1
+                        ? "w-full"
+                        : "w-[calc(100%-0.25rem)]"
+                    }`}>
                     <PricingCard
                       data={plan}
                       showBadge={false}
+                      className={isMobile ? "p-0!" : ""}
                       onSelect={() => onSelectModalSubmit(plan, form.id)}
                       onDelete={handleDeleteChildPlan}
                       onDetail={() => navigate(`/plans/edit/${plan.id}`)}
@@ -1441,27 +1706,15 @@ export const SubcriptionActionPage = () => {
                 ))
               )}
             </div>
-
-            {/* Nút scroll phải */}
-            {canScrollRight &&
-              plansData?.data?.children &&
-              plansData.data.children.length > 0 && (
-                <button
-                  className="absolute right-[-40px] top-1/2 -translate-y-1/2 z-10 p-2 bg-white rounded-full shadow hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 dark:shadow-gray-900"
-                  onClick={() => scroll("right")}>
-                  <FiChevronRight
-                    size={20}
-                    className="text-gray-700 dark:text-white transition-colors duration-200"
-                  />
-                </button>
-              )}
           </div>
 
           {plansData?.data?.children && plansData.data.children.length > 0 && (
-            <Pagination
-              data={planPagination}
-              onChange={handlePlanPaginationChange}
-            />
+            <div className="mt-3 sm:mt-4">
+              <Pagination
+                data={planPagination}
+                onChange={handlePlanPaginationChange}
+              />
+            </div>
           )}
           <SubscriptionItemAction
             subscriptionId={form.id}
@@ -1488,7 +1741,7 @@ export const SubcriptionActionPage = () => {
               }
             }}
           />
-        </ComponentCard>
+        </CardWrapper>
       )}
 
       {/* Modal edit subscription item */}

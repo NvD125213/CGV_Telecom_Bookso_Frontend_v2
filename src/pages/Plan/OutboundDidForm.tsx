@@ -204,57 +204,64 @@ export const OutboundDidForm = ({
 
   const showOutbound = hide !== "outbound";
   const showMeta = hide !== "meta";
+  const twoColumnLayout = showOutbound && showMeta;
 
   return (
     <div>
       <div
-        className={`grid ${
-          showOutbound && showMeta ? "grid-cols-2" : "grid-cols-1"
-        } gap-8`}>
+        className={`grid grid-cols-1 gap-6 ${
+          twoColumnLayout ? "lg:grid-cols-2 lg:gap-8" : ""
+        }`}>
         {showOutbound && (
           <div>
             <Label>Cấu hình Outbound CID</Label>
-            <div className="flex flex-col gap-3 mt-3">
+            <div className="mt-3 flex flex-col gap-3">
               {routes.map((route, index) => (
-                <div key={route.id} className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleRemove(index)}
-                    className="p-2 rounded-full bg-red-100 hover:bg-red-200 text-red-600 flex-shrink-0">
-                    <IoIosRemove size={20} />
-                  </button>
+                <div
+                  key={route.id}
+                  className="rounded-xl border border-gray-200 p-3 dark:border-gray-700 sm:border-0 sm:p-0">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(index)}
+                      className="self-end rounded-full bg-red-100 p-2 text-red-600 hover:bg-red-200 sm:self-auto">
+                      <IoIosRemove size={20} />
+                    </button>
 
-                  <div className="flex-1 min-w-0">
-                    <Select
-                      options={providerOptions}
-                      value={route.provider}
-                      onChange={(val) => handleChange(index, "provider", val)}
-                    />
-                  </div>
+                    <div className="w-full min-w-0 sm:flex-1">
+                      <Select
+                        options={providerOptions}
+                        value={route.provider}
+                        onChange={(val) =>
+                          handleChange(index, "provider", val)
+                        }
+                      />
+                    </div>
 
-                  <div className="flex-1 min-w-0">
-                    <AutoSelect
-                      options={brandOptions}
-                      value={route.brandname_id}
-                      placeholder="Chọn brandname..."
-                      loading={brandSelectOpen && isBrandLoading}
-                      onOpenChange={setBrandSelectOpen}
-                      onSearchChange={setBrandSearch}
-                      onChange={(val) =>
-                        handleChange(index, "brandname_id", val)
-                      }
-                    />
-                  </div>
+                    <div className="w-full min-w-0 sm:flex-1">
+                      <AutoSelect
+                        options={brandOptions}
+                        value={route.brandname_id}
+                        placeholder="Chọn brandname..."
+                        loading={brandSelectOpen && isBrandLoading}
+                        onOpenChange={setBrandSelectOpen}
+                        onSearchChange={setBrandSearch}
+                        onChange={(val) =>
+                          handleChange(index, "brandname_id", val)
+                        }
+                      />
+                    </div>
 
-                  <div className="w-24 flex-shrink-0">
-                    <Input
-                      type="text"
-                      value={route.quantity}
-                      onChange={(e) =>
-                        handleChange(index, "quantity", e.target.value)
-                      }
-                      placeholder="0"
-                    />
+                    <div className="w-full flex-shrink-0 sm:w-24">
+                      <Input
+                        type="text"
+                        value={route.quantity}
+                        onChange={(e) =>
+                          handleChange(index, "quantity", e.target.value)
+                        }
+                        placeholder="0"
+                      />
+                    </div>
                   </div>
                 </div>
               ))}
@@ -262,7 +269,7 @@ export const OutboundDidForm = ({
               <button
                 type="button"
                 onClick={handleAdd}
-                className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium mt-2">
+                className="mt-2 flex items-center gap-2 font-medium text-indigo-600 hover:text-indigo-800">
                 <IoIosAdd size={20} />
                 Thêm tuyến Outbound
               </button>
@@ -273,36 +280,40 @@ export const OutboundDidForm = ({
         {showMeta && (
           <div>
             <Label>Cấu hình Meta</Label>
-            <div className="flex flex-col gap-3 mt-3">
+            <div className="mt-3 flex flex-col gap-3">
               {metaRoutes.map((route, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleMetaRemove(index)}
-                    className="p-2 rounded-full bg-red-100 hover:bg-red-200 text-red-600 flex-shrink-0">
-                    <IoIosRemove size={20} />
-                  </button>
+                <div
+                  key={index}
+                  className="rounded-xl border border-gray-200 p-3 dark:border-gray-700 sm:border-0 sm:p-0">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleMetaRemove(index)}
+                      className="self-end rounded-full bg-red-100 p-2 text-red-600 hover:bg-red-200 sm:self-auto">
+                      <IoIosRemove size={20} />
+                    </button>
 
-                  <div className="flex-1 min-w-0">
-                    <Input
-                      type="text"
-                      value={route.key}
-                      onChange={(val) =>
-                        handleMetaChange(index, "key", val.target.value)
-                      }
-                      placeholder="Nhập key"
-                    />
-                  </div>
+                    <div className="w-full min-w-0 sm:flex-1">
+                      <Input
+                        type="text"
+                        value={route.key}
+                        onChange={(val) =>
+                          handleMetaChange(index, "key", val.target.value)
+                        }
+                        placeholder="Nhập key"
+                      />
+                    </div>
 
-                  <div className="flex-1 min-w-0">
-                    <Input
-                      type="text"
-                      value={route.value}
-                      onChange={(e) =>
-                        handleMetaChange(index, "value", e.target.value)
-                      }
-                      placeholder="Nhập value"
-                    />
+                    <div className="w-full min-w-0 sm:flex-1">
+                      <Input
+                        type="text"
+                        value={route.value}
+                        onChange={(e) =>
+                          handleMetaChange(index, "value", e.target.value)
+                        }
+                        placeholder="Nhập value"
+                      />
+                    </div>
                   </div>
                 </div>
               ))}
@@ -310,7 +321,7 @@ export const OutboundDidForm = ({
               <button
                 type="button"
                 onClick={handleMetaAdd}
-                className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium mt-2">
+                className="mt-2 flex items-center gap-2 font-medium text-indigo-600 hover:text-indigo-800">
                 <IoIosAdd size={20} />
                 Thêm tuyến Meta
               </button>

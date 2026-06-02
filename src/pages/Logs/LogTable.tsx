@@ -113,6 +113,61 @@ export const LogTypeBadge = ({
   );
 };
 
+export const prepareLogTableRows = (rawData: any[]) =>
+  rawData.map((item: any) => {
+    const parentPrice =
+      typeof item.total_price === "string"
+        ? Number(item.total_price.replace(/[^\d]/g, ""))
+        : item.total_price || 0;
+
+    const parentMinutes =
+      typeof item.total_minutes === "string"
+        ? Number(item.total_minutes.replace(/[^\d]/g, ""))
+        : item.total_minutes || 0;
+
+    const hasChildren = item.children && item.children.length > 0;
+
+    if (!hasChildren) {
+      return {
+        ...item,
+        total_price_payment: parentPrice,
+        total_price_paymented: item.is_payment ? parentPrice : 0,
+        total_quota_used: item.quota_used || 0,
+        total_minutes_all: parentMinutes,
+      };
+    }
+
+    const childrenTotal = item.children.reduce(
+      (acc: number, sub: any) => acc + (sub.total_price || 0),
+      0,
+    );
+    const childrenPaid = item.children.reduce(
+      (acc: number, sub: any) =>
+        acc + (sub.is_payment === true ? sub.total_price || 0 : 0),
+      0,
+    );
+    const totalQuotaUsed =
+      (item.quota_used || 0) +
+      item.children.reduce(
+        (acc: number, sub: any) => acc + (sub.quota_used || 0),
+        0,
+      );
+    const totalMinutes =
+      parentMinutes +
+      item.children.reduce(
+        (acc: number, sub: any) => acc + (sub.total_minutes || 0),
+        0,
+      );
+
+    return {
+      ...item,
+      total_price_payment: parentPrice + childrenTotal,
+      total_price_paymented: (item.is_payment ? parentPrice : 0) + childrenPaid,
+      total_quota_used: totalQuotaUsed,
+      total_minutes_all: totalMinutes,
+    };
+  });
+
 export const CustomLogTable = ({
   rawData,
   isLoading,
@@ -177,76 +232,7 @@ export const CustomLogTable = ({
         })
       : "-";
 
-  // Tính tổng số is_payment true, tổng số is_payment, giá của từng cái
-
-  const data = rawData.map((item: any) => {
-    // Convert total_price cha
-    const parentPrice =
-      typeof item.total_price === "string"
-        ? Number(item.total_price.replace(/[^\d]/g, "")) // xoá ký tự . ₫
-        : item.total_price || 0;
-
-    // Convert total_minutes cha
-    const parentMinutes =
-      typeof item.total_minutes === "string"
-        ? Number(item.total_minutes.replace(/[^\d]/g, "")) // "10.000" -> 10000
-        : item.total_minutes || 0;
-
-    // Check nếu có children
-    const hasChildren = item.children && item.children.length > 0;
-
-    // Nếu không có children, chỉ dùng giá trị của cha
-    if (!hasChildren) {
-      return {
-        ...item,
-        total_price_payment: parentPrice,
-        total_price_paymented: item.is_payment ? parentPrice : 0,
-        total_quota_used: item.quota_used || 0,
-        total_minutes_all: parentMinutes,
-      };
-    }
-
-    // Có children - tính tổng
-    // Tổng total_price children
-    const childrenTotal = item.children.reduce((acc: number, sub: any) => {
-      return acc + (sub.total_price || 0);
-    }, 0);
-
-    // Tổng total_price children đã thanh toán
-    const childrenPaid = item.children.reduce((acc: number, sub: any) => {
-      return acc + (sub.is_payment === true ? sub.total_price || 0 : 0);
-    }, 0);
-
-    // Tổng quota_used của cha + children
-    const totalQuotaUsed =
-      (item.quota_used || 0) +
-      item.children.reduce(
-        (acc: number, sub: any) => acc + (sub.quota_used || 0),
-        0
-      );
-
-    // Tổng total_minutes cha + children
-    const totalMinutes =
-      parentMinutes +
-      item.children.reduce(
-        (acc: number, sub: any) => acc + (sub.total_minutes || 0),
-        0
-      );
-
-    // Tổng tiền
-    const totalPayment = parentPrice + childrenTotal;
-
-    // Tổng tiền đã thanh toán
-    const totalPaymented = (item.is_payment ? parentPrice : 0) + childrenPaid;
-
-    return {
-      ...item,
-      total_price_payment: totalPayment,
-      total_price_paymented: totalPaymented,
-      total_quota_used: totalQuotaUsed,
-      total_minutes_all: totalMinutes,
-    };
-  });
+  const data = prepareLogTableRows(rawData);
 
   // format VND
   const formatCurrency = (value: any) => {

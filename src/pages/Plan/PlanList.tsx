@@ -12,6 +12,7 @@ import { useScrollPagination } from "../../hooks/useScrollPagination";
 import { IoIosAdd } from "react-icons/io";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import { Pagination } from "../../components/common/Pagination";
+import { MobileFixedPagination } from "../../components/common/MobileFixedPagination";
 import { useNavigate } from "react-router-dom";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { useSelector } from "react-redux";
@@ -19,10 +20,13 @@ import { RootState } from "../../store";
 import { PlanQuery, Plans } from "./interfaces/PlanQuery";
 import Swal from "sweetalert2";
 import EmptyState from "../../components/EmptyData";
+import ResponsiveFilterWrapper from "../../components/common/FlipperWrapper";
+import { useScreenSize } from "../../hooks/useScreenSize";
 
 export const PlanList = () => {
   const user = useSelector((state: RootState) => state.auth?.user);
   const navigate = useNavigate();
+  const { isMobile } = useScreenSize();
   const [query, setQuery] = useQuerySync<PlanQuery>({
     page: 1,
     size: 10,
@@ -158,145 +162,176 @@ export const PlanList = () => {
     }
   };
 
+  const totalPages = Math.max(1, pagination.pages);
+  const showMobilePagination = isMobile && totalPages > 1;
+
+  const renderPricingCard = (plan: PlanData) => (
+    <PricingCard
+      data={plan}
+      onSelect={handleSelect}
+      onChange={handleChange}
+      onDetail={handleViewDetail}
+      onDelete={handleDelete}
+      buttonText="Đặt gói"
+      showBadge={false}
+      className={isMobile ? "p-0" : ""}
+    />
+  );
+
+  const renderPlanContent = () => {
+    if (loading) {
+      const skeletonCount = isMobile ? 2 : 3;
+      return Array.from({ length: skeletonCount }).map((_, i) => (
+        <div
+          key={i}
+          className={
+            isMobile
+              ? "w-full rounded-xl border border-gray-200 bg-white p-3 shadow dark:border-gray-700 dark:bg-gray-800"
+              : "flex-shrink-0 min-w-[55%] snap-start rounded-xl border border-gray-200 bg-white p-4 shadow dark:border-gray-700 dark:bg-gray-800 md:min-w-[45%] lg:min-w-[35%]"
+          }>
+          <Skeleton height={180} className="mb-4 rounded-lg" />
+          <Skeleton count={3} height={20} className="mb-2 rounded-md" />
+          <Skeleton height={40} className="mt-4 rounded-md" />
+        </div>
+      ));
+    }
+
+    if (!plans?.items || plans.items.length === 0) {
+      return <EmptyState />;
+    }
+
+    return plans.items.map((plan) => (
+      <div
+        key={plan.id}
+        className={
+          isMobile
+            ? "w-full"
+            : "flex-shrink-0 min-w-[55%] snap-start md:min-w-[45%] lg:min-w-[35%]"
+        }>
+        {renderPricingCard(plan)}
+      </div>
+    ));
+  };
+
   return (
     <>
-      <PageBreadcrumb pageTitle="Danh sách gói cước" />
-      <div className="flex justify-end mb-4">
+      {isMobile ? null : <PageBreadcrumb pageTitle="Danh sách gói cước" />}
+      <div className="mb-4 flex justify-end">
         {user.role === 1 && (
           <button
             onClick={() => navigate("/plans/create")}
             className="flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
-            {" "}
             <IoIosAdd size={24} />
             Thêm
           </button>
         )}
       </div>
       <ComponentCard>
-        <div>
-          {/* --- Bộ lọc query --- */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8 p-4">
-            {/* Tìm kiếm */}
-            <div className="w-full">
-              <Label>Tìm kiếm</Label>
-              <Input
-                type="text"
-                placeholder="Tìm theo tên gói..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="w-full border border-gray-300 px-3 py-2 rounded-md"
-              />
-            </div>
+        <div className={showMobilePagination ? "pb-24" : ""}>
+          <ResponsiveFilterWrapper drawerTitle="Bộ lọc tìm kiếm">
+            <div className="mb-4 grid grid-cols-1 gap-4 sm:mb-8 sm:grid-cols-2 sm:gap-6 sm:p-4">
+              <div className="w-full">
+                <Label>Tìm kiếm</Label>
+                <Input
+                  type="text"
+                  placeholder="Tìm theo tên gói..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="w-full border border-gray-300 px-3 py-2 rounded-md"
+                />
+              </div>
 
-            <div className="w-full">
-              <Label>Thứ tự</Label>
-              <Select
-                options={[
-                  { label: "Tăng dần", value: "asc" },
-                  { label: "Giảm dần", value: "desc" },
-                ]}
-                value={query.order_dir}
-                onChange={(value) => setQuery({ ...query, order_dir: value })}
-                placeholder="Thứ tự"
-              />
-            </div>
-            <div className="w-full">
-              <Label>Trạng thái</Label>
-              <Select
-                options={[
-                  { label: "Hoạt động", value: "1" },
-                  { label: "Không hoạt động", value: "0" },
-                ]}
-                value={query.status}
-                onChange={(value) => setQuery({ ...query, status: value })}
-                placeholder="Loại gói"
-              />
-            </div>
+              <div className="w-full">
+                <Label>Thứ tự</Label>
+                <Select
+                  options={[
+                    { label: "Tăng dần", value: "asc" },
+                    { label: "Giảm dần", value: "desc" },
+                  ]}
+                  value={query.order_dir}
+                  onChange={(value) => setQuery({ ...query, order_dir: value })}
+                  placeholder="Thứ tự"
+                />
+              </div>
+              <div className="w-full">
+                <Label>Trạng thái</Label>
+                <Select
+                  options={[
+                    { label: "Hoạt động", value: "1" },
+                    { label: "Không hoạt động", value: "0" },
+                  ]}
+                  value={query.status}
+                  onChange={(value) => setQuery({ ...query, status: value })}
+                  placeholder="Loại gói"
+                />
+              </div>
 
-            <div className="w-full">
-              <Label>Sắp xếp theo</Label>
-              <Select
-                options={[
-                  { label: "Ngày tạo", value: "created_at" },
-                  { label: "Ngày cập nhật", value: "updated_at" },
-                  { label: "Tên gói", value: "name" },
-                  { label: "Giá tiền", value: "price_vnd" },
-                  { label: "Số phút", value: "minutes" },
-                  { label: "Số CID", value: "did_count" },
-                  { label: "Trạng thái", value: "status" },
-                  { label: "Thời gian hết hạn", value: "expiration_time" },
-                ]}
-                value={query.order_by}
-                onChange={(value) => setQuery({ ...query, order_by: value })}
-                placeholder="Chọn cách sắp xếp"
-              />
+              <div className="w-full">
+                <Label>Sắp xếp theo</Label>
+                <Select
+                  options={[
+                    { label: "Ngày tạo", value: "created_at" },
+                    { label: "Ngày cập nhật", value: "updated_at" },
+                    { label: "Tên gói", value: "name" },
+                    { label: "Giá tiền", value: "price_vnd" },
+                    { label: "Số phút", value: "minutes" },
+                    { label: "Số CID", value: "did_count" },
+                    { label: "Trạng thái", value: "status" },
+                    { label: "Thời gian hết hạn", value: "expiration_time" },
+                  ]}
+                  value={query.order_by}
+                  onChange={(value) => setQuery({ ...query, order_by: value })}
+                  placeholder="Chọn cách sắp xếp"
+                />
+              </div>
             </div>
-          </div>
+          </ResponsiveFilterWrapper>
 
-          <div className="relative">
-            {/* Nút scroll trái */}
-            {canScrollLeft && (
-              <button
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-white rounded-full shadow hover:bg-gray-100"
-                onClick={() => scroll("left")}>
-                <FiChevronLeft size={20} />
-              </button>
-            )}
+          {isMobile ? (
+            <div className="grid grid-cols-1 gap-3 px-1">
+              {renderPlanContent()}
+            </div>
+          ) : (
+            <div className="relative px-1">
+              {canScrollLeft && (
+                <button
+                  className="absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white p-2 shadow hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700"
+                  onClick={() => scroll("left")}>
+                  <FiChevronLeft size={20} />
+                </button>
+              )}
 
-            <div
-              ref={scrollRef}
-              className="flex w-full overflow-x-auto scroll-smooth snap-x snap-mandatory gap-4 pb-4 hide-scrollbar">
-              {loading ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="flex-shrink-0 min-w-[35%] p-4 border border-gray-200 rounded-xl shadow animate-pulse snap-start bg-white dark:bg-gray-800">
-                    <Skeleton height={180} className="mb-4 rounded-lg" />
-                    <Skeleton
-                      count={3}
-                      height={20}
-                      className="mb-2 rounded-md"
-                    />
-                    <Skeleton height={40} className="mt-4 rounded-md" />
-                  </div>
-                ))
-              ) : plans?.items && plans.items.length > 0 ? (
-                plans.items.map((plan) => (
-                  <div
-                    key={plan.id}
-                    className="flex-shrink-0 min-w-[35%] snap-start">
-                    <PricingCard
-                      data={plan}
-                      onSelect={handleSelect}
-                      onChange={handleChange}
-                      onDetail={handleViewDetail}
-                      onDelete={handleDelete}
-                      buttonText="Đặt gói"
-                      showBadge={false}
-                    />
-                  </div>
-                ))
-              ) : (
-                <EmptyState />
+              <div
+                ref={scrollRef}
+                className="hide-scrollbar flex w-full snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-4">
+                {renderPlanContent()}
+              </div>
+
+              {canScrollRight && (
+                <button
+                  className="absolute right-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white p-2 shadow hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700"
+                  onClick={() => scroll("right")}>
+                  <FiChevronRight
+                    size={20}
+                    className="text-gray-700 transition-colors duration-200 dark:text-white"
+                  />
+                </button>
               )}
             </div>
+          )}
 
-            {/* Nút scroll phải */}
-            {canScrollRight && (
-              <button
-                className="absolute right-[-40px] top-1/2 -translate-y-1/2 z-10 p-2 
-             bg-white rounded-full shadow hover:bg-gray-100
-             dark:bg-gray-800 dark:hover:bg-gray-700 dark:shadow-gray-900"
-                onClick={() => scroll("right")}>
-                <FiChevronRight
-                  size={20}
-                  className="text-gray-700 dark:text-white transition-colors duration-200"
-                />
-              </button>
-            )}
-          </div>
-
-          <Pagination data={pagination} onChange={handlePaginationChange} />
+          {isMobile ? (
+            <MobileFixedPagination
+              currentPage={pagination.page}
+              totalPages={totalPages}
+              pageSize={pagination.size}
+              pageSizeOptions={[10, 20, 50]}
+              onPageChange={(page) => handlePaginationChange(page, pagination.size)}
+              onPageSizeChange={(size) => handlePaginationChange(1, size)}
+            />
+          ) : (
+            <Pagination data={pagination} onChange={handlePaginationChange} />
+          )}
         </div>
       </ComponentCard>
     </>

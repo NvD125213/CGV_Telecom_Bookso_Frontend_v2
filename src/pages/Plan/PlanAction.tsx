@@ -28,6 +28,7 @@ import {
 } from "./interfaces/Outbound";
 import { useCurrencyInput, useMultiCurrencyInput } from "./hooks/useCurrency";
 import EmptyState from "../../components/EmptyData";
+import { useIsMobile } from "../../hooks/useScreenSize";
 
 export interface PlanForm {
   name: string;
@@ -298,16 +299,11 @@ export const PlanActionPage = () => {
     fieldsToFormat,
   );
 
-  return (
-    <>
-      <PageBreadcrumb
-        pageTitle={
-          isUpdate ? handleViewNamePage(user.role) : "Thêm gói cước mới"
-        }
-      />
+  const isMobile = useIsMobile();
 
-      <ComponentCard>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+  const formContent = (
+    <>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <div>
             <Label>Tên gói</Label>
             <Input
@@ -531,7 +527,24 @@ export const PlanActionPage = () => {
             </button>
           )}
         </div>
-      </ComponentCard>
+      </>
+  );
+
+  return (
+    <>
+      {isMobile ? null : (
+        <PageBreadcrumb
+          pageTitle={
+            isUpdate ? handleViewNamePage(user.role) : "Thêm gói cước mới"
+          }
+        />
+      )}
+
+      {isMobile ? (
+        <div className="space-y-6">{formContent}</div>
+      ) : (
+        <ComponentCard>{formContent}</ComponentCard>
+      )}
     </>
   );
 };

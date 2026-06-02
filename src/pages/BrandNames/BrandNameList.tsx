@@ -244,17 +244,17 @@ const BrandNameList = () => {
       },
       {
         label: "Mô tả",
-        value: item.description || "-",
+        value: item.description || "Không có",
         fieldName: "description",
       },
       {
         label: "Người tạo",
-        value: item.created_by || "-",
+        value: item.created_by || "Không có",
         fieldName: "created_by",
       },
       {
         label: "Người cập nhật",
-        value: item.updated_by || "-",
+        value: item.updated_by || "Không có",
         fieldName: "updated_by",
       },
       {
@@ -338,7 +338,7 @@ const BrandNameList = () => {
       </div>
       <div className="space-y-6">
         {isMobile ? (
-          <ComponentCard>
+          <div className="space-y-4">
             {searchBlock}
             <TableMobile
               pageTitle="Brandname"
@@ -367,6 +367,24 @@ const BrandNameList = () => {
                     whitespace-nowrap
                     font-sans
                 `,
+                Sale: `
+                    justify-end text-sm
+                  `,
+                "Mô tả": `
+                    justify-end text-sm
+                  `,
+                "Người tạo": `
+                    justify-end text-sm
+                  `,
+                "Người cập nhật": `
+                    justify-end text-sm
+                  `,
+                "Ngày tạo": `
+                    justify-end text-sm
+                  `,
+                "Ngày cập nhật": `
+                    justify-end text-sm
+                  `,
               }}
             />
             {showPagination && (
@@ -382,7 +400,7 @@ const BrandNameList = () => {
                 />
               </div>
             )}
-          </ComponentCard>
+          </div>
         ) : (
           <ComponentCard>
             {searchBlock}

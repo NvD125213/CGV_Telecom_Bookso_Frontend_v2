@@ -50,7 +50,7 @@ const axiosInstance = axios.create({
 
 let isAlertShown = false;
 
-// ✅ Request Interceptor (chỉ gắn access token)
+// Request Interceptor (chỉ gắn access token)
 axiosInstance.interceptors.request.use(
   async (config) => {
     const token = Cookies.get("token");

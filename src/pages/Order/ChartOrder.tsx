@@ -4,6 +4,7 @@ import { ApexOptions } from "apexcharts";
 import { getDetailCombo } from "../../services/subcription";
 import Label from "../../components/form/Label";
 import Select from "../../components/form/Select";
+import { useIsMobile } from "../../hooks/useScreenSize";
 
 interface CidItem {
   cid: string;
@@ -22,18 +23,32 @@ interface ComboQuotaChartProps {
 interface CidsTableProps {
   data: CidItem[] | null | undefined;
   isLoading: boolean;
+  compact?: boolean;
 }
 
-const CidsTable: React.FC<CidsTableProps> = ({ data, isLoading }) => {
+const formatQuotaAxisValue = (val: number) => {
+  const n = Number(val);
+  if (!Number.isFinite(n)) return String(val);
+  if (Math.abs(n) >= 1_000_000) {
+    return `${(n / 1_000_000).toFixed(1)}M`;
+  }
+  if (Math.abs(n) >= 1_000) {
+    return `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}K`;
+  }
+  return n.toLocaleString("vi-VN");
+};
+
+const CidsTable: React.FC<CidsTableProps> = ({
+  data,
+  isLoading,
+  compact = false,
+}) => {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const pageSize = 20;
+  const pageSize = compact ? 10 : 20;
 
   const noData = !data || data.length === 0;
 
-  // ---------------------------------------------
-  // SEARCH
-  // ---------------------------------------------
   const filteredData = useMemo(() => {
     if (noData) return [];
 
@@ -42,27 +57,34 @@ const CidsTable: React.FC<CidsTableProps> = ({ data, isLoading }) => {
     return data.filter(
       (item) =>
         item.cid.toLowerCase().includes(lower) ||
-        item.name.toLowerCase().includes(lower)
+        item.name.toLowerCase().includes(lower),
     );
   }, [data, search, noData]);
 
-  // ---------------------------------------------
-  // PAGINATION
-  // ---------------------------------------------
-  const totalPages = Math.ceil(filteredData.length / pageSize);
+  const totalPages = Math.ceil(filteredData.length / pageSize) || 1;
 
   const paginatedData = useMemo(() => {
     const start = (page - 1) * pageSize;
     return filteredData.slice(start, start + pageSize);
-  }, [filteredData, page]);
+  }, [filteredData, page, pageSize]);
 
   const handlePrev = () => setPage((p) => Math.max(1, p - 1));
   const handleNext = () => setPage((p) => Math.min(totalPages, p + 1));
 
+  const cellPad = compact ? "px-2 py-1.5 text-xs" : "px-3 py-2 text-sm";
+  const headPad = compact
+    ? "px-2 py-1.5 text-xs font-semibold"
+    : "px-3 py-2 text-sm font-semibold";
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-      <div className="flex justify-between items-center mb-3">
-        <h4 className="text-md font-semibold">Danh sách CID</h4>
+    <div className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800 sm:p-4">
+      <div
+        className={`mb-3 gap-2 ${
+          compact
+            ? "flex flex-col"
+            : "flex flex-col sm:flex-row sm:items-center sm:justify-between"
+        }`}>
+        <h4 className="text-sm font-semibold sm:text-base">Danh sách CID</h4>
 
         <input
           value={search}
@@ -71,79 +93,90 @@ const CidsTable: React.FC<CidsTableProps> = ({ data, isLoading }) => {
             setPage(1);
           }}
           placeholder="Tìm CID hoặc tên..."
-          className="px-3 py-2 border rounded-md dark:bg-gray-700 dark:text-white"
+          className={`w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-white ${
+            compact ? "text-sm" : ""
+          } ${compact ? "" : "sm:max-w-xs"}`}
         />
       </div>
 
-      {/* --------------------- LOADING --------------------- */}
       {isLoading && (
-        <div className="py-10 text-center">
-          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-3 text-gray-600 dark:text-gray-300">
+        <div className="py-8 text-center sm:py-10">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+          <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">
             Đang tải dữ liệu...
           </p>
         </div>
       )}
 
-      {/* --------------------- EMPTY --------------------- */}
       {!isLoading && noData && (
-        <div className="py-10 text-center text-gray-500">
+        <div className="py-8 text-center text-sm text-gray-500 sm:py-10">
           Không có dữ liệu CID
         </div>
       )}
 
-      {/* --------------------- TABLE --------------------- */}
       {!isLoading && !noData && (
         <>
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="bg-gray-100 dark:bg-gray-700 text-left">
-                <th className="px-4 py-2">CID</th>
-                <th className="px-4 py-2">Tên</th>
-                <th className="px-4 py-2 text-center">VT</th>
-                <th className="px-4 py-2 text-center">MB</th>
-                <th className="px-4 py-2 text-center">VN</th>
-                <th className="px-4 py-2 text-center">OT</th>
-                <th className="px-4 py-2">Mô tả</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {paginatedData.map((item) => (
-                <tr
-                  key={item.cid}
-                  className="border-b border-gray-200 dark:border-gray-700">
-                  <td className="px-4 py-2">{item.cid}</td>
-                  <td className="px-4 py-2">{item.name}</td>
-
-                  <td className="px-4 py-2 text-center">{item.vt}</td>
-                  <td className="px-4 py-2 text-center">{item.mb}</td>
-                  <td className="px-4 py-2 text-center">{item.vn}</td>
-                  <td className="px-4 py-2 text-center">{item.ot}</td>
-
-                  <td className="px-4 py-2">{item.description}</td>
+          <div className="overflow-x-auto">
+            <table className="min-w-[36rem] w-full">
+              <thead>
+                <tr className="bg-gray-100 text-left dark:bg-gray-700">
+                  <th className={`${headPad} whitespace-nowrap`}>CID</th>
+                  <th className={`${headPad} whitespace-nowrap`}>Tên</th>
+                  <th className={`${headPad} text-center`}>VT</th>
+                  <th className={`${headPad} text-center`}>MB</th>
+                  <th className={`${headPad} text-center`}>VN</th>
+                  <th className={`${headPad} text-center`}>OT</th>
+                  <th className={headPad}>Mô tả</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
 
-          {/* PAGINATION */}
-          <div className="flex justify-between items-center mt-4">
+              <tbody>
+                {paginatedData.map((item) => (
+                  <tr
+                    key={item.cid}
+                    className="border-b border-gray-200 dark:border-gray-700">
+                    <td className={`${cellPad} font-medium`}>{item.cid}</td>
+                    <td className={cellPad}>{item.name}</td>
+                    <td className={`${cellPad} text-center`}>{item.vt}</td>
+                    <td className={`${cellPad} text-center`}>{item.mb}</td>
+                    <td className={`${cellPad} text-center`}>{item.vn}</td>
+                    <td className={`${cellPad} text-center`}>{item.ot}</td>
+                    <td className={`${cellPad} max-w-[8rem] truncate sm:max-w-none`}>
+                      {item.description}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div
+            className={`mt-4 gap-2 ${
+              compact
+                ? "flex flex-col"
+                : "flex items-center justify-between"
+            }`}>
             <button
+              type="button"
               onClick={handlePrev}
               disabled={page === 1}
-              className="px-3 py-1 border rounded disabled:opacity-50">
+              className={`rounded border px-3 py-1.5 text-sm disabled:opacity-50 dark:border-gray-600 ${
+                compact ? "w-full" : ""
+              }`}>
               Trước
             </button>
 
-            <span className="text-sm">
-              Trang {page}/{totalPages || 1}
+            <span className="text-center text-sm">
+              Trang {page}/{totalPages}
             </span>
 
             <button
+              type="button"
               onClick={handleNext}
               disabled={page === totalPages}
-              className="px-3 py-1 border rounded disabled:opacity-50">
+              className={`rounded border px-3 py-1.5 text-sm disabled:opacity-50 dark:border-gray-600 ${
+                compact ? "w-full" : ""
+              }`}>
               Sau
             </button>
           </div>
@@ -156,64 +189,15 @@ const CidsTable: React.FC<CidsTableProps> = ({ data, isLoading }) => {
 export const ComboQuotaChart: React.FC<ComboQuotaChartProps> = ({
   slide_user,
 }) => {
-  // Tạo chart options
-  const getQuotaChartOptions = (): ApexOptions => {
-    const dates = quotaData.map((item: any) => {
-      const date = new Date(item.datemon);
-      return `${date.getDate()}/${date.getMonth() + 1}`;
-    });
-
-    return {
-      chart: {
-        type: "line",
-        height: 350,
-        toolbar: {
-          show: true,
-        },
-        fontFamily: "'Roboto', 'Arial', sans-serif",
-      },
-      stroke: {
-        curve: "smooth",
-        width: 2,
-      },
-      colors: ["#465FFF"],
-      xaxis: {
-        categories: dates,
-        title: {
-          text: "Thời gian",
-          style: {
-            fontSize: "14px",
-          },
-        },
-      },
-      yaxis: {
-        title: {
-          text: "Gọi ra",
-          style: {
-            fontSize: "14px",
-          },
-        },
-      },
-      dataLabels: {
-        enabled: false,
-      },
-      legend: {
-        show: false,
-      },
-      tooltip: {
-        y: {
-          formatter: (val: number) => `${val}`,
-        },
-      },
-    };
-  };
-
-  // ===== MONTH & YEAR STATE =====
+  const isMobile = useIsMobile(768);
   const currentDate = new Date();
-  const [selectedMonth, setSelectedMonth] = useState<string>((currentDate.getMonth() + 1).toString());
-  const [selectedYear, setSelectedYear] = useState<string>(currentDate.getFullYear().toString());
+  const [selectedMonth, setSelectedMonth] = useState<string>(
+    (currentDate.getMonth() + 1).toString(),
+  );
+  const [selectedYear, setSelectedYear] = useState<string>(
+    currentDate.getFullYear().toString(),
+  );
 
-  // ===== OPTIONS FOR SELECT =====
   const months = Array.from({ length: 12 }, (_, i) => ({
     value: (i + 1).toString(),
     label: `Tháng ${i + 1}`,
@@ -227,12 +211,12 @@ export const ComboQuotaChart: React.FC<ComboQuotaChartProps> = ({
         value: year.toString(),
         label: year.toString(),
       };
-    }
+    },
   );
 
-  // ===== DETAIL & CHART DATA =====
   const [comboDetail, setComboDetail] = useState<any>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+
   useEffect(() => {
     const fetchComboDetail = async () => {
       if (!slide_user || slide_user.length === 0) {
@@ -243,13 +227,12 @@ export const ComboQuotaChart: React.FC<ComboQuotaChartProps> = ({
       setIsLoadingDetail(true);
 
       try {
-        // Format month to always be 2 digits (e.g., "01", "02", ..., "12")
         const formattedMonth = selectedMonth.padStart(2, "0");
         const monthYear = `${selectedYear}-${formattedMonth}`;
-        
+
         const result = await getDetailCombo(
           JSON.stringify(slide_user),
-          monthYear
+          monthYear,
         );
 
         if (result?.message === "OK") {
@@ -268,92 +251,208 @@ export const ComboQuotaChart: React.FC<ComboQuotaChartProps> = ({
     fetchComboDetail();
   }, [slide_user, selectedMonth, selectedYear]);
 
-  const quotaData = comboDetail?.quota_data || [];
-  const cidData = comboDetail?.cids_data || [];
+  const quotaData = useMemo(
+    () => comboDetail?.quota_data ?? [],
+    [comboDetail?.quota_data],
+  );
+  const cidData = useMemo(
+    () => comboDetail?.cids_data ?? [],
+    [comboDetail?.cids_data],
+  );
   const totalCallOut = comboDetail?.total_call_out || 0;
+  const chartHeight = isMobile ? 220 : 350;
 
-  // Tạo chart series
-  const getQuotaChartSeries = () => {
-    return [
+  const quotaChartOptions = useMemo((): ApexOptions => {
+    const dates = quotaData.map((item: { datemon: string }) => {
+      const date = new Date(item.datemon);
+      return `${date.getDate()}/${date.getMonth() + 1}`;
+    });
+
+    const axisFontSize = isMobile ? "10px" : "12px";
+
+    return {
+      chart: {
+        type: "line",
+        toolbar: {
+          show: !isMobile,
+          tools: {
+            download: !isMobile,
+            selection: false,
+            zoom: !isMobile,
+            zoomin: !isMobile,
+            zoomout: !isMobile,
+            pan: false,
+            reset: !isMobile,
+          },
+        },
+        fontFamily: "'Roboto', 'Arial', sans-serif",
+      },
+      stroke: {
+        curve: "smooth",
+        width: isMobile ? 1.5 : 2,
+      },
+      colors: ["#465FFF"],
+      grid: {
+        padding: {
+          left: isMobile ? 4 : 12,
+          right: isMobile ? 8 : 16,
+        },
+      },
+      xaxis: {
+        categories: dates,
+        tickAmount: isMobile
+          ? Math.min(6, Math.max(dates.length - 1, 1))
+          : undefined,
+        title: {
+          text: isMobile ? "" : "Thời gian",
+          style: { fontSize: axisFontSize },
+        },
+        labels: {
+          rotate: isMobile && dates.length > 4 ? -45 : 0,
+          hideOverlappingLabels: true,
+          style: { fontSize: axisFontSize },
+        },
+      },
+      yaxis: {
+        tickAmount: isMobile ? 4 : 6,
+        forceNiceScale: true,
+        min: 0,
+        title: {
+          text: isMobile ? "" : "Gọi ra",
+          style: { fontSize: axisFontSize },
+        },
+        labels: {
+          formatter: (val) =>
+            isMobile ? formatQuotaAxisValue(val) : val.toLocaleString("vi-VN"),
+          style: { fontSize: axisFontSize },
+        },
+      },
+      dataLabels: {
+        enabled: false,
+      },
+      legend: {
+        show: false,
+      },
+      tooltip: {
+        y: {
+          formatter: (val: number) => val.toLocaleString("vi-VN"),
+        },
+      },
+    };
+  }, [quotaData, isMobile]);
+
+  const quotaChartSeries = useMemo(
+    () => [
       {
         name: "Call Out",
-        data: quotaData.map((item: any) => item.call_out),
+        data: quotaData.map((item: { call_out: number }) => item.call_out),
       },
-    ];
-  };
+    ],
+    [quotaData],
+  );
 
-  // Hiển thị loading khi đang tải
+  const monthYearSelectors = (
+    <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+      <div className="min-w-0">
+        <Label>Chọn năm</Label>
+        <Select
+          placeholder="Chọn năm"
+          options={years}
+          value={selectedYear}
+          onChange={(value) => setSelectedYear(value)}
+        />
+      </div>
+      <div className="min-w-0">
+        <Label>Chọn tháng</Label>
+        <Select
+          placeholder="Chọn tháng"
+          options={months}
+          value={selectedMonth}
+          onChange={(value) => setSelectedMonth(value)}
+        />
+      </div>
+    </div>
+  );
+
   if (isLoadingDetail) {
     return (
-      <div className="relative min-h-[500px]">
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-lg">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-12 h-12 border-4 border-indigo-200 dark:border-indigo-800 border-t-indigo-600 dark:border-t-indigo-400 rounded-full animate-spin"></div>
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Đang tải dữ liệu biểu đồ...
-            </p>
+      <div className="relative min-w-0">
+        {monthYearSelectors}
+        <div
+          className={`relative ${isMobile ? "min-h-[240px]" : "min-h-[500px]"}`}>
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/80 backdrop-blur-sm dark:bg-gray-900/80">
+            <div className="flex flex-col items-center gap-3 px-4">
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600 dark:border-indigo-800 dark:border-t-indigo-400 sm:h-12 sm:w-12" />
+              <p className="text-center text-sm font-medium text-gray-700 dark:text-gray-300">
+                Đang tải dữ liệu biểu đồ...
+              </p>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  // Nếu không có dữ liệu sau khi load xong
   if (!quotaData || quotaData.length === 0) {
-    return null;
+    return (
+      <div className="min-w-0">
+        {monthYearSelectors}
+        <p className="py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+          Không có dữ liệu biểu đồ cho tháng/năm đã chọn
+        </p>
+        {cidData?.length > 0 && (
+          <div className="mt-2">
+            <CidsTable
+              data={cidData}
+              isLoading={isLoadingDetail}
+              compact={isMobile}
+            />
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
-    <div className="relative">
-      {/* Month & Year Selectors */}
-       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <Label>Chọn năm</Label>
-                <Select
-                  placeholder="Chọn năm"
-                  options={years}
-                  value={selectedYear}
-                  onChange={(value) => setSelectedYear(value)}
-                />
-              </div>
-              <div>
-                <Label>Chọn tháng</Label>
-                <Select
-                  placeholder="Chọn tháng"
-                  options={months}
-                  value={selectedMonth}
-                  onChange={(value) => setSelectedMonth(value)}
-                />
-              </div>
-            </div>
+    <div className="relative min-w-0">
+      {monthYearSelectors}
 
-      <div className="flex justify-between items-center mb-3">
-        <h4 className="text-md font-semibold text-gray-700 dark:text-gray-300">
+      <div
+        className={`mb-3 gap-2 ${
+          isMobile
+            ? "flex flex-col"
+            : "flex items-center justify-between"
+        }`}>
+        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 sm:text-base">
           Biểu đồ sử dụng (call_out)
         </h4>
-        <div className="flex gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-gray-600 dark:text-gray-400">
-              Tổng:
-            </span>
-            <span className="text-indigo-600 dark:text-indigo-400 font-bold">
-              {totalCallOut.toLocaleString("vi-VN")}
-            </span>
-          </div>
+        <div className="text-sm">
+          <span className="font-semibold text-gray-600 dark:text-gray-400">
+            Tổng:{" "}
+          </span>
+          <span className="font-bold text-indigo-600 dark:text-indigo-400">
+            {totalCallOut.toLocaleString("vi-VN")}
+          </span>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white p-2 dark:border-gray-700 dark:bg-gray-800 sm:p-4">
         <Chart
-          options={getQuotaChartOptions()}
-          series={getQuotaChartSeries()}
+          key={isMobile ? "combo-chart-mobile" : "combo-chart-desktop"}
+          options={quotaChartOptions}
+          series={quotaChartSeries}
           type="line"
-          height={350}
+          height={chartHeight}
+          width="100%"
         />
       </div>
 
-      <div className="mt-2">
-        <CidsTable data={cidData} isLoading={isLoadingDetail} />
+      <div className="mt-2 min-w-0">
+        <CidsTable
+          data={cidData}
+          isLoading={isLoadingDetail}
+          compact={isMobile}
+        />
       </div>
     </div>
   );

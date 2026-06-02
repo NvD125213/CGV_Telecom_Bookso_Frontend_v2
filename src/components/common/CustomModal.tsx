@@ -299,7 +299,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
             }`}>
             <div
               className={`grid ${
-                fields.length > 4 ? "grid-cols-2" : "grid-cols-1"
+                fields.length > 4 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
               } gap-2 sm:gap-3 lg:gap-4`}>
               {fields.map((field) => (
                 <div key={field.name} className="w-full">

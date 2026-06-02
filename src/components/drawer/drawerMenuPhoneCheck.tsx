@@ -8,6 +8,7 @@ import {
   useListCheckPhoneNumberScroll,
   useListCheckedPhoneNumberDataScroll,
 } from "../../hooks/api-hooks/v3/useCheckPhone";
+import { useIsMobile } from "../../hooks/useScreenSize";
 
 const SEARCH_DEBOUNCE_MS = 400;
 
@@ -33,6 +34,7 @@ export default function DrawerMenuPhoneCheck({
   data,
   listSource = "upload",
 }: DrawerMenuPhoneCheckProps) {
+  const isMobile = useIsMobile(768);
   const [selectedRecord, setSelectedRecord] =
     useState<UploadPhoneRecord | null>(null);
   const [searchPhone, setSearchPhone] = useState("");
@@ -157,28 +159,32 @@ export default function DrawerMenuPhoneCheck({
     }).format(date);
   };
 
-  return (
-    <motion.aside
-      initial={{ width: 0, opacity: 0, x: 12 }}
-      animate={{ width: 600, opacity: 1, x: 0 }}
-      exit={{ width: 0, opacity: 0, x: 12 }}
-      transition={{ duration: 0.28, ease: "easeInOut" }}
-      className="sticky top-20 h-[calc(100vh-6rem)] shrink-0 self-start overflow-hidden">
-      <div className="flex h-full min-h-0 w-[600px] flex-col border-l border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-        <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+  const drawerPanel = (
+    <div
+      className={`flex h-full min-h-0 w-full flex-col bg-white dark:bg-gray-900 ${
+        isMobile ? "" : "border-l border-gray-200 dark:border-gray-800"
+      } ${isMobile ? "" : "w-[600px]"}`}>
+      <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-800 sm:px-5 sm:py-4">
+        <div className="min-w-0 pr-2">
+          <h2 className="truncate text-sm font-semibold text-gray-900 dark:text-white sm:text-base">
             Danh sách số điện thoại
           </h2>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-900/30">
-            Đóng
-          </button>
+          {data?.original_filename && (
+            <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
+              {data.original_filename}
+            </p>
+          )}
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-2">
+        <button
+          type="button"
+          onClick={onClose}
+          className="shrink-0 rounded-md px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-900/30">
+          Đóng
+        </button>
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-2 sm:p-2">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={detailKey}
@@ -189,9 +195,8 @@ export default function DrawerMenuPhoneCheck({
               className="flex min-h-0 flex-1 flex-col gap-4 text-sm">
               <div className="mb-3 grid shrink-0 grid-cols-1 gap-2 bg-white p-3 dark:border-gray-800 dark:bg-gray-900/40">
                 {/* Sử dụng w-full và gap để tạo khoảng cách giữa 2 phần tử */}
-                <div className="flex w-full items-end justify-between gap-4 py-2">
-                  {/* Thêm flex-1 để div này giãn ra chiếm hết không gian trống bên trái */}
-                  <div className="flex-1">
+                <div className="flex w-full flex-col gap-3 py-2 sm:flex-row sm:items-end sm:gap-4">
+                  <div className="min-w-0 flex-1">
                     <label
                       htmlFor="drawer-search-phone"
                       className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
@@ -209,8 +214,7 @@ export default function DrawerMenuPhoneCheck({
                     />
                   </div>
 
-                  {/* Thêm flex-1 để div này giãn ra chiếm hết không gian trống bên phải */}
-                  <div className="flex-1">
+                  <div className="min-w-0 flex-1">
                     <label
                       htmlFor="drawer-valid-only"
                       className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
@@ -253,7 +257,8 @@ export default function DrawerMenuPhoneCheck({
                 <div
                   className="min-h-0 flex-1 overflow-auto rounded-lg border border-gray-100 dark:border-gray-800"
                   onScroll={handleScroll}>
-                  <table className="min-w-full border-collapse text-xs">
+                  <div className="min-w-0 overflow-x-auto">
+                  <table className="min-w-[40rem] w-full border-collapse text-xs">
                     <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800">
                       <tr className="text-left text-gray-500 dark:text-gray-300">
                         <th className="px-3 py-2 font-medium">Số</th>
@@ -308,6 +313,7 @@ export default function DrawerMenuPhoneCheck({
                       ))}
                     </tbody>
                   </table>
+                  </div>
 
                   {isFetchingNextPage && (
                     <div className="border-t border-gray-100 px-3 py-3 text-center text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
@@ -333,9 +339,11 @@ export default function DrawerMenuPhoneCheck({
             </motion.div>
           </AnimatePresence>
         </div>
-      </div>
+    </div>
+  );
 
-      {typeof document !== "undefined" &&
+  const detailModal =
+    typeof document !== "undefined" &&
         createPortal(
           <AnimatePresence>
             {selectedRecord && (
@@ -349,7 +357,9 @@ export default function DrawerMenuPhoneCheck({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 6 }}
                   transition={{ duration: 0.2 }}
-                  className="max-h-[85vh] w-full max-w-2xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-800 dark:bg-gray-900">
+                  className={`max-h-[85vh] w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-800 dark:bg-gray-900 ${
+                    isMobile ? "max-w-full" : "max-w-2xl"
+                  }`}>
                   {/* Header */}
                   <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-gray-800">
                     <div>
@@ -499,7 +509,48 @@ export default function DrawerMenuPhoneCheck({
             )}
           </AnimatePresence>,
           document.body,
-        )}
-    </motion.aside>
+        );
+
+  if (isMobile) {
+    if (typeof document === "undefined") return null;
+
+    return createPortal(
+      <AnimatePresence>
+        <motion.div
+          key="drawer-phone-check-backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] bg-black/40"
+          onClick={onClose}
+          aria-hidden
+        />
+        <motion.div
+          key="drawer-phone-check-panel"
+          initial={{ x: "100%" }}
+          animate={{ x: 0 }}
+          exit={{ x: "100%" }}
+          transition={{ duration: 0.28, ease: "easeInOut" }}
+          className="fixed inset-y-0 right-0 z-[101] flex w-full max-w-full flex-col shadow-xl sm:max-w-lg">
+          {drawerPanel}
+        </motion.div>
+        {detailModal}
+      </AnimatePresence>,
+      document.body,
+    );
+  }
+
+  return (
+    <>
+      <motion.aside
+        initial={{ width: 0, opacity: 0, x: 12 }}
+        animate={{ width: 600, opacity: 1, x: 0 }}
+        exit={{ width: 0, opacity: 0, x: 12 }}
+        transition={{ duration: 0.28, ease: "easeInOut" }}
+        className="sticky top-20 h-[calc(100vh-6rem)] shrink-0 self-start overflow-hidden">
+        {drawerPanel}
+      </motion.aside>
+      {detailModal}
+    </>
   );
 }

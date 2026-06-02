@@ -35,6 +35,7 @@ const SubscriptionItemAction: React.FC<SubscriptionItemActionProps> = ({
   preSelectedPlan,
   onRefreshItems,
 }) => {
+  const preSelectedPlanId = preSelectedPlan?.id || 0;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<SubscriptionItem | null>(null);
   const [errors, setErrors] = useState<
@@ -55,30 +56,39 @@ const SubscriptionItemAction: React.FC<SubscriptionItemActionProps> = ({
   });
 
   useEffect(() => {
+    if (!isModalOpen && !externalModalState && !editingItem) return;
+
     if (editingItem) {
       setFormData({
         ...editingItem,
       });
-    } else {
-      setFormData({
-        subscription_id: subscriptionId,
-        plan_id: preSelectedPlan?.id || 0,
-        quantity: 1,
-        price_override_vnd: 0,
-        note: "",
-      });
+      return;
     }
-  }, [editingItem, subscriptionId, preSelectedPlan]);
+
+    setFormData({
+      subscription_id: subscriptionId,
+      plan_id: preSelectedPlanId,
+      quantity: 1,
+      price_override_vnd: 0,
+      note: "",
+    });
+  }, [
+    editingItem,
+    subscriptionId,
+    preSelectedPlanId,
+    isModalOpen,
+    externalModalState,
+  ]);
 
   // Xử lý khi external modal state thay đổi
   useEffect(() => {
-    if (externalModalState && preSelectedPlan) {
+    if (externalModalState && preSelectedPlanId) {
       setIsModalOpen(true);
     } else if (!externalModalState && !editingItem) {
       // Nếu external modal state về false và không có item đang edit, đóng modal
       setIsModalOpen(false);
     }
-  }, [externalModalState, preSelectedPlan, editingItem]);
+  }, [externalModalState, preSelectedPlanId, editingItem]);
 
   const handleCloseModal = (shouldCallExternalClose: boolean = true) => {
     setIsModalOpen(false);
@@ -196,7 +206,7 @@ const SubscriptionItemAction: React.FC<SubscriptionItemActionProps> = ({
     <>
       {/* Modal */}
       <CustomModal
-        isOpen={isModalOpen || externalModalState}
+        isOpen={isModalOpen}
         title={
           editingItem ? "Cập nhật gói cước bổ sung" : "Thêm gói cước bổ sung"
         }

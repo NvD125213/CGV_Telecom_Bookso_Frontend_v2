@@ -19,6 +19,38 @@ import ModalDetailFileErrorExcel from "../../components/modals/modalDetailFileEr
 import CardError, {
   type PhoneErrorFileCardData,
 } from "../../components/card/CardError";
+import { useIsMobile } from "../../hooks/useScreenSize";
+
+const MAIN_TABS = [
+  {
+    id: "check-file-tab-list",
+    panel: "check-file-panel-list",
+    labelShort: "Chưa kiểm tra",
+    labelFull: "Danh sách file chưa kiểm tra",
+    disableWhenUploading: true,
+  },
+  {
+    id: "check-file-tab-checked-data",
+    panel: "check-file-panel-checked-data",
+    labelShort: "Đã kiểm tra",
+    labelFull: "Danh sách file đã kiểm tra",
+    disableWhenUploading: true,
+  },
+  {
+    id: "check-file-tab-phone-errors",
+    panel: "check-file-panel-phone-errors",
+    labelShort: "Danh sách file lỗi",
+    labelFull: "Danh sách file lỗi",
+    disableWhenUploading: true,
+  },
+  {
+    id: "check-file-tab-upload",
+    panel: "check-file-panel-upload",
+    labelShort: "Upload",
+    labelFull: "Upload file kiểm tra",
+    disableWhenUploading: false,
+  },
+] as const;
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -195,6 +227,7 @@ function mapGroupsToUploadFileList(
 }
 
 export default function ListCheckFileUpload() {
+  const isMobile = useIsMobile(768);
   const [openDrawer, setOpenDrawer] = useState(false);
   const [selectedFile, setSelectedFile] = useState<
     UploadFileCardData | undefined
@@ -378,44 +411,45 @@ export default function ListCheckFileUpload() {
   };
   return (
     <div>
-      <div className="mb-4">
-        <PageBreadcrumb pageTitle="Danh sách file đã upload" />
+      <div className="mb-3 sm:mb-4">
+        {isMobile ? (
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Danh sách file đã upload
+          </h1>
+        ) : (
+          <PageBreadcrumb pageTitle="Danh sách file đã upload" />
+        )}
       </div>
 
       <Tabs
         value={mainTab}
         onChange={handleMainTabChange}
-        variant="fullWidth"
+        variant={isMobile ? "scrollable" : "fullWidth"}
+        scrollButtons={isMobile ? "auto" : false}
+        allowScrollButtonsMobile
         sx={{
           mb: 2,
           borderBottom: 1,
           borderColor: "divider",
-          "& .MuiTab-root": { textTransform: "none", fontWeight: 500 },
+          minHeight: isMobile ? 40 : 48,
+          "& .MuiTab-root": {
+            textTransform: "none",
+            fontWeight: 500,
+            fontSize: isMobile ? "0.75rem" : "0.875rem",
+            minHeight: isMobile ? 40 : 48,
+            px: isMobile ? 1.5 : 2,
+            whiteSpace: "nowrap",
+          },
         }}>
-        <Tab
-          label="Danh sách file chưa kiểm tra"
-          disabled={isUploading && mainTab === 3}
-          id="check-file-tab-list"
-          aria-controls="check-file-panel-list"
-        />
-        <Tab
-          label="Danh sách file đã kiểm tra"
-          disabled={isUploading && mainTab === 3}
-          id="check-file-tab-checked-data"
-          aria-controls="check-file-panel-checked-data"
-        />
-        <Tab
-          label="Danh sách file lỗi"
-          disabled={isUploading && mainTab === 3}
-          id="check-file-tab-phone-errors"
-          aria-controls="check-file-panel-phone-errors"
-        />
-
-        <Tab
-          label="Upload file kiểm tra"
-          id="check-file-tab-upload"
-          aria-controls="check-file-panel-upload"
-        />
+        {MAIN_TABS.map((tab) => (
+          <Tab
+            key={tab.id}
+            label={isMobile ? tab.labelShort : tab.labelFull}
+            disabled={tab.disableWhenUploading && isUploading && mainTab === 3}
+            id={tab.id}
+            aria-controls={tab.panel}
+          />
+        ))}
       </Tabs>
 
       <div
@@ -438,7 +472,7 @@ export default function ListCheckFileUpload() {
             )}
 
             {!isLoading && !isError && (
-              <div className="flex items-start gap-2">
+              <div className="flex flex-col items-stretch gap-2 lg:flex-row lg:items-start">
                 <div className="min-w-0 flex-1">
                   {fileList.length === 0 ? (
                     <div className="rounded-xl h-full border border-dashed border-gray-200 bg-gray-50/80 px-6 py-14 text-center dark:border-gray-700 dark:bg-gray-900/40">
@@ -541,7 +575,7 @@ export default function ListCheckFileUpload() {
             )}
 
             {!isLoadingCheckedData && !isErrorCheckedData && (
-              <div className="flex items-start gap-2">
+              <div className="flex flex-col items-stretch gap-2 lg:flex-row lg:items-start">
                 <div className="min-w-0 flex-1">
                   {checkedFileList.length === 0 ? (
                     <div className="rounded-xl h-full border border-dashed border-gray-200 bg-gray-50/80 px-6 py-14 text-center dark:border-gray-700 dark:bg-gray-900/40">

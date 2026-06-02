@@ -8,15 +8,8 @@ import React, {
   Suspense,
   memo,
 } from "react";
-import {
-  Box,
-  Typography,
-  Container,
-  Paper,
-  Select,
-  MenuItem,
-  Skeleton,
-} from "@mui/material";
+import { Box, Typography, Container, Paper, Skeleton } from "@mui/material";
+import { MobileFixedPagination } from "../components/common/MobileFixedPagination";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "../context/ThemeContext";
 import { useDispatch, useSelector } from "react-redux";
@@ -504,95 +497,15 @@ const TableMobile: React.FC<MobileListProps> = ({
           )}
         </AnimatePresence>
 
-        {/* Pagination */}
-        {!hidePagination && !showAllData && totalPages > 1 && (
-          <Box
-            sx={{
-              position: "fixed",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              zIndex: 1000,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 1.5,
-              p: 2,
-              flexWrap: "wrap",
-              bgcolor: theme == "dark" ? "#1f2937" : "#ffffff",
-              borderTop: `1px solid ${
-                theme === "dark" ? "#374151" : "#e5e7eb"
-              }`,
-              boxShadow: "0 -2px 10px rgba(0,0,0,0.1)",
-            }}>
-            <Select
-              value={currentPage}
-              MenuProps={{
-                PaperProps: {
-                  style: {
-                    maxHeight: 300,
-                  },
-                },
-              }}
-              onChange={(e) => handlePageChange(Number(e.target.value))}
-              sx={{
-                minWidth: 80,
-                height: 40,
-                color: theme === "dark" ? "#fff" : "inherit",
-                "& .MuiInputBase-root": {
-                  color: theme === "dark" ? "#fff" : "inherit",
-                },
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: theme === "dark" ? "#fff" : "inherit",
-                },
-                "& .MuiSelect-icon": {
-                  color: theme === "dark" ? "#fff" : "inherit",
-                },
-              }}>
-              {Array.from({ length: totalPages }, (_, i) => (
-                <MenuItem
-                  sx={{
-                    "& .MuiInputBase-root": {
-                      color: theme === "dark" ? "#fff" : "inherit",
-                    },
-                    "& .MuiOutlinedInput-notchedOutline": {
-                      borderColor: theme === "dark" ? "#fff" : "inherit",
-                    },
-                    "& .MuiSelect-icon": {
-                      color: theme === "dark" ? "#fff" : "inherit",
-                    },
-                  }}
-                  key={i + 1}
-                  value={i + 1}>
-                  Trang {i + 1}
-                </MenuItem>
-              ))}
-            </Select>
-
-            <Select
-              value={itemsPerPage}
-              onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-              sx={{
-                minWidth: 80,
-                height: 40,
-                color: theme === "dark" ? "#fff" : "inherit",
-                "& .MuiInputBase-root": {
-                  color: theme === "dark" ? "#fff" : "inherit",
-                },
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: theme === "dark" ? "#fff" : "inherit",
-                },
-                "& .MuiSelect-icon": {
-                  color: theme === "dark" ? "#fff" : "inherit",
-                },
-              }}>
-              {itemsPerPageOptions.map((limit) => (
-                <MenuItem key={limit} value={limit}>
-                  {limit} / trang
-                </MenuItem>
-              ))}
-            </Select>
-          </Box>
+        {!hidePagination && !showAllData && (
+          <MobileFixedPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={itemsPerPage}
+            pageSizeOptions={itemsPerPageOptions}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handleItemsPerPageChange}
+          />
         )}
       </motion.div>
     </Container>

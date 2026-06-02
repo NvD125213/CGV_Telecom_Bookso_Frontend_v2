@@ -178,22 +178,21 @@ const TypeNumberPages = () => {
 
           {isMobile ? (
             // Hiển thị TableMobile cho mobile
-            <ComponentCard>
-              <TableMobile
-                pageTitle="Định dạng số"
-                disabledReset={true}
-                data={convertToMobileData()}
-                actions={actions}
-                showAllData={true}
-                useTailwindStyling={true}
-                hideCheckbox={true}
-                labelClassNames={{
-                  "Định dạng số": `
+            <TableMobile
+              pageTitle="Định dạng số"
+              disabledReset={true}
+              data={convertToMobileData()}
+              actions={actions}
+              showAllData={true}
+              useTailwindStyling={true}
+              hideCheckbox={true}
+              labelClassNames={{
+                "Định dạng số": `
                   text-[18px] font-extrabold uppercase
                 `,
-                }}
-                valueClassNames={{
-                  "Định dạng số": `
+              }}
+              valueClassNames={{
+                "Định dạng số": `
                     text-base font-semibold 
                     bg-blue-50 text-blue-800
                     dark:bg-blue-900 dark:text-blue-100
@@ -205,9 +204,14 @@ const TypeNumberPages = () => {
                     whitespace-nowrap
                     font-sans
                 `,
-                }}
-              />
-            </ComponentCard>
+                "Thời hạn chờ triển khai": `
+                    justify-end text-sm
+                  `,
+                "Thời hạn chờ triển khai cuối tuần": `
+                    justify-end text-sm
+                  `,
+              }}
+            />
           ) : (
             // Hiển thị ReusableTable cho desktop
             <ComponentCard>

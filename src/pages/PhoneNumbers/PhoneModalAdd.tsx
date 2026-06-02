@@ -14,6 +14,7 @@ import { formatNumber, parseNumber } from "../../helper/formatCurrencyVND";
 import { useBrandNameList } from "../../hooks/api-hooks/v3/useBrandname";
 import { getBrandName } from "../../services/brandName";
 import type { Option } from "../../components/ui/autocomplete/auto-complete";
+import { useIsMobile } from "../../hooks/useScreenSize";
 
 interface PhoneNumberProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ const PhoneNumberModal: React.FC<PhoneNumberProps> = ({
   onCloseModal,
   onSuccess,
 }) => {
+  const isMobile = useIsMobile(768);
   const [phone, setPhone] = useState<IPhoneNumber>(initialPhoneNumber);
   const [errors, setErrors] = useState<
     Partial<Record<keyof IPhoneNumber, string>>
@@ -145,7 +147,11 @@ const PhoneNumberModal: React.FC<PhoneNumberProps> = ({
     <CustomModal
       isOpen={isOpen}
       title={"Tạo số điện thoại mới"}
-      description="Cập nhật thông tin chi tiết để thông tin của bạn luôn được cập nhật."
+      description={
+        isMobile
+          ? "Điền thông tin số điện thoại."
+          : "Cập nhật thông tin chi tiết để thông tin của bạn luôn được cập nhật."
+      }
       errorDetail={errorDetail}
       fields={[
         {

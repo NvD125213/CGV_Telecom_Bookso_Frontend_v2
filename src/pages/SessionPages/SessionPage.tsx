@@ -304,7 +304,7 @@ const SessionPage = () => {
     if (dateParam) {
       setPickerType(inferPickerTypeFromDate(dateParam));
     }
-  }, [searchParams]);
+  }, [searchParams, defaultDate]);
 
   const onPaginationChange = (newOffset: number) => {
     const newPage = newOffset + 1;
@@ -330,7 +330,7 @@ const SessionPage = () => {
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Lịch sử online" />
+      {isMobile ? null : <PageBreadcrumb pageTitle="Lịch sử online" />}
       <div className="space-y-6">
         {error && <div className="text-red-500">{error}</div>}
         <ComponentCard>
@@ -360,30 +360,7 @@ const SessionPage = () => {
             </div>
           </ResponsiveFilterWrapper>
 
-          {/* Hiển thị TableMobile trên mobile, ReusableTable trên desktop */}
-          {isMobile ? (
-            <div className="mt-4">
-              {loading ? (
-                <div className="flex justify-center items-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                </div>
-              ) : errorData ? (
-                <EmptyState />
-              ) : (
-                <TableMobile
-                  data={mobileData}
-                  hideCheckbox={true}
-                  hidePagination={true}
-                  disabledReset={true}
-                  showAllData={true}
-                  useTailwindStyling={true}
-                  fieldClassNames={fieldClassNames}
-                  labelClassNames={labelClassNames}
-                  valueClassNames={valueClassNames}
-                />
-              )}
-            </div>
-          ) : (
+          {!isMobile && (
             <>
               {errorData ? (
                 <EmptyState />
@@ -415,6 +392,29 @@ const SessionPage = () => {
             </>
           )}
         </ComponentCard>
+        {isMobile && (
+          <div className="mt-4">
+            {loading ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              </div>
+            ) : errorData ? (
+              <EmptyState />
+            ) : (
+              <TableMobile
+                data={mobileData}
+                hideCheckbox={true}
+                hidePagination={true}
+                disabledReset={true}
+                showAllData={true}
+                useTailwindStyling={true}
+                fieldClassNames={fieldClassNames}
+                labelClassNames={labelClassNames}
+                valueClassNames={valueClassNames}
+              />
+            )}
+          </div>
+        )}
       </div>
     </>
   );

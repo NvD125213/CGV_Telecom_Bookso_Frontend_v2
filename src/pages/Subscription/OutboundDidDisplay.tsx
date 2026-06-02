@@ -66,43 +66,45 @@ export const OutboundDidDisplay = ({
   return (
     <div>
       <Label>{title}</Label>
-      <div className="flex flex-col gap-3 mt-3">
+      <div className="mt-3 flex flex-col gap-3">
         {routes.map((route, index) => (
-          <div key={index} className="flex items-center gap-2">
-            <div className="flex-1 min-w-0">
-              <Input
-                type="text"
-                value={route.provider ?? ""}
-                disabledWhite
-                placeholder="-"
-                className={readOnlyInputClass}
-              />
-            </div>
+          <div key={index}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-2">
+              <div className="w-full min-w-0 sm:flex-1">
+                <Input
+                  type="text"
+                  value={route.provider ?? ""}
+                  disabledWhite
+                  placeholder="-"
+                  className={readOnlyInputClass}
+                />
+              </div>
 
-            <div className="flex-1 min-w-0">
-              <AutoSelect
-                options={brandOptions}
-                value={
-                  route.brandname_id != null ? String(route.brandname_id) : ""
-                }
-                placeholder="-"
-                disabled
-                disabledWhite={true}
-              />
-            </div>
+              <div className="w-full min-w-0 sm:flex-1">
+                <AutoSelect
+                  options={brandOptions}
+                  value={
+                    route.brandname_id != null ? String(route.brandname_id) : ""
+                  }
+                  placeholder="-"
+                  disabled
+                  disabledWhite={true}
+                />
+              </div>
 
-            <div className="w-24 flex-shrink-0">
-              <Input
-                type="text"
-                value={
-                  route.quantity != null
-                    ? formatNumberWithCommas(String(route.quantity))
-                    : ""
-                }
-                disabledWhite
-                placeholder="-"
-                className={readOnlyInputClass}
-              />
+              <div className="w-full flex-shrink-0 sm:w-24">
+                <Input
+                  type="text"
+                  value={
+                    route.quantity != null
+                      ? formatNumberWithCommas(String(route.quantity))
+                      : ""
+                  }
+                  disabledWhite
+                  placeholder="-"
+                  className={readOnlyInputClass}
+                />
+              </div>
             </div>
           </div>
         ))}
