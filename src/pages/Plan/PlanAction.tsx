@@ -304,125 +304,94 @@ export const PlanActionPage = () => {
   const formContent = (
     <>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <div>
-            <Label>Tên gói</Label>
-            <Input
-              value={form.name}
-              onChange={(e) => handleChange("name", e.target.value)}
-              placeholder="Nhập tên gói"
-              disabledWhite={user.role !== 1 ? true : false}
-            />
+        <div>
+          <Label>Tên gói</Label>
+          <Input
+            value={form.name}
+            onChange={(e) => handleChange("name", e.target.value)}
+            placeholder="Nhập tên gói"
+            disabledWhite={user.role !== 1 ? true : false}
+          />
 
-            {formErrors.name && (
-              <p className="text-red-500 text-sm mt-1">{formErrors.name}</p>
-            )}
-          </div>
-
-          <div>
-            <Label>Chọn gói chính</Label>
-            <Select
-              options={
-                isLoadingPlans
-                  ? [{ label: "Đang tải...", value: null }]
-                  : [
-                      { label: "Gói chính", value: "null" },
-                      ...(dataPlans?.data?.items
-                        ?.filter((item: any) => item.status == 1)
-                        .map((item: any) => ({
-                          label: item.name,
-                          value: item.id,
-                        })) ?? []),
-                    ]
-              }
-              disabledWhite={user.role !== 1 ? true : false}
-              onChange={(val) => handleChange("parent_id", val)}
-              value={String(form.parent_id)}
-            />
-          </div>
-
-          <div>
-            <Label>Số phút</Label>
-            <Input
-              type="text"
-              value={currencyFields.minutes}
-              disabledWhite={user.role !== 1}
-              placeholder="Nhập số phút gọi"
-              onChange={(e) => handleCurrencyChange("minutes", e)}
-            />
-          </div>
-
-          <div>
-            <Label>Số CID</Label>
-            <Input
-              type="text"
-              value={currencyFields.did_count}
-              disabledWhite={user.role !== 1}
-              placeholder="Nhập số CID"
-              onChange={(e) => handleCurrencyChange("did_count", e)}
-            />
-          </div>
-
-          <div>
-            <Label>Giá tiền (VND)</Label>
-            <Input
-              type="text"
-              value={currency}
-              disabledWhite={user.role !== 1 ? true : false}
-              placeholder="Nhập giá"
-              onChange={(e) => handleCurrency(e)}
-            />
-          </div>
-
-          <div>
-            <Label>Số người dùng</Label>
-            <Input
-              type="text"
-              value={currencyFields.total_users}
-              disabledWhite={user.role !== 1}
-              placeholder="Nhập số người dùng"
-              onChange={(e) => handleCurrencyChange("total_users", e)}
-            />
-          </div>
-
-          <div>
-            <Label>Thời hạn gói</Label>
-            <Input
-              type="datetime-local"
-              value={form.expiration_time?.slice(0, 16) || ""}
-              disabledWhite={user.role !== 1 ? true : false}
-              onChange={(e) => handleChange("expiration_time", e.target.value)}
-            />
-          </div>
-
-          <div>
-            <Label>Thời hạn chờ xác nhận (ngày)</Label>
-            <Input
-              type="number"
-              value={form.expiration_time_package}
-              disabledWhite={user.role !== 1 ? true : false}
-              onChange={(e) =>
-                handleChange("expiration_time_package", Number(e.target.value))
-              }
-            />
-          </div>
+          {formErrors.name && (
+            <p className="text-red-500 text-sm mt-1">{formErrors.name}</p>
+          )}
         </div>
 
-        {/* --- Outbound DID routes --- */}
-        {user.role == 1 && (
-          <div>
-            <div className="grid grid-cols-1 gap-4 mt-2">
-              <OutboundDidForm
-                value={form.outbound_did_by_route ?? []}
-                hide="meta"
-                onChange={(updated) =>
-                  handleChange("outbound_did_by_route", updated)
-                }
-                meta={form.meta}
-                onMetaChange={(updated) => handleChange("meta", updated)}
-              />
-            </div>
-          </div>
-        )}
+        <div>
+          <Label>Chọn gói chính</Label>
+          <Select
+            options={
+              isLoadingPlans
+                ? [{ label: "Đang tải...", value: null }]
+                : [
+                    { label: "Gói chính", value: "null" },
+                    ...(dataPlans?.data?.items
+                      ?.filter((item: any) => item.status == 1)
+                      .map((item: any) => ({
+                        label: item.name,
+                        value: item.id,
+                      })) ?? []),
+                  ]
+            }
+            disabledWhite={user.role !== 1 ? true : false}
+            onChange={(val) => handleChange("parent_id", val)}
+            value={String(form.parent_id)}
+          />
+        </div>
+
+        <div>
+          <Label>Số phút</Label>
+          <Input
+            type="text"
+            value={currencyFields.minutes}
+            disabledWhite={user.role !== 1}
+            placeholder="Nhập số phút gọi"
+            onChange={(e) => handleCurrencyChange("minutes", e)}
+          />
+        </div>
+
+        <div>
+          <Label>Số CID</Label>
+          <Input
+            type="text"
+            value={currencyFields.did_count}
+            disabledWhite={user.role !== 1}
+            placeholder="Nhập số CID"
+            onChange={(e) => handleCurrencyChange("did_count", e)}
+          />
+        </div>
+
+        <div>
+          <Label>Giá tiền (VND)</Label>
+          <Input
+            type="text"
+            value={currency}
+            disabledWhite={user.role !== 1 ? true : false}
+            placeholder="Nhập giá"
+            onChange={(e) => handleCurrency(e)}
+          />
+        </div>
+
+        <div>
+          <Label>Số người dùng</Label>
+          <Input
+            type="text"
+            value={currencyFields.total_users}
+            disabledWhite={user.role !== 1}
+            placeholder="Nhập số người dùng"
+            onChange={(e) => handleCurrencyChange("total_users", e)}
+          />
+        </div>
+        {/* <div>
+          <Label>Thời hạn gói</Label>
+          <Input
+            type="datetime-local"
+            value={form.expiration_time?.slice(0, 16) || ""}
+            disabledWhite={user.role !== 1 ? true : false}
+            onChange={(e) => handleChange("expiration_time", e.target.value)}
+          />
+        </div> */}
         {user.role == 1 && (
           <div>
             <AutoCompleteSwitch
@@ -438,96 +407,126 @@ export const PlanActionPage = () => {
             />
           </div>
         )}
+        <div>
+          <Label>Thời hạn chờ xác nhận (ngày)</Label>
+          <Input
+            type="number"
+            className="mt-1"
+            value={form.expiration_time_package}
+            disabledWhite={user.role !== 1 ? true : false}
+            onChange={(e) =>
+              handleChange("expiration_time_package", Number(e.target.value))
+            }
+          />
+        </div>
+      </div>
 
-        {isUpdate && (
-          <div className="mt-10">
-            <h3 className="text-lg font-semibold mb-4">Các gói con</h3>
+      {/* --- Outbound DID routes --- */}
+      {user.role == 1 && (
+        <div>
+          <div className="grid grid-cols-1 gap-4 mt-2">
+            <OutboundDidForm
+              value={form.outbound_did_by_route ?? []}
+              hide="meta"
+              onChange={(updated) =>
+                handleChange("outbound_did_by_route", updated)
+              }
+              meta={form.meta}
+              onMetaChange={(updated) => handleChange("meta", updated)}
+            />
+          </div>
+        </div>
+      )}
 
-            {isLoadingChildrenPlan ? (
-              <div className="text-center py-8">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                <p className="mt-2 text-gray-600">
-                  Đang tải danh sách gói con...
-                </p>
+      {isUpdate && (
+        <div className="mt-10">
+          <h3 className="text-lg font-semibold mb-4">Các gói con</h3>
+
+          {isLoadingChildrenPlan ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+              <p className="mt-2 text-gray-600">
+                Đang tải danh sách gói con...
+              </p>
+            </div>
+          ) : children.length > 0 ? (
+            <div className="relative">
+              {/* Nút scroll trái */}
+              {canScrollLeft && (
+                <button
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-white rounded-full shadow hover:bg-gray-100"
+                  onClick={() => scroll("left")}>
+                  <FiChevronLeft size={20} />
+                </button>
+              )}
+
+              {/* Vùng scroll ngang */}
+              <div
+                key={id}
+                ref={scrollRef}
+                className="flex w-full overflow-x-auto scroll-smooth snap-x snap-mandatory gap-4 pb-4 hide-scrollbar">
+                {children.map((plan: any) => (
+                  <div
+                    key={plan.id}
+                    className="flex-shrink-0 min-w-[35%] snap-start">
+                    <PricingCard
+                      data={plan}
+                      buttonText="Chi tiết"
+                      onDelete={handleDelete}
+                      onSelect={() => navigate(`/plans/edit/${plan.id}`)}
+                      onDetail={() => navigate(`/plans/edit/${plan.id}`)}
+                      showBadge={false}
+                    />
+                  </div>
+                ))}
               </div>
-            ) : children.length > 0 ? (
-              <div className="relative">
-                {/* Nút scroll trái */}
-                {canScrollLeft && (
-                  <button
-                    className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-white rounded-full shadow hover:bg-gray-100"
-                    onClick={() => scroll("left")}>
-                    <FiChevronLeft size={20} />
-                  </button>
-                )}
 
-                {/* Vùng scroll ngang */}
-                <div
-                  key={id}
-                  ref={scrollRef}
-                  className="flex w-full overflow-x-auto scroll-smooth snap-x snap-mandatory gap-4 pb-4 hide-scrollbar">
-                  {children.map((plan: any) => (
-                    <div
-                      key={plan.id}
-                      className="flex-shrink-0 min-w-[35%] snap-start">
-                      <PricingCard
-                        data={plan}
-                        buttonText="Chi tiết"
-                        onDelete={handleDelete}
-                        onSelect={() => navigate(`/plans/edit/${plan.id}`)}
-                        onDetail={() => navigate(`/plans/edit/${plan.id}`)}
-                        showBadge={false}
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                {/* Nút scroll phải */}
-                {canScrollRight && (
-                  <button
-                    className="absolute right-[-40px] top-1/2 -translate-y-1/2 z-10 p-2 
+              {/* Nút scroll phải */}
+              {canScrollRight && (
+                <button
+                  className="absolute right-[-40px] top-1/2 -translate-y-1/2 z-10 p-2 
                   bg-white rounded-full shadow hover:bg-gray-100
                   dark:bg-gray-800 dark:hover:bg-gray-700 dark:shadow-gray-900"
-                    onClick={() => scroll("right")}>
-                    <FiChevronRight
-                      size={20}
-                      className="text-gray-700 dark:text-white transition-colors duration-200"
-                    />
-                  </button>
-                )}
-              </div>
-            ) : (
-              <EmptyState
-                title="Không có gói con nào"
-                description="Hiện tại chưa có gói con nào để hiển thị. Hãy thử thêm mới hoặc kiểm tra lại bộ lọc tìm kiếm."
-              />
-            )}
-          </div>
-        )}
-
-        {/* --- Submit --- */}
-        <div className="flex justify-end gap-3 mt-8 ">
-          <Button
-            variant="outline"
-            className="rounded-lg"
-            onClick={() => navigate("/plans")}
-            disabled={loading}>
-            Trở lại
-          </Button>
-          {user.role == 1 && (
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="px-6 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 disabled:opacity-50">
-              {loading
-                ? "Đang lưu..."
-                : isUpdate
-                  ? "Cập nhật gói cước"
-                  : "Tạo gói cước"}
-            </button>
+                  onClick={() => scroll("right")}>
+                  <FiChevronRight
+                    size={20}
+                    className="text-gray-700 dark:text-white transition-colors duration-200"
+                  />
+                </button>
+              )}
+            </div>
+          ) : (
+            <EmptyState
+              title="Không có gói con nào"
+              description="Hiện tại chưa có gói con nào để hiển thị. Hãy thử thêm mới hoặc kiểm tra lại bộ lọc tìm kiếm."
+            />
           )}
         </div>
-      </>
+      )}
+
+      {/* --- Submit --- */}
+      <div className="flex justify-end gap-3 mt-8 ">
+        <Button
+          variant="outline"
+          className="rounded-lg"
+          onClick={() => navigate("/plans")}
+          disabled={loading}>
+          Trở lại
+        </Button>
+        {user.role == 1 && (
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="px-6 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 disabled:opacity-50">
+            {loading
+              ? "Đang lưu..."
+              : isUpdate
+                ? "Cập nhật gói cước"
+                : "Tạo gói cước"}
+          </button>
+        )}
+      </div>
+    </>
   );
 
   return (

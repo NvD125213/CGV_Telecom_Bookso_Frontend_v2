@@ -56,13 +56,27 @@ export default function SwitchWithAutocomplete({
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      <Label className="text-gray-700 font-medium">{label}</Label>
+    <div className="flex flex-col">
+      <div className="flex items-center justify-between gap-3">
+        <Label className="text-gray-700 font-medium">{label}</Label>
 
-      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 mb-1.5">
+          <span
+            className={`text-sm font-medium transition-colors duration-300 ${
+              isEnabled ? "text-green-600" : "text-indigo-600"
+            }`}>
+            {isEnabled
+              ? '(+) Bạn đang để chế độ "Công khai"'
+              : '(-) Bạn đang để chế độ "Cá nhân"'}
+          </span>
+        </div>
+      </div>
+
+      <div
+        className={`flex items-center gap-3 transition-all duration-300 ease-in-out`}>
         <label
           htmlFor={`toggle-${label}`}
-          className="relative inline-flex items-center cursor-pointer">
+          className="relative inline-flex shrink-0 items-center cursor-pointer">
           <input
             id={`toggle-${label}`}
             type="checkbox"
@@ -80,29 +94,13 @@ export default function SwitchWithAutocomplete({
             }`}></div>
         </label>
 
-        <span
-          className={`text-sm font-medium transition-colors duration-300 ${
-            isEnabled ? "text-green-600" : "text-indigo-600"
-          }`}>
-          {isEnabled
-            ? 'Bạn đang để chế độ "Công khai"'
-            : 'Bạn đang để chế độ "Cá nhân"'}
-        </span>
-      </div>
-
-      <div
-        className={`transition-all duration-300 ease-in-out ${
-          !isEnabled
-            ? "opacity-100 max-h-96 translate-y-0"
-            : "opacity-0 max-h-0 -translate-y-2 overflow-hidden"
-        }`}>
         <AutocompleteMultiple
           options={options}
           value={selected}
           onChange={handleSelectChange}
           placeholder={placeholder}
           freeSolo
-          className="mt-1"
+          className="mt-1 min-w-0 flex-1"
         />
       </div>
     </div>

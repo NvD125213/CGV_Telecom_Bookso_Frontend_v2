@@ -39,6 +39,8 @@ interface PricingCardProps {
   showBadge?: boolean;
   badgeText?: string;
   customFeatures?: string[];
+  /** Bố cục gọn, căn start — dùng trong carousel chọn gói bổ sung */
+  compact?: boolean;
 }
 
 const PricingCard: React.FC<PricingCardProps> = ({
@@ -61,6 +63,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
   showBadge = true,
   badgeText = "Ưu Đãi Tốt Nhất",
   customFeatures,
+  compact = false,
 }) => {
   const [currentData, setCurrentData] = useState<PlanData>(data);
 
@@ -99,12 +102,25 @@ const PricingCard: React.FC<PricingCardProps> = ({
   const features = customFeatures || defaultFeatures;
 
   return (
-    <div className={`flex items-center justify-center p-4 ${className}`}>
-      <div className="max-w-md w-full">
+    <div
+      className={`flex w-full ${
+        compact
+          ? "items-start justify-start p-0"
+          : "items-center justify-center p-4"
+      } ${className}`}>
+      <div className={`w-full ${compact ? "" : "max-w-md"}`}>
         <div
-          className={`relative rounded-3xl p-5 border-t-1 shadow-md dark:bg-gray-800 dark:border-gray-700 ${cardClassName}`}>
+          className={`relative border-t-1 shadow-md dark:bg-gray-800 dark:border-gray-700 ${
+            compact
+              ? "rounded-xl p-3 sm:p-4"
+              : "rounded-3xl p-5"
+          } ${cardClassName}`}>
           <div
-            className={`relative grid grid-cols-1 gap-6 mb-6 px-6 py-4 rounded-2xl text-center bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-gray-700 dark:to-gray-800`}>
+            className={`relative grid grid-cols-1 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-gray-700 dark:to-gray-800 ${
+              compact
+                ? "mb-3 gap-2 rounded-xl px-3 py-2 text-left sm:gap-3 sm:px-4 sm:py-3"
+                : "mb-6 gap-6 rounded-2xl px-6 py-4 text-center"
+            }`}>
             {showBadge && (
               <Badge
                 variant="gradient"
@@ -151,7 +167,10 @@ const PricingCard: React.FC<PricingCardProps> = ({
             </div>
 
             {/* Hàng 3: Giá  */}
-            <div className="flex flex-col items-center justify-center mt-6 mx-2">
+            <div
+              className={`flex flex-col ${
+                compact ? "mx-0 items-start" : "mx-2 items-center justify-center"
+              } ${compact ? "mt-1" : "mt-6"}`}>
               {isEditable ? (
                 <input
                   type="number"
@@ -163,14 +182,16 @@ const PricingCard: React.FC<PricingCardProps> = ({
                 />
               ) : (
                 <div
-                  className={`text-2xl font-bold text-gray-900 dark:text-white ${priceClassName}`}>
+                  className={`font-bold text-gray-900 dark:text-white ${
+                    compact ? "text-lg sm:text-xl" : "text-2xl"
+                  } ${priceClassName}`}>
                   {formatPrice(currentData.price_vnd)}
                 </div>
               )}
             </div>
 
             {/* Hàng 4: Nút */}
-            <div className="flex items-center justify-center">
+            <div className={`flex ${compact ? "justify-start" : "items-center justify-center"}`}>
               <button
                 onClick={isEditable ? handleSubmit : handleSelect}
                 className={`w-full font-semibold py-2 px-6 rounded-xl transition-colors shadow-md bg-indigo-600 dark:bg-indigo-500 hover:bg-indigo-700 dark:hover:bg-indigo-600 text-white ${buttonClassName}`}>
@@ -179,26 +200,41 @@ const PricingCard: React.FC<PricingCardProps> = ({
             </div>
           </div>
 
-          <div className="space-y-4">
-            <h3 className="font-semibold text-lg mb-4 text-gray-700 dark:text-gray-200">
+          <div className={compact ? "space-y-1.5" : "space-y-4"}>
+            <h3
+              className={`font-semibold text-gray-700 dark:text-gray-200 ${
+                compact ? "mb-1.5 text-sm sm:text-base" : "mb-4 text-lg"
+              }`}>
               Thông tin gói
             </h3>
             {features.map((feature, index) => (
-              <div key={index} className="flex items-start gap-3">
-                <div className="mt-0.5">
+              <div
+                key={index}
+                className={`flex items-start ${compact ? "gap-2" : "gap-3"}`}>
+                <div className="mt-0.5 shrink-0">
                   <CiCircleCheck
-                    className="w-5 h-5 text-indigo-500 dark:text-indigo-400"
+                    className={`text-indigo-500 dark:text-indigo-400 ${
+                      compact ? "h-4 w-4" : "h-5 w-5"
+                    }`}
                     strokeWidth={2.5}
                   />
                 </div>
-                <span className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+                <span
+                  className={`text-gray-700 dark:text-gray-300 ${
+                    compact
+                      ? "text-xs leading-snug sm:text-sm"
+                      : "text-sm leading-relaxed"
+                  }`}>
                   {feature}
                 </span>
               </div>
             ))}
 
             {/* Link xem chi tiết */}
-            <div className="flex justify-end gap-3 mt-6 mx-2">
+            <div
+              className={`mx-2 flex justify-end gap-3 ${
+                compact ? "mt-2" : "mt-6"
+              }`}>
               <button
                 onClick={() => onDetail?.(currentData)}
                 style={{ textDecoration: "none" }}

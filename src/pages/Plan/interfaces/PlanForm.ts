@@ -24,7 +24,7 @@ export const PlanDefault = {
   did_count: 0,
   price_vnd: 0,
   outbound_did_by_route: [],
-  total_users: 1,
+  total_users: 0,
   meta: {},
   is_active: true,
   status: 1,

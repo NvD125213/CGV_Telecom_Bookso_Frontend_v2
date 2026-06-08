@@ -1655,12 +1655,12 @@ export const SubcriptionActionPage = () => {
 
             <div
               ref={scrollRef}
-              className="hide-scrollbar flex w-full snap-x snap-mandatory gap-2 overflow-x-auto scroll-smooth pb-3 sm:gap-4 sm:pb-4">
+              className="hide-scrollbar flex w-full snap-x snap-mandatory items-start justify-start gap-3 overflow-x-auto scroll-smooth pb-1 sm:gap-6">
               {isLoadingPlans ? (
                 Array.from({ length: isMobile ? 1 : 3 }).map((_, i) => (
                   <div
                     key={i}
-                    className="w-[calc(100%-0.25rem)] flex-shrink-0 snap-start rounded-xl border border-gray-200 bg-white p-3 shadow animate-pulse dark:border-gray-700 dark:bg-gray-800 sm:min-w-[55%] sm:p-4 md:min-w-[45%] lg:min-w-[35%]">
+                    className="w-full max-w-md shrink-0 snap-start self-start rounded-xl border border-gray-200 bg-white p-3 shadow animate-pulse dark:border-gray-700 dark:bg-gray-800 sm:p-4">
                     <Skeleton
                       height={isMobile ? 140 : 180}
                       className="mb-3 rounded-lg sm:mb-4"
@@ -1689,15 +1689,11 @@ export const SubcriptionActionPage = () => {
                 plansData.data.children.map((plan: PlanData) => (
                   <div
                     key={plan.id}
-                    className={`flex-shrink-0 snap-start sm:min-w-[55%] md:min-w-[45%] lg:min-w-[35%] ${
-                      plansData.data.children.length === 1
-                        ? "w-full"
-                        : "w-[calc(100%-0.25rem)]"
-                    }`}>
+                    className="w-full max-w-md shrink-0 snap-start self-start">
                     <PricingCard
                       data={plan}
                       showBadge={false}
-                      className={isMobile ? "p-0!" : ""}
+                      className="w-full items-start! justify-start! p-0!"
                       onSelect={() => onSelectModalSubmit(plan, form.id)}
                       onDelete={handleDeleteChildPlan}
                       onDetail={() => navigate(`/plans/edit/${plan.id}`)}
