@@ -220,3 +220,36 @@ export const useGetPhoneErrorDownload = (
     enabled: (options?.enabled ?? true) && !!file_name,
   });
 };
+
+type PhoneRecordListSource = "upload" | "checked-data";
+
+export const fetchAllPhoneRecords = async (
+  params: IParamsListCheckPhoneNumber,
+  source: PhoneRecordListSource = "upload",
+) => {
+  const fetchFn =
+    source === "checked-data"
+      ? listCheckedPhoneNumberData
+      : listCheckPhoneNumber;
+  const allRecords: unknown[] = [];
+  let page = 1;
+  let hasMore = true;
+
+  while (hasMore) {
+    const response = await fetchFn({ ...params, page });
+    const payload = response?.data?.data ?? response?.data ?? {};
+    const records = payload?.items ?? payload?.records ?? payload?.data ?? [];
+    if (Array.isArray(records)) {
+      allRecords.push(...records);
+    }
+
+    const nextPage = resolveNextPage(response, page, params.size);
+    if (nextPage) {
+      page = nextPage;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  return allRecords;
+};

@@ -5,10 +5,17 @@ import { createPortal } from "react-dom";
 import type { UploadFileCardData, UploadPhoneRecord } from "../card/CardUpload";
 
 import {
+  CHECK_PHONE_PAGE_SIZE,
+  fetchAllPhoneRecords,
   useListCheckPhoneNumberScroll,
   useListCheckedPhoneNumberDataScroll,
 } from "../../hooks/api-hooks/v3/useCheckPhone";
 import { useIsMobile } from "../../hooks/useScreenSize";
+import {
+  buildPhoneListExportFilename,
+  exportPhoneRecordsToExcel,
+} from "../../helper/exportPhoneRecordsToExcel";
+import Swal from "sweetalert2";
 
 const SEARCH_DEBOUNCE_MS = 400;
 
@@ -40,6 +47,7 @@ export default function DrawerMenuPhoneCheck({
   const [searchPhone, setSearchPhone] = useState("");
   const [debouncedSearchPhone, setDebouncedSearchPhone] = useState("");
   const [validOnly, setValidOnly] = useState<"all" | "true" | "false">("all");
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -146,6 +154,65 @@ export default function DrawerMenuPhoneCheck({
     ? `${data.file_code}-${data.uploaded_at}-${data.original_filename}`
     : "empty-detail";
 
+  const handleDownload = useCallback(async () => {
+    if (!data?.file_code || isDownloading) return;
+
+    setIsDownloading(true);
+    try {
+      const records = (await fetchAllPhoneRecords(
+        {
+          page: 1,
+          size: CHECK_PHONE_PAGE_SIZE,
+          file_page: 1,
+          file_size: CHECK_PHONE_PAGE_SIZE,
+          file_code: data.file_code,
+          phone: phoneForQuery || undefined,
+          valid_only:
+            validOnly === "all"
+              ? undefined
+              : validOnly === "true"
+                ? true
+                : false,
+        },
+        listSource,
+      )) as UploadPhoneRecord[];
+
+      if (!records.length) {
+        await Swal.fire({
+          icon: "info",
+          title: "Không có dữ liệu",
+          text: "Không có số điện thoại nào để tải xuống với bộ lọc hiện tại.",
+          confirmButtonText: "Đóng",
+        });
+        return;
+      }
+
+      exportPhoneRecordsToExcel(
+        records,
+        buildPhoneListExportFilename(
+          data.original_filename,
+          data.file_code,
+        ),
+      );
+    } catch {
+      await Swal.fire({
+        icon: "error",
+        title: "Không thể tải xuống",
+        text: "Có lỗi xảy ra khi xuất file Excel. Vui lòng thử lại.",
+        confirmButtonText: "Đóng",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [
+    data?.file_code,
+    data?.original_filename,
+    isDownloading,
+    listSource,
+    phoneForQuery,
+    validOnly,
+  ]);
+
   const formatDateTime = (value?: string) => {
     if (!value) return "--";
     const date = new Date(value);
@@ -176,12 +243,21 @@ export default function DrawerMenuPhoneCheck({
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={onClose}
-          className="shrink-0 rounded-md px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-900/30">
-          Đóng
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={!data?.file_code || isDownloading}
+            className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+            {isDownloading ? "Đang tải..." : "Tải xuống"}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-900/30">
+            Đóng
+          </button>
+        </div>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-2 sm:p-2">
