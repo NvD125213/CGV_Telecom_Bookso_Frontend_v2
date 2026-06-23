@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { signIn } from "../services/auth";
 import { jwtDecode } from "jwt-decode";
 import Cookies from "js-cookie";
+import { COOKIE_OPTIONS } from "../config/apiToken";
 
 interface AuthState {
   token: string | null;
@@ -39,7 +40,7 @@ export const login = createAsyncThunk(
 
       if (token) {
         const decoded = jwtDecode(token);
-        Cookies.set("user", JSON.stringify(decoded));
+        Cookies.set("user", JSON.stringify(decoded), COOKIE_OPTIONS);
         return { token, refreshToken, user: decoded };
       } else {
         throw new Error("Token is not available");

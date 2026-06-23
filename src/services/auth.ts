@@ -1,4 +1,4 @@
-import axiosInstance from "../config/apiToken";
+import axiosInstance, { COOKIE_OPTIONS } from "../config/apiToken";
 import Cookies from "js-cookie";
 
 interface SignInValues {
@@ -23,8 +23,13 @@ export const signIn = async (data: SignInValues) => {
   });
   if (res.status === 200) {
     const { access_token, refresh_token } = res.data;
-    Cookies.set("token", access_token);
-    Cookies.set("refreshToken", refresh_token);
+
+    if (!access_token || !refresh_token) {
+      throw new Error("Phản hồi đăng nhập thiếu access token hoặc refresh token");
+    }
+
+    Cookies.set("token", access_token, COOKIE_OPTIONS);
+    Cookies.set("refreshToken", refresh_token, COOKIE_OPTIONS);
     return res;
   }
   return res;
