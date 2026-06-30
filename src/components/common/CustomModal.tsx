@@ -23,6 +23,7 @@ interface Field {
     | "select"
     | "number"
     | "date"
+    | "datetime-local"
     | "email"
     | "fee"
     | "password"
@@ -62,14 +63,14 @@ const EnhancedSelect: React.FC<{
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [dropdownPosition, setDropdownPosition] = useState<"bottom" | "top">(
-    "bottom"
+    "bottom",
   );
   const selectRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const filteredOptions =
     field.options?.filter((option) =>
-      option.label.toLowerCase().includes(searchTerm.toLowerCase())
+      option.label.toLowerCase().includes(searchTerm.toLowerCase()),
     ) || [];
 
   const selectedOption = field.options?.find(
@@ -271,7 +272,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
       <div className="relative w-full bg-white rounded-xl sm:rounded-2xl dark:bg-gray-900 max-h-[95vh] flex flex-col">
         {/* Header Section - Fixed */}
         <div className="flex-shrink-0 p-3 sm:p-4 lg:p-6 xl:p-8 border-b border-gray-200 dark:border-gray-700">
-          <h4 className="px-3 py-2 text-[16px] sm:text-xl lg:text-2xl font-semibold text-gray-800 dark:text-white/90 leading-tight">
+          <h4 className="py-2 text-[16px] sm:text-xl lg:text-2xl font-semibold text-gray-800 dark:text-white/90 leading-tight">
             {title}
           </h4>
           {description && !isMobile && (
@@ -337,7 +338,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
                     <Input
                       type={field.type}
                       value={(field.value as any) ?? ""}
-                      min="0"
+                      min={field.type === "number" ? "0" : undefined}
                       onChange={(e) => {
                         if (field.type === "number") {
                           const val = e.target.value;

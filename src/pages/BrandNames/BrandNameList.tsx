@@ -36,6 +36,7 @@ type BrandNameTableRow = IBrandName & {
   sale_names_display: string;
   created_at_display: string;
   updated_at_display: string;
+  expired_at: string;
 };
 
 const columns: { key: keyof BrandNameTableRow; label: string }[] = [
@@ -46,6 +47,7 @@ const columns: { key: keyof BrandNameTableRow; label: string }[] = [
   { key: "updated_by", label: "Người cập nhật" },
   { key: "created_at_display", label: "Ngày tạo" },
   { key: "updated_at_display", label: "Ngày cập nhật" },
+  { key: "expired_at", label: "Ngày hết hạn" },
 ];
 
 const DEFAULT_PAGE = 1;
@@ -92,7 +94,7 @@ const BrandNameList = () => {
 
   const debouncedSearch = useDebounce(searchInput, 400);
   const { isMobile } = useScreenSize();
-  const user = useSelector((state: RootState) => state.auth.user);
+  const user = useSelector((state: RootState) => state.auth?.user);
   const deleteBrandName = useDeleteBrandName();
 
   const listParams = useMemo((): Partial<IBrandNameListParams> => {
@@ -124,6 +126,7 @@ const BrandNameList = () => {
       sale_names_display: formatSaleNames(item.sale_names),
       created_at_display: formatBrandNameDateTime(item.created_at),
       updated_at_display: formatBrandNameDateTime(item.updated_at),
+      expired_at: formatBrandNameDateTime(item.expired_at),
     }));
     return {
       brandNames: rows,

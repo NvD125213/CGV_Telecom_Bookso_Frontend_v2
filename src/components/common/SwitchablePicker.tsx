@@ -6,7 +6,10 @@ import {
   Box,
   createTheme,
   ThemeProvider,
+  type SxProps,
+  type Theme,
 } from "@mui/material";
+import type { SystemStyleObject } from "@mui/system";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import {
   LocalizationProvider,
@@ -18,44 +21,80 @@ import { useTheme } from "../../context/ThemeContext";
 
 export type PickerType = "time" | "date" | "datetime" | "month" | "year";
 
+function getFormFieldBaseSx(mode: "light" | "dark"): SystemStyleObject<Theme> {
+  return {
+    height: 44,
+    fontSize: "0.875rem",
+    backgroundColor: mode === "light" ? "transparent" : "#111827",
+    color: mode === "light" ? "#1f2937" : "rgba(255, 255, 255, 0.9)",
+    "& .MuiInputBase-input": {
+      padding: "10px 16px",
+      height: "auto",
+    },
+    "& .MuiSelect-select": {
+      padding: "10px 16px",
+      minHeight: "auto",
+    },
+  };
+}
+
+function getSelectFieldSx(mode: "light" | "dark"): SystemStyleObject<Theme> {
+  const borderColor = mode === "light" ? "#d1d5db" : "#374151";
+  const focusBorder = mode === "light" ? "#9cb9ff" : "#7592ff";
+  const focusRing =
+    mode === "light" ? "rgba(70, 95, 255, 0.1)" : "rgba(70, 95, 255, 0.2)";
+
+  return {
+    ...getFormFieldBaseSx(mode),
+    borderRadius: "0.5rem",
+    boxShadow: "0px 1px 2px 0px rgba(16, 24, 40, 0.05)",
+    "& .MuiOutlinedInput-notchedOutline": {
+      borderColor,
+      borderRadius: "0.5rem",
+    },
+    "&:hover .MuiOutlinedInput-notchedOutline": {
+      borderColor,
+    },
+    "&.Mui-focused": {
+      boxShadow: `0 0 0 3px ${focusRing}`,
+    },
+    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+      borderColor: focusBorder,
+      borderWidth: 1,
+    },
+  };
+}
+
+function getPickerTextFieldSx(mode: "light" | "dark"): SxProps<Theme> {
+  return {
+    width: "100%",
+    borderRadius: "0.5rem",
+    paddingY: "2px",
+    "& .MuiOutlinedInput-root": {
+      ...getFormFieldBaseSx(mode),
+      "& .MuiOutlinedInput-notchedOutline": {
+        border: "none",
+      },
+    },
+    "& .MuiInputAdornment-root": {
+      marginLeft: "4px",
+    },
+  };
+}
+
 interface PickerWithTypeProps {
   type: PickerType;
   onChange: (value: Date | null) => void;
   value?: Date | null;
+  fieldSx: SxProps<Theme>;
 }
 
 const PickerWithType: React.FC<PickerWithTypeProps> = ({
   type,
   onChange,
   value,
+  fieldSx,
 }) => {
-  const textFieldStyles = {
-    "& .MuiInputBase-root": {
-      height: 42,
-      fontSize: "0.875rem",
-      paddingRight: "8px",
-      width: "100%",
-    },
-    "& .MuiInputBase-input": {
-      padding: "10px 12px",
-      height: "auto",
-    },
-    "& .MuiInputLabel-root": {
-      fontSize: "0.875rem",
-      transform: "translate(14px, 12px) scale(1)",
-      "&.MuiInputLabel-shrink": {
-        transform: "translate(14px, -6px) scale(0.75)",
-      },
-    },
-    "& .MuiInputAdornment-root": {
-      marginLeft: "4px",
-    },
-    "& .MuiOutlinedInput-root": {
-      paddingRight: "8px",
-    },
-    width: "100%",
-  };
-
   const commonProps = {
     onChange,
     value,
@@ -63,8 +102,8 @@ const PickerWithType: React.FC<PickerWithTypeProps> = ({
     slotProps: {
       textField: {
         size: "small" as const,
-        sx: textFieldStyles,
-        className: `rounded-lg border shadow-theme-xs placeholder:text-gray-400 focus:outline-none focus:ring-2`,
+        fullWidth: true,
+        sx: fieldSx,
       },
     },
   };
@@ -102,6 +141,8 @@ const SwitchablePicker: React.FC<PickerDateTimeProps> = ({
   const type = pickerTypeProp ?? internalType;
   const [internalValue, setInternalValue] = useState<Date | null>(null);
   const { theme } = useTheme();
+  const selectFieldSx = getSelectFieldSx(theme);
+  const pickerFieldSx = getPickerTextFieldSx(theme);
 
   const muiTheme = createTheme({
     palette: {
@@ -119,49 +160,13 @@ const SwitchablePicker: React.FC<PickerDateTimeProps> = ({
       },
     },
     components: {
-      MuiTextField: {
+      MuiOutlinedInput: {
         styleOverrides: {
           root: {
-            "& .MuiOutlinedInput-root": {
-              backgroundColor: theme === "light" ? "transparent" : "#374151",
-              borderColor: theme === "light" ? "#d1d5db" : "#4b5563",
-              "&:hover": {
-                borderColor: theme === "light" ? "#3b82f6" : "#60a5fa",
-              },
-              "&.Mui-focused": {
-                borderColor: theme === "light" ? "#3b82f6" : "#60a5fa",
-                boxShadow: `0 0 0 2px ${
-                  theme === "light"
-                    ? "rgba(59, 130, 246, 0.2)"
-                    : "rgba(96, 165, 250, 0.2)"
-                }`,
-              },
-            },
-            "& .MuiInputLabel-root": {
-              color: theme === "light" ? "#6b7280" : "#9ca3af",
-              "&.Mui-focused": {
-                color: theme === "light" ? "#3b82f6" : "#60a5fa",
-              },
-            },
+            borderRadius: "0.5rem",
           },
-        },
-      },
-      MuiSelect: {
-        styleOverrides: {
-          root: {
-            backgroundColor: theme === "light" ? "transparent" : "#374151",
-            borderColor: theme === "light" ? "#d1d5db" : "#4b5563",
-            "&:hover": {
-              borderColor: theme === "light" ? "#3b82f6" : "#60a5fa",
-            },
-            "&.Mui-focused": {
-              borderColor: theme === "light" ? "# cabins3b82f6" : "#60a5fa",
-              boxShadow: `0 0 0 2px ${
-                theme === "light"
-                  ? "rgba(59, 130, 246, 0.2)"
-                  : "rgba(96, 165, 250, 0.2)"
-              }`,
-            },
+          notchedOutline: {
+            borderRadius: "0.5rem",
           },
         },
       },
@@ -197,20 +202,14 @@ const SwitchablePicker: React.FC<PickerDateTimeProps> = ({
             width: "100%",
           }}>
           <FormControl size="small" sx={{ minWidth: 120 }}>
-            {" "}
             <Select
               id="picker-type"
               value={type}
               onChange={handleChangeType as any}
-              sx={{
-                height: 40,
-                fontSize: "0.875rem",
-                bgcolor: "background.paper",
-                color: "text.primary",
-              }}>
-              <MenuItem value="date">Date</MenuItem>
-              <MenuItem value="month">Month</MenuItem>
-              <MenuItem value="year">Year</MenuItem>
+              sx={{ ...selectFieldSx }}>
+              <MenuItem value="date">Ngày</MenuItem>
+              <MenuItem value="month">Tháng</MenuItem>
+              <MenuItem value="year">Năm</MenuItem>
             </Select>
           </FormControl>
           <div className="w-full">
@@ -218,6 +217,7 @@ const SwitchablePicker: React.FC<PickerDateTimeProps> = ({
               type={type}
               onChange={handleChange}
               value={onChange ? value : internalValue}
+              fieldSx={pickerFieldSx}
             />
           </div>
         </Box>

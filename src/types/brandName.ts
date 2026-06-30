@@ -22,6 +22,7 @@ export interface IBrandName {
   updated_by: string;
   created_at: string;
   updated_at: string;
+  expired_at: string;
 }
 
 export const newBrandName: IBrandName = {
@@ -34,12 +35,14 @@ export const newBrandName: IBrandName = {
   updated_by: "",
   created_at: "",
   updated_at: "",
+  expired_at: "",
 };
 
 export interface ICreateBrandName {
   name: string;
   sale_names: string[];
   description: string;
+  expired_at?: string;
 }
 
 export interface IUpdateBrandName extends Partial<ICreateBrandName> {
@@ -67,7 +70,10 @@ const normalizeBrandNameItem = (raw: Record<string, unknown>): IBrandName => {
     saleNames = raw.sale_names.map(String).filter(Boolean);
   } else if (typeof raw.sale_name === "string" && raw.sale_name.trim()) {
     saleNames = [raw.sale_name.trim()];
-  } else if (typeof raw.customer_name === "string" && raw.customer_name.trim()) {
+  } else if (
+    typeof raw.customer_name === "string" &&
+    raw.customer_name.trim()
+  ) {
     saleNames = [raw.customer_name.trim()];
   }
 
@@ -81,6 +87,7 @@ const normalizeBrandNameItem = (raw: Record<string, unknown>): IBrandName => {
     updated_by: String(raw.updated_by ?? ""),
     created_at: String(raw.created_at ?? ""),
     updated_at: String(raw.updated_at ?? ""),
+    expired_at: String(raw.expired_at ?? ""),
   };
 };
 
@@ -92,7 +99,7 @@ export const parseBrandNameListResponse = (
   const payload =
     root.items != null || root.brand_name != null || root.meta != null
       ? root
-      : (root.data as Record<string, unknown> | undefined) ?? root;
+      : ((root.data as Record<string, unknown> | undefined) ?? root);
   const body = (payload ?? {}) as Record<string, unknown>;
 
   const rawItems =

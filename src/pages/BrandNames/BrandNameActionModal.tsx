@@ -33,6 +33,25 @@ const saleNamesEqual = (a: string[], b: string[]) =>
   JSON.stringify(normalizeSaleNames(a)) ===
   JSON.stringify(normalizeSaleNames(b));
 
+const isoToDateTimeLocalValue = (iso?: string) => {
+  if (!iso?.trim()) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+const dateTimeLocalValueToIso = (value: string) => {
+  if (!value.trim()) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString();
+};
+
 export const BrandNameActionModal: React.FC<BrandNameActionModalProps> = ({
   isOpen,
   data,
@@ -110,6 +129,7 @@ export const BrandNameActionModal: React.FC<BrandNameActionModalProps> = ({
       normalizeString(initialData.name) === normalizeString(brandName.name) &&
       normalizeString(initialData.description ?? "") ===
         normalizeString(brandName.description ?? "") &&
+      (initialData.expired_at ?? "") === (brandName.expired_at ?? "") &&
       saleNamesEqual(initialSaleNames, saleNames)
     );
   };
@@ -147,14 +167,28 @@ export const BrandNameActionModal: React.FC<BrandNameActionModalProps> = ({
         onChange: (value: FieldValue) => setValue("description", String(value)),
         placeholder: "Nhập mô tả",
       },
+      {
+        name: "expired_at",
+        label: "Ngày hết hạn",
+        type: "datetime-local" as const,
+        value: isoToDateTimeLocalValue(brandName.expired_at),
+        onChange: (value: FieldValue) =>
+          setValue(
+            "expired_at",
+            dateTimeLocalValueToIso(String(value ?? "")),
+          ),
+        error: errors.expired_at,
+      },
     ],
     [
       brandName.name,
       brandName.description,
+      brandName.expired_at,
       selectedSales,
       saleOptions,
       errors.name,
       errors.sale_names,
+      errors.expired_at,
     ],
   );
 
@@ -164,6 +198,7 @@ export const BrandNameActionModal: React.FC<BrandNameActionModalProps> = ({
     const trimmedName = normalizeString(brandName.name);
     const trimmedDescription = normalizeString(brandName.description ?? "");
     const saleNames = getSaleNames();
+    const expiredAt = brandName.expired_at?.trim() || undefined;
 
     if (isUnchanged()) {
       onClose();
@@ -176,6 +211,7 @@ export const BrandNameActionModal: React.FC<BrandNameActionModalProps> = ({
           name: trimmedName,
           description: trimmedDescription,
           sale_names: saleNames,
+          expired_at: expiredAt,
         });
         await Swal.fire({
           title: "Thêm thành công!",
@@ -186,7 +222,8 @@ export const BrandNameActionModal: React.FC<BrandNameActionModalProps> = ({
         const baseChanged =
           normalizeString(initialData!.name) !== trimmedName ||
           normalizeString(initialData!.description ?? "") !==
-            trimmedDescription;
+            trimmedDescription ||
+          (initialData!.expired_at ?? "") !== (brandName.expired_at ?? "");
 
         const salesChanged = !saleNamesEqual(initialSaleNames, saleNames);
 
@@ -196,6 +233,7 @@ export const BrandNameActionModal: React.FC<BrandNameActionModalProps> = ({
             name: trimmedName,
             description: trimmedDescription,
             is_active: initialData!.is_active,
+            expired_at: expiredAt,
           });
         }
 
