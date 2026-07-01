@@ -55,7 +55,7 @@ export const subscriptionService = {
   reNewSubcription: async (sub_id: any, data: any) => {
     return await instance.put(
       `/api/v3/subscription/renew-subscription/${sub_id}`,
-      data
+      data,
     );
   },
   delete: async (id: number) => {
@@ -87,7 +87,7 @@ export const subscriptionItemService = {
 
 export const getDetailCombo = async (
   list_account?: string,
-  month_year?: string
+  month_year?: string,
 ) => {
   const listHeader = list_account;
   const monthHeader = month_year;
@@ -100,7 +100,7 @@ export const getDetailCombo = async (
           list_account: listHeader,
           month_year: monthHeader,
         },
-      }
+      },
     );
     return response.data;
   } catch (error: any) {
@@ -111,7 +111,7 @@ export const getDetailCombo = async (
 
 export const getQuota = async (
   list_account: { sub_Id: number; list_account: string[] }[],
-  month_year: string
+  month_year: string,
 ) => {
   try {
     const response = await axiosInstance.post(
@@ -122,11 +122,21 @@ export const getQuota = async (
           "Content-Type": "application/json",
           month_year,
         },
-      }
+      },
     );
     return response.data;
   } catch (error: any) {
     console.error("Lỗi khi gọi combo quota:", error);
     throw error;
   }
+};
+
+export interface GetCountPhoneSubscriptionData {
+  subscription_ids: number[];
+}
+
+export const getCountPhoneSubscription = async (
+  data: GetCountPhoneSubscriptionData,
+) => {
+  return await instance.post("/api/v3/subscription/count-phones", data);
 };

@@ -17,6 +17,7 @@ import { formatCurrency } from "../../helper/formatCurrency";
 import {
   subscriptionService,
   getQuota,
+  getCountPhoneSubscription,
   // getDetailCombo, // VT_CID — tạm tắt (quota combo theo slide)
 } from "../../services/subcription";
 import { useApi } from "../../hooks/useApi";
@@ -186,10 +187,11 @@ const SubsciptionList = () => {
     setLoading(true);
     try {
       const result = await subscriptionService.get(query);
-      setSubscriptions(result.data?.items || []);
+      const items = result.data?.items || [];
+      setSubscriptions(items);
 
       const listAccount =
-        result.data?.items
+        items
           ?.filter(
             (sub: any) =>
               sub.slide_users && Object.keys(sub.slide_users).length > 0,
@@ -214,6 +216,31 @@ const SubsciptionList = () => {
         }
       } else {
         setQuotaData([]);
+      }
+
+      const subscriptionIds = items.map((sub: SubcriptionData) => sub.id);
+      if (subscriptionIds.length > 0) {
+        try {
+          const phoneCountRes = await getCountPhoneSubscription({
+            subscription_ids: subscriptionIds,
+          });
+          const details =
+            phoneCountRes.data?.details ??
+            phoneCountRes.data?.data?.details ??
+            {};
+          const normalizedDetails = Object.fromEntries(
+            Object.entries(details).map(([id, count]) => [
+              String(id),
+              Number(count) || 0,
+            ]),
+          );
+          setPhoneCountBySubId(normalizedDetails);
+        } catch (phoneCountErr) {
+          console.error("Fetch phone count failed:", phoneCountErr);
+          setPhoneCountBySubId({});
+        }
+      } else {
+        setPhoneCountBySubId({});
       }
 
       setPagination(
@@ -392,6 +419,9 @@ const SubsciptionList = () => {
   // const [quotaMonth, setQuotaMonth] = useState(getCurrentMonth());
 
   const [quotaData, setQuotaData] = useState<any[]>([]);
+  const [phoneCountBySubId, setPhoneCountBySubId] = useState<
+    Record<string, number>
+  >({});
 
   // NOTE: Quota được fetch trực tiếp trong fetchSubscriptions() để tránh race condition
   // khi người dùng thay đổi created_month
@@ -407,9 +437,9 @@ const SubsciptionList = () => {
 
     return processedData.map((sub: any) => {
       const quota = quotaData?.find((q: any) => q.sub_Id === sub.id);
+      const subscriptionPhoneCount = phoneCountBySubId[String(sub.id)] ?? 0;
 
       let totalPlanMinutes = 0;
-      let totalPlanDidCount = 0;
 
       const planDetails = sub.items
         .map((item: any) => {
@@ -435,14 +465,13 @@ const SubsciptionList = () => {
         })
         .filter(Boolean);
 
-      // Chỉ cộng phút/CID gói phụ có status = 0 hoặc 1
+      // Chỉ cộng phút gói phụ có status = 0 hoặc 1
       sub.items.forEach((line: any) => {
         const st = Number(line.status);
         if (st !== 0 && st !== 1) return;
         const plan = plansMap.get(line.plan_id);
         if (plan) {
           totalPlanMinutes += plan.minutes || 0;
-          totalPlanDidCount += plan.did_count || 0;
         }
       });
       const mainSub = {
@@ -454,14 +483,14 @@ const SubsciptionList = () => {
         updated_at: sub.updated_at,
         is_payment: sub.is_payment,
         released_at: sub.released_at,
-        cid: sub.total_did,
+        cid: subscriptionPhoneCount,
         note: sub.note || null,
         price: sub.sub_price,
         quantity: sub.quantity || null,
         total_minutes: (sub.total_minutes || 0) + totalPlanMinutes,
-        total_did: totalPlanDidCount + sub.total_did,
+        total_did: subscriptionPhoneCount,
         contract_code: sub.contract_code,
-        minutes: sub.total_minutes || 0, // Thêm minutes riêng cho main sub (root plan)
+        minutes: sub.total_minutes || 0,
       };
 
       return {
@@ -472,10 +501,16 @@ const SubsciptionList = () => {
         total_minutes: (sub.total_minutes || 0) + totalPlanMinutes,
         main_sub: mainSub,
         list_sub_plan: planDetails,
-        total_did: totalPlanDidCount + sub.total_did,
+        total_did: subscriptionPhoneCount,
       };
     });
-  }, [processedData, quotaData, subscriptions.length, plansData]);
+  }, [
+    processedData,
+    quotaData,
+    subscriptions.length,
+    plansData,
+    phoneCountBySubId,
+  ]);
 
   // Xử lý phần gia hạn
   const [openModalRenew, setOpenModalRenew] = useState(false);

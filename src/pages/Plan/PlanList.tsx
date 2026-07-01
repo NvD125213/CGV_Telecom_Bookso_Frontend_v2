@@ -8,13 +8,11 @@ import Input from "../../components/form/input/InputField";
 import { useQuerySync } from "../../hooks/useQueryAsync";
 import Label from "../../components/form/Label";
 import Skeleton from "react-loading-skeleton";
-import { useScrollPagination } from "../../hooks/useScrollPagination";
 import { IoIosAdd } from "react-icons/io";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import { Pagination } from "../../components/common/Pagination";
 import { MobileFixedPagination } from "../../components/common/MobileFixedPagination";
 import { useNavigate } from "react-router-dom";
-import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
 import { PlanQuery, Plans } from "./interfaces/PlanQuery";
@@ -22,6 +20,10 @@ import Swal from "sweetalert2";
 import EmptyState from "../../components/EmptyData";
 import ResponsiveFilterWrapper from "../../components/common/FlipperWrapper";
 import { useScreenSize } from "../../hooks/useScreenSize";
+
+const PLAN_GRID_CLASS =
+  "grid grid-cols-1 gap-3 px-1 sm:grid-cols-2 sm:gap-4 md:grid-cols-3";
+const PLAN_CARD_WRAPPER_CLASS = "min-w-0 h-full";
 
 export const PlanList = () => {
   const user = useSelector((state: RootState) => state.auth?.user);
@@ -38,8 +40,6 @@ export const PlanList = () => {
   const [searchInput, setSearchInput] = useState(query.search);
   const [plans, setPlans] = useState<Plans | null>(null);
   const [loading, setLoading] = useState(false);
-  const { scrollRef, canScrollLeft, canScrollRight, scroll } =
-    useScrollPagination<PlanData>([]);
 
   const [pagination, setPagination] = useState({
     page: query.page,
@@ -112,25 +112,6 @@ export const PlanList = () => {
     navigate(`/plans/edit/${data.id}`);
   };
 
-  // Sau khi load dữ liệu xong, kiểm tra nút cuộn
-  useEffect(() => {
-    if (!loading) {
-      // Kiểm tra lại ngay sau khi render danh sách
-      setTimeout(() => {
-        const el = scrollRef.current;
-        if (el) {
-          const { scrollWidth, clientWidth } = el;
-          // Nếu nội dung rộng hơn khung hiển thị => có thể scroll phải
-          if (scrollWidth > clientWidth) {
-            el.scrollLeft = 0; // về đầu
-          }
-          // Thủ công gọi scroll event để cập nhật nút cuộn
-          el.dispatchEvent(new Event("scroll"));
-        }
-      }, 100); // đợi một nhịp nhỏ để DOM render xong
-    }
-  }, [loading, plans]);
-
   const handleDelete = async (data: PlanData) => {
     const result = await Swal.fire({
       title: "Xác nhận xóa",
@@ -174,43 +155,41 @@ export const PlanList = () => {
       onDelete={handleDelete}
       buttonText="Đặt gói"
       showBadge={false}
-      className={isMobile ? "p-0" : ""}
+      className="h-full p-0 [&>div]:max-w-none"
     />
   );
 
-  const renderPlanContent = () => {
+  const renderPlanGrid = () => {
     if (loading) {
-      const skeletonCount = isMobile ? 2 : 3;
-      return Array.from({ length: skeletonCount }).map((_, i) => (
-        <div
-          key={i}
-          className={
-            isMobile
-              ? "w-full rounded-xl border border-gray-200 bg-white p-3 shadow dark:border-gray-700 dark:bg-gray-800"
-              : "flex-shrink-0 min-w-[55%] snap-start rounded-xl border border-gray-200 bg-white p-4 shadow dark:border-gray-700 dark:bg-gray-800 md:min-w-[45%] lg:min-w-[35%]"
-          }>
-          <Skeleton height={180} className="mb-4 rounded-lg" />
-          <Skeleton count={3} height={20} className="mb-2 rounded-md" />
-          <Skeleton height={40} className="mt-4 rounded-md" />
+      const skeletonCount = isMobile ? 2 : 6;
+      return (
+        <div className={PLAN_GRID_CLASS}>
+          {Array.from({ length: skeletonCount }).map((_, i) => (
+            <div
+              key={i}
+              className={`${PLAN_CARD_WRAPPER_CLASS} rounded-xl border border-gray-200 bg-white p-4 shadow dark:border-gray-700 dark:bg-gray-800`}>
+              <Skeleton height={180} className="mb-4 rounded-lg" />
+              <Skeleton count={3} height={20} className="mb-2 rounded-md" />
+              <Skeleton height={40} className="mt-4 rounded-md" />
+            </div>
+          ))}
         </div>
-      ));
+      );
     }
 
     if (!plans?.items || plans.items.length === 0) {
       return <EmptyState />;
     }
 
-    return plans.items.map((plan) => (
-      <div
-        key={plan.id}
-        className={
-          isMobile
-            ? "w-full"
-            : "flex-shrink-0 min-w-[55%] snap-start md:min-w-[45%] lg:min-w-[35%]"
-        }>
-        {renderPricingCard(plan)}
+    return (
+      <div className={PLAN_GRID_CLASS}>
+        {plans.items.map((plan) => (
+          <div key={plan.id} className={PLAN_CARD_WRAPPER_CLASS}>
+            {renderPricingCard(plan)}
+          </div>
+        ))}
       </div>
-    ));
+    );
   };
 
   return (
@@ -287,38 +266,7 @@ export const PlanList = () => {
             </div>
           </ResponsiveFilterWrapper>
 
-          {isMobile ? (
-            <div className="grid grid-cols-1 gap-3 px-1">
-              {renderPlanContent()}
-            </div>
-          ) : (
-            <div className="relative px-1">
-              {canScrollLeft && (
-                <button
-                  className="absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white p-2 shadow hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700"
-                  onClick={() => scroll("left")}>
-                  <FiChevronLeft size={20} />
-                </button>
-              )}
-
-              <div
-                ref={scrollRef}
-                className="hide-scrollbar flex w-full snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-4">
-                {renderPlanContent()}
-              </div>
-
-              {canScrollRight && (
-                <button
-                  className="absolute right-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white p-2 shadow hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700"
-                  onClick={() => scroll("right")}>
-                  <FiChevronRight
-                    size={20}
-                    className="text-gray-700 transition-colors duration-200 dark:text-white"
-                  />
-                </button>
-              )}
-            </div>
-          )}
+          {renderPlanGrid()}
 
           {isMobile ? (
             <MobileFixedPagination
