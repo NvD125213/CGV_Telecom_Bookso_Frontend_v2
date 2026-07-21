@@ -5,40 +5,40 @@ import AppHeader from "./AppHeader";
 import Backdrop from "./Backdrop";
 import AppSidebar from "./AppSidebar";
 import Footer from "../components/footer/footer";
-import ChatbotLoader from "../components/ChatbotLoader";
 
 const CHATWOOT_BASE_URL = "https://devchat.telesip.vn";
 const CHATWOOT_WEBSITE_TOKEN = "yHgjQd9cktTpBCxpiA2o1WYj";
+
+let chatwootLoaded = false;
+
+function loadChatwoot() {
+  if (chatwootLoaded) return;
+  chatwootLoaded = true;
+
+  const w = window as typeof window & { chatwootSDK?: { run: (c: { websiteToken: string; baseUrl: string }) => void } };
+
+  if (w.chatwootSDK) {
+    w.chatwootSDK.run({ websiteToken: CHATWOOT_WEBSITE_TOKEN, baseUrl: CHATWOOT_BASE_URL });
+    return;
+  }
+
+  const g = document.createElement("script");
+  const s = document.getElementsByTagName("script")[0];
+  g.src = `${CHATWOOT_BASE_URL}/packs/js/sdk.js`;
+  g.async = true;
+  s.parentNode?.insertBefore(g, s);
+
+  g.onload = () => {
+    const w2 = window as typeof window & { chatwootSDK?: { run: (c: { websiteToken: string; baseUrl: string }) => void } };
+    w2.chatwootSDK?.run({ websiteToken: CHATWOOT_WEBSITE_TOKEN, baseUrl: CHATWOOT_BASE_URL });
+  };
+}
 
 const LayoutContent: React.FC = () => {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
 
   useEffect(() => {
-    // Nếu đã load rồi thì không load lại
-    if ((window as any).chatwootSDK) {
-      (window as any).chatwootSDK.run({
-        websiteToken: CHATWOOT_WEBSITE_TOKEN,
-        baseUrl: CHATWOOT_BASE_URL,
-      });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = `${CHATWOOT_BASE_URL}/packs/js/sdk.js`;
-    script.async = true;
-
-    script.onload = () => {
-      (window as any).chatwootSDK.run({
-        websiteToken: CHATWOOT_WEBSITE_TOKEN,
-        baseUrl: CHATWOOT_BASE_URL,
-      });
-    };
-
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
+    loadChatwoot();
   }, []);
 
   return (
@@ -59,7 +59,6 @@ const LayoutContent: React.FC = () => {
       </div>
 
       <Footer />
-      <ChatbotLoader />
     </div>
   );
 };
