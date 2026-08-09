@@ -70,7 +70,8 @@ export const PlanActionPage = () => {
   const { data: dataPlans, isLoading: isLoadingPlans } = useApi(() =>
     planService.get({
       page: 1,
-      size: 20,
+      size: 100,
+      is_active: "true",
       order_by: "created_at",
       order_dir: "desc",
       is_root: "true",
