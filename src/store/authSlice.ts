@@ -1,5 +1,5 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { signIn } from "../services/auth";
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import { signIn, saveTokens } from "../services/auth";
 import { jwtDecode } from "jwt-decode";
 import Cookies from "js-cookie";
 import { COOKIE_OPTIONS } from "../config/apiToken";
@@ -20,36 +20,53 @@ const initialState: AuthState = {
   error: null,
 };
 
-// Thunk để thực hiện login
-export const login = createAsyncThunk(
-  "auth/login",
-  async (
-    credentials: { username: string; password: string },
-    { rejectWithValue },
-  ) => {
-    try {
-      await signIn({
-        ...credentials,
-        grant_type: "password",
-        client_id: "",
-        client_secret: "",
-      });
-
-      const token = Cookies.get("token");
-      const refreshToken = Cookies.get("refreshToken");
-
-      if (token) {
-        const decoded = jwtDecode(token);
-        Cookies.set("user", JSON.stringify(decoded), COOKIE_OPTIONS);
-        return { token, refreshToken, user: decoded };
-      } else {
-        throw new Error("Token is not available");
-      }
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.detail || "Login failed");
+/** Kết quả login: hoặc vào thẳng hệ thống, hoặc phải qua bước 2FA. */
+export type LoginResult =
+  | {
+      mfaRequired: true;
+      mfaToken: string;
+      mfaMethods: string[];
+      maskedEmail: string | null;
     }
-  },
-);
+  | { mfaRequired: false; token: string; refreshToken?: string; user: any };
+
+// Thunk để thực hiện login
+export const login = createAsyncThunk<
+  LoginResult,
+  { username: string; password: string },
+  { rejectValue: string }
+>("auth/login", async (credentials, { rejectWithValue }) => {
+  try {
+    const res = await signIn({
+      ...credentials,
+      grant_type: "password",
+      client_id: "",
+      client_secret: "",
+    });
+
+    // Cần xác thực lớp hai (passkey hoặc OTP email): trả mfa_token cho màn hình xác thực
+    if (res.data?.mfa_required) {
+      return {
+        mfaRequired: true,
+        mfaToken: res.data.mfa_token as string,
+        mfaMethods: res.data.mfa_methods || [],
+        maskedEmail: res.data.masked_email ?? null,
+      };
+    }
+
+    const token = Cookies.get("token");
+    const refreshToken = Cookies.get("refreshToken");
+
+    if (token) {
+      const decoded = jwtDecode(token);
+      Cookies.set("user", JSON.stringify(decoded), COOKIE_OPTIONS);
+      return { mfaRequired: false, token, refreshToken, user: decoded };
+    }
+    throw new Error("Token is not available");
+  } catch (error: any) {
+    return rejectWithValue(error.response?.data?.detail || "Login failed");
+  }
+});
 
 const authSlice = createSlice({
   name: "auth",
@@ -63,6 +80,23 @@ const authSlice = createSlice({
       Cookies.remove("user");
       Cookies.remove("refreshToken");
     },
+    /** Hoàn tất đăng nhập sau khi xác thực 2FA thành công. */
+    completeLogin: (
+      state,
+      action: PayloadAction<{ accessToken: string; refreshToken: string }>,
+    ) => {
+      const { accessToken, refreshToken } = action.payload;
+      saveTokens(accessToken, refreshToken);
+
+      const decoded = jwtDecode(accessToken);
+      Cookies.set("user", JSON.stringify(decoded), COOKIE_OPTIONS);
+
+      state.token = accessToken;
+      state.refreshToken = refreshToken;
+      state.user = decoded;
+      state.isLoading = false;
+      state.error = null;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -72,11 +106,14 @@ const authSlice = createSlice({
       })
       .addCase(login.fulfilled, (state, action) => {
         state.isLoading = false;
+        state.error = null;
+
+        // Chưa xong: còn phải qua bước 2FA nên không set token
+        if (action.payload.mfaRequired) return;
+
         state.token = action.payload.token;
         state.refreshToken = action.payload.refreshToken || "";
         state.user = action.payload.user;
-
-        state.error = null;
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;
@@ -85,5 +122,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout } = authSlice.actions;
+export const { logout, completeLogin } = authSlice.actions;
 export default authSlice.reducer;

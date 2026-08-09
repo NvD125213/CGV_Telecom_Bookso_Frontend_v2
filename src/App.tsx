@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router";
 import SignIn from "./pages/AuthPages/SignIn";
+import TwoFactorVerify from "./pages/AuthPages/TwoFactorVerify";
+import SecuritySettings from "./pages/Security/SecuritySettings";
 import NotFound from "./pages/OtherPage/NotFound";
 import HistoryBooked from "./pages/HistoryBooked/HistoryBooked";
 import BasicTables from "./pages/Tables/BasicTables";
@@ -57,6 +59,8 @@ function AppWithInactivityHandler() {
     <Routes>
       <Route element={<PublicRoute />}>
         <Route path="/signin" element={<SignIn />} />
+        {/* Bước 2 của đăng nhập: chưa có access token nên vẫn nằm ở route công khai */}
+        <Route path="/signin/2fa" element={<TwoFactorVerify />} />
       </Route>
       <Route element={<PrivateRoute />}>
         <Route element={<AppLayout />}>
@@ -64,6 +68,7 @@ function AppWithInactivityHandler() {
           <Route path="/form-elements" element={<FormElements />} />
           <Route index path="/" element={<Home />} />
           <Route path="/history-booked" element={<HistoryBooked />} />
+          <Route path="/security" element={<SecuritySettings />} />
           <Route path="/digital-channel" element={<DigitalChannel />} />
           <Route
             path="/phone-numbers"

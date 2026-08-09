@@ -38,6 +38,20 @@ export default function SignInForm() {
     try {
       setApiError(null);
       const result = await dispatch(login(values)).unwrap();
+
+      // Cần xác thực lớp hai: chưa được cấp token, chuyển sang màn hình passkey hoặc OTP
+      if (result.mfaRequired) {
+        navigate("/signin/2fa", {
+          state: {
+            mfaToken: result.mfaToken,
+            mfaMethods: result.mfaMethods,
+            maskedEmail: result.maskedEmail,
+          },
+          replace: true,
+        });
+        return;
+      }
+
       if (result.token) {
         navigate("/");
       }
