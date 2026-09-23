@@ -73,6 +73,13 @@ const columns: {
   { key: "maintenance_fee", label: "Phí duy trì (đ)" },
   { key: "vanity_number_fee", label: "Phí số đẹp (đ)" },
   {
+    key: "is_beautiful_number",
+    label: "Số đẹp",
+    type: "span",
+    classname:
+      "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400",
+  },
+  {
     key: "status",
     label: "Trạng thái",
     type: "span",
@@ -108,6 +115,9 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
       initialBrandname
         ? [{ label: initialBrandname, value: initialBrandname }]
         : [],
+  );
+  const [isBeautifulNumber, setIsBeautifulNumber] = useState<string>(
+    searchParams.get("is_beautiful_number") || "",
   );
 
   const [quantity, setQuantity] = useState(
@@ -205,6 +215,10 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
         type_number: typeNumber || "",
         search: debouncedSearch.replace(/\s+/g, " ").trim() || "",
         brandname: brandname.trim() || undefined,
+        is_beautiful_number:
+          isBeautifulNumber === ""
+            ? undefined
+            : isBeautifulNumber === "true",
         signal: controller.signal,
       });
       const formatNumber = (num: any) => {
@@ -223,6 +237,7 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
           installation_fee: formatNumber(phone?.installation_fee),
           maintenance_fee: formatNumber(phone?.maintenance_fee),
           vanity_number_fee: formatNumber(phone?.vanity_number_fee),
+          is_beautiful_number: phone.is_beautiful_number ? "Có" : "Không",
         }),
       );
       if (response.data.phone_numbers.length === 0) {
@@ -273,6 +288,9 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
         else newParams.delete("typeNumber");
         if (brandname.trim()) newParams.set("brandname", brandname.trim());
         else newParams.delete("brandname");
+        if (isBeautifulNumber)
+          newParams.set("is_beautiful_number", isBeautifulNumber);
+        else newParams.delete("is_beautiful_number");
         return newParams;
       });
     } catch (error: any) {
@@ -287,6 +305,7 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
     provider,
     typeNumber,
     brandname,
+    isBeautifulNumber,
     quantity,
     offset,
     setSearchParams,
@@ -304,7 +323,15 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
   // Call API when change offset, quantity, provider
   useEffect(() => {
     fetchData(); // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [offset, quantity, provider, typeNumber, brandname, debouncedSearch]);
+  }, [
+    offset,
+    quantity,
+    provider,
+    typeNumber,
+    brandname,
+    isBeautifulNumber,
+    debouncedSearch,
+  ]);
 
   const handleGetById = async (id: string) => {
     try {
@@ -497,6 +524,10 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
       { label: "Trạng thái", value: item.status ?? "N/A" },
       { label: "Nhà cung cấp", value: item.provider_name ?? "N/A" },
       { label: "Loại số", value: item.type_name ?? "N/A" },
+      {
+        label: "Số đẹp",
+        value: String((item as any).is_beautiful_number ?? "Không"),
+      },
     ]);
   };
 
@@ -700,6 +731,23 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
                       }}
                     />
                   </div>
+                  <div>
+                    <Label>Số đẹp</Label>
+                    <Select
+                      options={[
+                        { label: "Tất cả", value: "" },
+                        { label: "Có", value: "true" },
+                        { label: "Không", value: "false" },
+                      ]}
+                      className="dark:bg-black dark:text-white"
+                      value={isBeautifulNumber}
+                      onChange={(value) => {
+                        setIsBeautifulNumber(value);
+                        setOffset(0);
+                      }}
+                      placeholder="Lọc số đẹp"
+                    />
+                  </div>
                 </div>
               </ResponsiveFilterWrapper>
               <FloatingActionPanel>
@@ -723,7 +771,7 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
                       className="flex dark:bg-black dark:text-white items-center gap-2 border rounded-lg border-gray-300 bg-white p-[10px] text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50"
                       onClick={() => handleBookAllNumber()}>
                       <MdSelectAll size={20} />
-                      <span>Book all</span>
+                      <span>Book tất cả</span>
                     </button>
                   )}
                 </div>

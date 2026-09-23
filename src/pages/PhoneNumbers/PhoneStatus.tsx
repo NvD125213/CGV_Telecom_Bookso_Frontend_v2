@@ -67,6 +67,13 @@ const getColumns = (status: string) => {
     { key: "maintenance_fee", label: "Phí duy trì (đ)" },
     { key: "vanity_number_fee", label: "Phí số đẹp (đ)" },
     {
+      key: "is_beautiful_number",
+      label: "Số đẹp",
+      type: "span",
+      classname:
+        "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400",
+    },
+    {
       key: "status",
       label: "Trạng thái",
       type: "span",
@@ -132,6 +139,9 @@ function PhoneNumbers() {
       initialBrandname
         ? [{ label: initialBrandname, value: initialBrandname }]
         : [],
+  );
+  const [isBeautifulNumber, setIsBeautifulNumber] = useState<string>(
+    searchParams.get("is_beautiful_number") || "",
   );
 
   const [safeData, setSafeData] = useState<IPhoneNumber[]>([]);
@@ -236,9 +246,12 @@ function PhoneNumbers() {
     provider?: string,
     type_number?: string,
     brandname?: string,
+    is_beautiful_number?: string,
   ) => {
     setLoading(true);
     try {
+      const beautifulFilter =
+        is_beautiful_number ?? isBeautifulNumber;
       const response = await bookingPhoneForOption({
         quantity,
         status,
@@ -247,6 +260,10 @@ function PhoneNumbers() {
         provider: provider?.trim(),
         type_number: type_number?.trim(),
         brandname: (brandname ?? searchBrandname)?.trim() || undefined,
+        is_beautiful_number:
+          beautifulFilter === ""
+            ? undefined
+            : beautifulFilter === "true",
       });
 
       const formatNumber = (num: any) =>
@@ -276,6 +293,7 @@ function PhoneNumbers() {
             phone.type_name == "SODEP"
               ? "Liên hệ"
               : formatNumber(phone?.vanity_number_fee),
+          is_beautiful_number: phone.is_beautiful_number ? "Có" : "Không",
         }),
       );
 
@@ -321,6 +339,10 @@ function PhoneNumbers() {
         params.brandname = brandnameValue;
       }
 
+      if (beautifulFilter) {
+        params.is_beautiful_number = beautifulFilter;
+      }
+
       setSearchParams(params);
     } catch (error) {
       console.error("Lỗi khi gọi API:", error);
@@ -335,7 +357,13 @@ function PhoneNumbers() {
       return;
     }
     setOffset(0);
-  }, [debouncedSearch, searchProvider, searchTypeNumber, searchBrandname]);
+  }, [
+    debouncedSearch,
+    searchProvider,
+    searchTypeNumber,
+    searchBrandname,
+    isBeautifulNumber,
+  ]);
 
   useEffect(() => {
     fetchData(
@@ -346,6 +374,7 @@ function PhoneNumbers() {
       searchProvider,
       searchTypeNumber,
       searchBrandname,
+      isBeautifulNumber,
     ); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     quantity,
@@ -355,6 +384,7 @@ function PhoneNumbers() {
     searchProvider,
     searchTypeNumber,
     searchBrandname,
+    isBeautifulNumber,
   ]);
 
   const handleGetById = async (id: number) => {
@@ -408,6 +438,7 @@ function PhoneNumbers() {
             searchProvider,
             searchTypeNumber,
             searchBrandname,
+            isBeautifulNumber,
           );
         }
       }
@@ -516,6 +547,7 @@ function PhoneNumbers() {
               searchProvider,
               searchTypeNumber,
               searchBrandname,
+              isBeautifulNumber,
             );
             setSearchParams({});
           });
@@ -540,6 +572,7 @@ function PhoneNumbers() {
         searchProvider,
         searchTypeNumber,
         searchBrandname,
+        isBeautifulNumber,
       );
     }
   };
@@ -704,6 +737,10 @@ function PhoneNumbers() {
       { label: "Trạng thái", value: item.status ?? "N/A" },
       { label: "Nhà cung cấp", value: item.provider_name ?? "N/A" },
       { label: "Loại số", value: item.type_name ?? "N/A" },
+      {
+        label: "Số đẹp",
+        value: String((item as any).is_beautiful_number ?? "Không"),
+      },
     ]);
   };
 
@@ -853,6 +890,20 @@ function PhoneNumbers() {
                       }}
                     />
                   </div>
+                  <div>
+                    <Label>Số đẹp</Label>
+                    <Select
+                      options={[
+                        { label: "Tất cả", value: "" },
+                        { label: "Có", value: "true" },
+                        { label: "Không", value: "false" },
+                      ]}
+                      placeholder="Lọc số đẹp"
+                      value={isBeautifulNumber}
+                      onChange={setIsBeautifulNumber}
+                      className="dark:bg-dark-900"
+                    />
+                  </div>
 
                   <div className="flex items-center gap-2">
                     <Select
@@ -988,6 +1039,7 @@ function PhoneNumbers() {
                     searchProvider,
                     searchTypeNumber,
                     searchBrandname,
+                    isBeautifulNumber,
                   )
                 }
                 isOpen={openModal}

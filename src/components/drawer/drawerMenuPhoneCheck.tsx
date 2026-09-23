@@ -341,6 +341,7 @@ export default function DrawerMenuPhoneCheck({
                         <th className="px-3 py-2 font-medium">Nhà mạng</th>
                         <th className="px-3 py-2 font-medium">Loại</th>
                         <th className="px-3 py-2 font-medium">Định danh</th>
+                        <th className="px-3 py-2 font-medium">Số đẹp</th>
                         <th className="px-3 py-2 font-medium">Trạng thái</th>
                         <th className="px-3 py-2 font-medium">Hành động</th>
                       </tr>
@@ -362,6 +363,10 @@ export default function DrawerMenuPhoneCheck({
                           </td>
                           <td className="px-3 py-2">
                             {record.brandname_name || "Chưa có"}
+                          </td>
+
+                          <td className="px-3 py-2">
+                            {record.is_beautiful_number ? "Có" : "Không"}
                           </td>
 
                           <td className="px-3 py-2">
@@ -520,6 +525,16 @@ export default function DrawerMenuPhoneCheck({
                         {
                           label: "Loại số",
                           value: selectedRecord.type_number_name,
+                        },
+                        {
+                          label: "Định danh",
+                          value: selectedRecord.brandname_name || "Chưa có",
+                        },
+                        {
+                          label: "Số đẹp",
+                          value: selectedRecord.is_beautiful_number
+                            ? "Có"
+                            : "Không",
                         },
                         {
                           label: "Số chuyển tiếp",

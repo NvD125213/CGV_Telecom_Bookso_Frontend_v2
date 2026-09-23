@@ -3,6 +3,7 @@ import Button from "../../components/ui/button/Button";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
 import TextArea from "../../components/form/input/TextArea";
+import Switch from "../../components/form/switch/Switch";
 import { useState, useRef, useEffect } from "react";
 import { useScreenSize } from "../../hooks/useScreenSize";
 import AutocompleteMultiple, {
@@ -39,6 +40,7 @@ interface Field {
   disabled?: boolean;
   error?: string;
   selected?: string;
+  freeSolo?: boolean;
 }
 
 interface CustomModalProps {
@@ -326,6 +328,13 @@ const CustomModal: React.FC<CustomModalProps> = ({
                       field={field}
                       disabled={disabledAll || Boolean(field.disabled)}
                     />
+                  ) : field.type === "switch" ? (
+                    <Switch
+                      label={Boolean(field.value) ? "Có" : "Không"}
+                      checked={Boolean(field.value)}
+                      disabled={disabledAll || Boolean(field.disabled)}
+                      onChange={(checked) => field.onChange(checked)}
+                    />
                   ) : field.type === "autocomplete" && field.options ? (
                     <AutocompleteMultiple
                       value={field.value as AutocompleteOption[]}
@@ -333,6 +342,8 @@ const CustomModal: React.FC<CustomModalProps> = ({
                       options={(field.options as AutocompleteOption[]) || []}
                       placeholder={field.placeholder}
                       fetchOptions={field.fetchOptions}
+                      freeSolo={field.freeSolo}
+                      disabled={disabledAll || Boolean(field.disabled)}
                     />
                   ) : (
                     <Input

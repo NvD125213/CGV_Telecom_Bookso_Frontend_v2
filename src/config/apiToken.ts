@@ -1,6 +1,11 @@
 import axios from "axios";
 import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
+import {
+  API_BASE_URL,
+  DEV_ACCESS_TOKEN,
+  IS_DEV_MODE,
+} from "./env";
 
 interface JWTPayload {
   exp?: number;
@@ -26,8 +31,18 @@ function decodeToken(token: string): JWTPayload | null {
   }
 }
 
+/** Lấy access token: DEV dùng VITE_TOKEN_ACCESS, prod dùng cookie. */
+export function getAccessToken(): string | null {
+  if (IS_DEV_MODE) {
+    return DEV_ACCESS_TOKEN || Cookies.get("token") || null;
+  }
+  return Cookies.get("token") || null;
+}
+
 /** Refresh token còn dùng được để gọi API làm mới access token. */
 function canAttemptTokenRefresh(): boolean {
+  if (IS_DEV_MODE) return false;
+
   const refreshToken = Cookies.get("refreshToken");
   if (!refreshToken) return false;
 
@@ -40,6 +55,9 @@ function canAttemptTokenRefresh(): boolean {
 }
 
 function logoutAndRedirect() {
+  // Dev mode: không đá về /signin
+  if (IS_DEV_MODE) return;
+
   Cookies.remove("token");
   Cookies.remove("refreshToken");
   Cookies.remove("user");
@@ -48,7 +66,7 @@ function logoutAndRedirect() {
 }
 
 const axiosInstance = axios.create({
-  baseURL: "https://bookso.cgvtelecom.vn:8000/",
+  baseURL: `${API_BASE_URL}/`,
 });
 
 let isAlertShown = false;
@@ -56,7 +74,7 @@ let isAlertShown = false;
 // Request Interceptor (chỉ gắn access token)
 axiosInstance.interceptors.request.use(
   async (config) => {
-    const token = Cookies.get("token");
+    const token = getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -71,6 +89,11 @@ axiosInstance.interceptors.response.use(
   (res) => res,
   async (err) => {
     const originalRequest = err.config;
+
+    // Dev mode: bỏ refresh / logout, trả lỗi thẳng
+    if (IS_DEV_MODE) {
+      return Promise.reject(err);
+    }
 
     if (err.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
@@ -89,7 +112,7 @@ axiosInstance.interceptors.response.use(
 
       try {
         const res = await axios.get(
-          "https://bookso.cgvtelecom.vn:8000/api/v1/auth/access_token_by_refresh_token",
+          `${API_BASE_URL}/api/v1/auth/access_token_by_refresh_token`,
           {
             headers: { Authorization: `Bearer ${refreshToken}` },
           },

@@ -11,6 +11,7 @@ export const initialPhoneNumber: IPhoneNumber = {
   installation_fee: 0,
   maintenance_fee: 0,
   vanity_number_fee: 0,
+  is_beautiful_number: false,
   provider_name: "",
   type_name: "",
   booked_until: "",
@@ -33,6 +34,7 @@ export interface IRandomNumber {
   provider_id: number;
   quantity_book: number;
   brandname_id?: number;
+  is_beautiful_number?: boolean;
 }
 
 export interface IParamsListCheckPhoneNumber {
@@ -94,6 +96,7 @@ export const bookingPhoneForOption = async ({
   provider,
   type_number,
   brandname,
+  is_beautiful_number,
 }: {
   quantity: number;
   status: string;
@@ -102,6 +105,7 @@ export const bookingPhoneForOption = async ({
   provider?: string;
   type_number?: string;
   brandname?: string;
+  is_beautiful_number?: boolean;
 }) => {
   const params = new URLSearchParams();
   params.append("quantity", quantity.toString());
@@ -120,6 +124,9 @@ export const bookingPhoneForOption = async ({
   if (brandname) {
     params.append("brandname", brandname);
   }
+  if (typeof is_beautiful_number === "boolean") {
+    params.append("is_beautiful_number", String(is_beautiful_number));
+  }
 
   const res = await instance.get(
     `/api/v2/booking/booking-phone-number-for-option?${params.toString()}`,
@@ -134,6 +141,7 @@ export const bookingPhone = async ({
   telco,
   search,
   brandname,
+  is_beautiful_number,
   signal,
 }: {
   offset: number;
@@ -142,6 +150,7 @@ export const bookingPhone = async ({
   search: string;
   type_number: string;
   brandname?: string;
+  is_beautiful_number?: boolean;
   signal?: AbortSignal;
 }) => {
   const params = new URLSearchParams({
@@ -153,6 +162,9 @@ export const bookingPhone = async ({
   });
   if (brandname) {
     params.append("brandname", brandname);
+  }
+  if (typeof is_beautiful_number === "boolean") {
+    params.append("is_beautiful_number", String(is_beautiful_number));
   }
   const res = await instance.get(
     `/api/v2/booking/booking-phone-number?${params.toString()}`,

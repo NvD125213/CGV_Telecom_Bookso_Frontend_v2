@@ -18,12 +18,14 @@ export interface IBookRandom {
   provider_id: number;
   type_id: number;
   brandname_id?: number;
+  is_beautiful_number?: boolean;
 }
 
 const initialBookRandom: IBookRandom = {
   quantity: 1,
   provider_id: 0,
   type_id: 0,
+  is_beautiful_number: false,
 };
 
 interface PhoneNumberProps {
@@ -52,7 +54,10 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
     }
   }, [isOpen]);
 
-  const setValue = (name: keyof IBookRandom, value: string | number) => {
+  const setValue = (
+    name: keyof IBookRandom,
+    value: string | number | boolean,
+  ) => {
     setListNumber((prev) => ({
       ...prev,
       [name]: value,
@@ -110,6 +115,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
         type_number_id: data.type_id,
         provider_id: data.provider_id,
         quantity_book: data.quantity,
+        is_beautiful_number: Boolean(data.is_beautiful_number),
         ...(data.brandname_id ? { brandname_id: data.brandname_id } : {}),
       });
 
@@ -274,6 +280,15 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                 setValue("brandname_id", Number(single[0].value));
               },
               error: errors.brandname_id,
+            },
+            {
+              name: "is_beautiful_number",
+              label: "Số đẹp",
+              type: "switch",
+              value: Boolean(listNumber.is_beautiful_number),
+              onChange: (value) =>
+                setValue("is_beautiful_number", Boolean(value)),
+              error: errors.is_beautiful_number,
             },
           ]}
           onClose={onCloseModal}

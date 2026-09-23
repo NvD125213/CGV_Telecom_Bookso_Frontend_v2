@@ -3,6 +3,7 @@ import { signIn, saveTokens } from "../services/auth";
 import { jwtDecode } from "jwt-decode";
 import Cookies from "js-cookie";
 import { COOKIE_OPTIONS } from "../config/apiToken";
+import { DEV_ACCESS_TOKEN, IS_DEV_MODE } from "../config/env";
 
 interface AuthState {
   token: string | null;
@@ -12,13 +13,37 @@ interface AuthState {
   error: string | null;
 }
 
-const initialState: AuthState = {
-  token: Cookies.get("token") || null,
-  refreshToken: Cookies.get("refreshToken") || null,
-  user: Cookies.get("user") ? JSON.parse(Cookies.get("user")!) : null,
-  isLoading: false,
-  error: null,
-};
+/** Dev mode: inject VITE_TOKEN_ACCESS, bỏ bước đăng nhập. */
+function buildInitialAuthState(): AuthState {
+  if (IS_DEV_MODE && DEV_ACCESS_TOKEN) {
+    let user: any = null;
+    try {
+      user = jwtDecode(DEV_ACCESS_TOKEN);
+      Cookies.set("token", DEV_ACCESS_TOKEN, COOKIE_OPTIONS);
+      Cookies.set("user", JSON.stringify(user), COOKIE_OPTIONS);
+    } catch (err) {
+      console.error("[DEV] Không decode được VITE_TOKEN_ACCESS:", err);
+    }
+
+    return {
+      token: DEV_ACCESS_TOKEN,
+      refreshToken: null,
+      user,
+      isLoading: false,
+      error: null,
+    };
+  }
+
+  return {
+    token: Cookies.get("token") || null,
+    refreshToken: Cookies.get("refreshToken") || null,
+    user: Cookies.get("user") ? JSON.parse(Cookies.get("user")!) : null,
+    isLoading: false,
+    error: null,
+  };
+}
+
+const initialState: AuthState = buildInitialAuthState();
 
 /** Kết quả login: hoặc vào thẳng hệ thống, hoặc phải qua bước 2FA. */
 export type LoginResult =
@@ -73,6 +98,18 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     logout: (state) => {
+      // Dev mode: giữ token env, không clear / không đá về login
+      if (IS_DEV_MODE && DEV_ACCESS_TOKEN) {
+        state.token = DEV_ACCESS_TOKEN;
+        try {
+          state.user = jwtDecode(DEV_ACCESS_TOKEN);
+        } catch {
+          state.user = null;
+        }
+        state.refreshToken = null;
+        return;
+      }
+
       state.token = null;
       state.user = null;
       state.refreshToken = null;

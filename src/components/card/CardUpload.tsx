@@ -23,6 +23,7 @@ export type UploadPhoneRecord = {
   forward_number: string | null;
   length: number;
   is_valid_candidate: boolean;
+  is_beautiful_number?: boolean;
   validation_errors: string[];
   index: number;
   provider_id: number;

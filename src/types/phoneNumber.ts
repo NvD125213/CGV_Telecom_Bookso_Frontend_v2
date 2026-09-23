@@ -13,6 +13,8 @@ export interface IPhoneNumber {
   installation_fee?: number;
   maintenance_fee?: number;
   vanity_number_fee?: number;
+  /** Đánh dấu số đẹp */
+  is_beautiful_number?: boolean;
   provider_name?: string;
   brandname_id?: number;
   brandname_name?: string;

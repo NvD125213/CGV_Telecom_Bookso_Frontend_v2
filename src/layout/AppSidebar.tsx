@@ -30,6 +30,7 @@ import { MdOutlineStarBorder } from "react-icons/md";
 import { IoIosAddCircleOutline } from "react-icons/io";
 import { CiSettings } from "react-icons/ci";
 import { CiShoppingTag } from "react-icons/ci";
+import { MdOutlinePhonelinkSetup } from "react-icons/md";
 
 type NavItem = {
   name: string;
@@ -55,6 +56,11 @@ const navItems: NavItem[] = [
     icon: <BsPhone />,
     name: "Định dạng số",
     path: "/type-numbers",
+  },
+  {
+    icon: <MdOutlinePhonelinkSetup />,
+    name: "Định dạng – nhà mạng",
+    path: "/type-number-telcos",
   },
   {
     icon: <CiShoppingTag />,
@@ -227,6 +233,7 @@ const AppSidebar: React.FC = () => {
             user?.role !== 1 &&
             (item.path === "/providers" ||
               item.path === "/type-numbers" ||
+              item.path === "/type-number-telcos" ||
               item.path === "/brand-names" ||
               item.path == "/time-online" ||
               item.path == "/logs" ||

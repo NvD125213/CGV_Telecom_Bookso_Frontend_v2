@@ -1,11 +1,12 @@
 import axios from "axios";
-import Cookies from "js-cookie";
 import {
   startAuthentication,
   startRegistration,
   browserSupportsWebAuthn,
   platformAuthenticatorIsAvailable,
 } from "@simplewebauthn/browser";
+import { API_BASE_URL } from "../config/env";
+import { getAccessToken } from "../config/apiToken";
 
 /**
  * Instance riêng cho các API 2FA.
@@ -15,11 +16,11 @@ import {
  * sai mã khôi phục, mfa_token hết hạn) và không được phép làm người dùng bị đăng xuất.
  */
 export const twoFactorApi = axios.create({
-  baseURL: "https://bookso.cgvtelecom.vn:8000/",
+  baseURL: `${API_BASE_URL}/`,
 });
 
 twoFactorApi.interceptors.request.use((config) => {
-  const token = Cookies.get("token");
+  const token = getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

@@ -12,4 +12,6 @@ export const users = [
   "VANLTT",
   "LIEMPV",
   "PHUONGDM",
+  "DUCNV",
+  "MANHNX",
 ];

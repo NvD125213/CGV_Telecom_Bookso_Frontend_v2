@@ -43,8 +43,11 @@ const PhoneNumberModal: React.FC<PhoneNumberProps> = ({
       setSelectedBrand([]);
     }
   }, [isOpen]);
-  const setValue = (name: keyof IPhoneNumber, value: string | number) => {
-    let finalValue: string | number = value;
+  const setValue = (
+    name: keyof IPhoneNumber,
+    value: string | number | boolean,
+  ) => {
+    let finalValue: string | number | boolean = value;
     if (
       ["installation_fee", "maintenance_fee", "vanity_number_fee"].includes(
         name,
@@ -120,6 +123,7 @@ const PhoneNumberModal: React.FC<PhoneNumberProps> = ({
       installation_fee: data.installation_fee,
       maintenance_fee: data.maintenance_fee,
       vanity_number_fee: data.vanity_number_fee,
+      is_beautiful_number: Boolean(data.is_beautiful_number),
       ...(data.brandname_id != null
         ? { brandname_id: Number(data.brandname_id) }
         : {}),
@@ -255,6 +259,14 @@ const PhoneNumberModal: React.FC<PhoneNumberProps> = ({
           value: formatNumber(phone.vanity_number_fee?.toString() || "0"), // Giá trị định dạng
           onChange: (value) => setValue("vanity_number_fee", value as any),
           error: errors.vanity_number_fee,
+        },
+        {
+          name: "is_beautiful_number",
+          label: "Số đẹp",
+          type: "switch",
+          value: Boolean(phone.is_beautiful_number),
+          onChange: (value) => setValue("is_beautiful_number", Boolean(value)),
+          error: errors.is_beautiful_number,
         },
       ]}
       onClose={onCloseModal}

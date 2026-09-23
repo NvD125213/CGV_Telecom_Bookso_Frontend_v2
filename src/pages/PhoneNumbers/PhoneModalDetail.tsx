@@ -34,7 +34,10 @@ const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
   // Chỉ cần 1 useEffect để set dữ liệu ban đầu
   useEffect(() => {
     if (data) {
-      setPhone(data);
+      setPhone({
+        ...data,
+        is_beautiful_number: Boolean(data.is_beautiful_number),
+      });
     } else {
       setPhone(initialPhoneNumber);
     }
@@ -55,8 +58,11 @@ const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
 
   const brandNames = brandNameListData?.items ?? [];
 
-  const setValue = (name: keyof IPhoneNumber, value: string | number) => {
-    let finalValue: string | number = value;
+  const setValue = (
+    name: keyof IPhoneNumber,
+    value: string | number | boolean,
+  ) => {
+    let finalValue: string | number | boolean = value;
     if (
       ["installation_fee", "maintenance_fee", "vanity_number_fee"].includes(
         name,
@@ -118,7 +124,11 @@ const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
 
   const handleSubmit = async () => {
     try {
-      const res = await updatePhone(Number(phone.phone_number_id), phone);
+      const payload = {
+        ...phone,
+        is_beautiful_number: Boolean(phone.is_beautiful_number),
+      };
+      const res = await updatePhone(Number(phone.phone_number_id), payload);
       if (res?.status === 200) {
         Swal.fire("Cập nhật thành công!", "", "success");
         onCloseModal();
@@ -243,6 +253,14 @@ const PhoneModalDetail: React.FC<PhoneNumberProps> = ({
           value: formatNumber(phone.vanity_number_fee?.toString() || "0"),
           onChange: (value) => setValue("vanity_number_fee", value as any),
           error: errors.vanity_number_fee,
+        },
+        {
+          name: "is_beautiful_number",
+          label: "Số đẹp",
+          type: "switch",
+          value: Boolean(phone.is_beautiful_number),
+          onChange: (value) => setValue("is_beautiful_number", Boolean(value)),
+          error: errors.is_beautiful_number,
         },
       ]}
       onClose={onCloseModal}
