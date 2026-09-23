@@ -764,6 +764,12 @@ export default function ListCheckFileUpload() {
                   lên server.
                 </p>
               </div>
+              <a
+                href="/files/file_upload_new_ver.xlsx"
+                download="file_upload_new_ver.xlsx"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/50">
+                Tải file mẫu Excel
+              </a>
             </div>
 
             <div className="mt-6 space-y-4">

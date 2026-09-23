@@ -94,32 +94,32 @@ const ListDataTable = () => {
         { key: "primary", label: "Định dạng số" },
         {
           key: "items",
-          label: "Nhà mạng",
+          label: "Telco",
           render: (item: TypeNumberTelcoMapRow) => ({
             text: <BadgeList items={item.items} />,
           }),
         },
         { key: "count", label: "Số nhà mạng" },
-        {
-          key: "action",
-          label: "Hành động",
-          render: (item: TypeNumberTelcoMapRow) => ({
-            text: (
-              <button
-                type="button"
-                onClick={() => handleOpenReplace(item)}
-                className="inline-flex items-center gap-1.5 rounded-full bg-indigo-500 px-3 py-1.5 text-xs font-medium text-white transition hover:brightness-110">
-                <MdOutlineSyncAlt className="h-4 w-4" />
-                Thay đổi
-              </button>
-            ),
-          }),
-        },
+        // {
+        //   key: "action",
+        //   label: "Hành động",
+        //   render: (item: TypeNumberTelcoMapRow) => ({
+        //     text: (
+        //       <button
+        //         type="button"
+        //         onClick={() => handleOpenReplace(item)}
+        //         className="inline-flex items-center gap-1.5 rounded-full bg-indigo-500 px-3 py-1.5 text-xs font-medium text-white transition hover:brightness-110">
+        //         <MdOutlineSyncAlt className="h-4 w-4" />
+        //         Thay đổi
+        //       </button>
+        //     ),
+        //   }),
+        // },
       ];
     }
 
     return [
-      { key: "primary", label: "Nhà mạng" },
+      { key: "primary", label: "Telco" },
       {
         key: "items",
         label: "Định dạng số",
@@ -132,14 +132,14 @@ const ListDataTable = () => {
   }, [viewMode]);
 
   const errorData = isError
-    ? (error as Error)?.message || "Không thể tải map định dạng – nhà mạng"
+    ? (error as Error)?.message || "Không thể tải map định dạng – Telco"
     : rows.length === 0 && !isLoading && !isFetching
       ? "Không có dữ liệu"
       : "";
 
   return (
     <>
-      <PageBreadcrumb pageTitle="Định dạng – nhà mạng" />
+      <PageBreadcrumb pageTitle="Định dạng – Telco" />
 
       <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-wrap gap-2">
@@ -161,17 +161,17 @@ const ListDataTable = () => {
                 ? "border-brand-500 bg-brand-500 text-white"
                 : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]"
             }`}>
-            Theo nhà mạng
+            Theo Telco
           </button>
         </div>
 
-        <button
+        {/* <button
           type="button"
           onClick={() => setOpenCreateModal(true)}
           className="flex shrink-0 items-center gap-2 self-end rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
           <IoIosAdd size={24} />
           Gán nhà mạng
-        </button>
+        </button> */}
       </div>
 
       <ComponentCard>
