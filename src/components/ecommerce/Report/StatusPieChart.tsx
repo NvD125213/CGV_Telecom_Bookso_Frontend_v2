@@ -46,7 +46,7 @@ const CustomLegend = (props: {
   );
 };
 
-const COLORS = ["#0088FE", "#FFBB28", "#00C49F"];
+const COLORS = ["#0088FE", "#FFBB28", "#00c448"];
 
 const getColumns = (status: string) => {
   const baseColumns: { key: keyof IReportDetail; label: string }[] = [
@@ -77,6 +77,7 @@ const getColumns = (status: string) => {
 const NumberStatusPieChart = () => {
   const [data, setData] = useState([
     { name: "Đã Book", value: 0, detail: "booked" },
+    { name: "Chờ triển khai", value: 0, detail: "deploy_pending" },
     { name: "Đã Triển Khai", value: 0, detail: "released" },
   ]);
   const [selectedEntry, setSelectedEntry] = useState<{
@@ -147,6 +148,14 @@ const NumberStatusPieChart = () => {
           name: "Đã Book",
           value: response?.data?.booked || 0,
           detail: "booked",
+        },
+        {
+          name: "Chờ triển khai",
+          value:
+            response?.data?.deploy_pending ??
+            response?.data?.pending_deploy ??
+            0,
+          detail: "deploy_pending",
         },
         {
           name: "Đã Triển Khai",
@@ -387,7 +396,7 @@ const NumberStatusPieChart = () => {
         onClose={() => setIsModalOpen(false)}
         currentPage={0}
         pageSize={5}
-        {...(selectedEntry?.detail !== "released"
+        {...(selectedEntry?.detail === "booked"
           ? { selectedIds, setSelectedIds }
           : {})}
       />

@@ -3,19 +3,28 @@ import { formatDate } from "../helper/formatDateToISOString";
 /** @deprecated Dùng `IBrandNameListParams` */
 export type IHistoryBookedParams = IBrandNameListParams;
 
+export interface IBrandNameCustomer {
+  customer_id: number;
+  customer_name: string;
+}
+
 export interface IBrandNameListParams {
   page: number;
   size: number;
   search?: string;
   sale_name?: string;
+  /** Lọc brandname đã map customer_id này */
+  customer_id?: number;
   is_active?: boolean;
   order_by?: string;
   order_dir?: string;
 }
+
 export interface IBrandName {
   id: number;
   name: string;
   sale_names: string[];
+  customers: IBrandNameCustomer[];
   description: string;
   is_active: boolean;
   created_by: string;
@@ -29,6 +38,7 @@ export const newBrandName: IBrandName = {
   id: 0,
   name: "",
   sale_names: [],
+  customers: [],
   description: "",
   is_active: true,
   created_by: "",
@@ -41,7 +51,9 @@ export const newBrandName: IBrandName = {
 export interface ICreateBrandName {
   name: string;
   sale_names: string[];
+  customers?: IBrandNameCustomer[];
   description: string;
+  is_active?: boolean;
   expired_at?: string;
 }
 
@@ -64,6 +76,22 @@ export interface IBrandNameListResult {
   meta: IBrandNameListMeta;
 }
 
+const normalizeCustomers = (raw: unknown): IBrandNameCustomer[] => {
+  if (!Array.isArray(raw)) return [];
+  const map = new Map<number, IBrandNameCustomer>();
+  raw.forEach((item) => {
+    if (!item || typeof item !== "object") return;
+    const row = item as Record<string, unknown>;
+    const customerId = Number(row.customer_id ?? row.id ?? 0);
+    if (!customerId) return;
+    map.set(customerId, {
+      customer_id: customerId,
+      customer_name: String(row.customer_name ?? row.name ?? "").trim(),
+    });
+  });
+  return Array.from(map.values());
+};
+
 const normalizeBrandNameItem = (raw: Record<string, unknown>): IBrandName => {
   let saleNames: string[] = [];
   if (Array.isArray(raw.sale_names)) {
@@ -81,6 +109,7 @@ const normalizeBrandNameItem = (raw: Record<string, unknown>): IBrandName => {
     id: Number(raw.id ?? 0),
     name: String(raw.name ?? ""),
     sale_names: saleNames,
+    customers: normalizeCustomers(raw.customers),
     description: String(raw.description ?? ""),
     is_active: raw.is_active !== false && raw.is_active !== "false",
     created_by: String(raw.created_by ?? ""),
@@ -131,5 +160,27 @@ export const parseBrandNameListResponse = (
 export const formatSaleNames = (saleNames?: string[]) =>
   saleNames?.length ? saleNames.join(", ") : "-";
 
+export const formatBrandNameCustomers = (customers?: IBrandNameCustomer[]) =>
+  customers?.length
+    ? customers
+        .map((c) => c.customer_name?.trim() || `#${c.customer_id}`)
+        .join(", ")
+    : "-";
+
 export const formatBrandNameDateTime = (value?: string) =>
   value?.trim() ? formatDate(value) : "-";
+
+export const normalizeBrandNameCustomerIds = (
+  customers?: IBrandNameCustomer[],
+) =>
+  [...(customers ?? [])]
+    .map((c) => Number(c.customer_id))
+    .filter((id) => id > 0)
+    .sort((a, b) => a - b);
+
+export const brandNameCustomersEqual = (
+  a?: IBrandNameCustomer[],
+  b?: IBrandNameCustomer[],
+) =>
+  JSON.stringify(normalizeBrandNameCustomerIds(a)) ===
+  JSON.stringify(normalizeBrandNameCustomerIds(b));

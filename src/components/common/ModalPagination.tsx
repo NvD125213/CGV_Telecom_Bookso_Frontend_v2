@@ -503,6 +503,9 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
         return "uppercase text-[10px] border border-green-500 rounded-full py-1 text-center shadow-sm dark:shadow-green-400/40 bg-green-100 dark:bg-green-500/40 backdrop-blur-sm dark:border-green-400 text-green-500";
       case "booked":
         return "uppercase text-[10px] border border-yellow-500 rounded-full py-1 text-center shadow-sm dark:shadow-yellow-400/40 bg-yellow-100 dark:bg-yellow-500/40 backdrop-blur-sm dark:border-yellow-400 text-yellow-500";
+      case "deploy_pending":
+      case "pending_deploy":
+        return "uppercase text-[10px] border border-blue-500 rounded-full py-1 text-center shadow-sm dark:shadow-blue-400/40 bg-blue-100 dark:bg-blue-500/40 backdrop-blur-sm dark:border-blue-400 text-blue-500";
       case "released":
         return "uppercase text-[10px] border border-red-500 rounded-full py-1 text-center shadow-sm dark:shadow-red-400/40 bg-red-100 dark:bg-red-500/40 backdrop-blur-sm dark:border-red-400 text-red-500";
       default:

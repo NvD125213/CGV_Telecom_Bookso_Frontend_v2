@@ -41,6 +41,7 @@ import { OrderActionPage } from "./pages/Order/OrderAction/OrderAction.tsx";
 import SettingOrder from "./pages/Order/SettingOrder.tsx";
 import LogDetail from "./pages/Logs/LogDetail";
 import ListCheckFileUpload from "./pages/PhoneNumbers/ListCheckFileUpload.tsx";
+import ListDeployOrderPage from "./pages/ServiceManagementPages/DeployOrderPage/ListDeployOrderPage";
 
 function AppWithInactivityHandler() {
   const { resetInactivityTimer } = useAuth();
@@ -114,6 +115,10 @@ function AppWithInactivityHandler() {
             element={<SubcriptionActionPage />}
           />
           <Route path="/setting-order" element={<SettingOrder />} />
+          <Route
+            path="/service-management/deploy-order"
+            element={<ListDeployOrderPage />}
+          />
         </Route>
       </Route>
       <Route path="*" element={<NotFound />} />

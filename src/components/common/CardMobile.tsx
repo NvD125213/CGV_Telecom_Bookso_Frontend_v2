@@ -46,6 +46,9 @@ interface ActionButton {
   onClick: (data: InfoObject | LabelValueItem[]) => void;
   color?: "primary" | "secondary" | "error" | "warning" | "info" | "success";
   className?: string;
+  disabled?:
+    | boolean
+    | ((data: InfoObject | LabelValueItem[]) => boolean);
 }
 
 interface CardMobileProps {
@@ -329,20 +332,35 @@ const CardMobile: React.FC<CardMobileProps> = ({
                     </span>
                   </div>
                 )}
-                {allActions.map((action, index) => (
-                  <Tooltip key={index} title={action.label} arrow>
-                    <button
-                      onClick={() => action.onClick(data)}
-                      className={`${tailwindStyles.actionButton} ${
-                        actionButtonClassName || ""
-                      } ${action.className || ""} ${getActionButtonStyle(
-                        action.color,
-                        theme,
-                      )}`}>
-                      {action.icon}
-                    </button>
-                  </Tooltip>
-                ))}
+                {allActions.map((action, index) => {
+                  const isDisabled =
+                    typeof action.disabled === "function"
+                      ? action.disabled(data)
+                      : Boolean(action.disabled);
+                  return (
+                    <Tooltip key={index} title={action.label} arrow>
+                      <button
+                        type="button"
+                        disabled={isDisabled}
+                        onClick={() => {
+                          if (isDisabled) return;
+                          action.onClick(data);
+                        }}
+                        className={`${tailwindStyles.actionButton} ${
+                          actionButtonClassName || ""
+                        } ${action.className || ""} ${getActionButtonStyle(
+                          action.color,
+                          theme,
+                        )} ${
+                          isDisabled
+                            ? "opacity-40 cursor-not-allowed pointer-events-none"
+                            : ""
+                        }`}>
+                        {action.icon}
+                      </button>
+                    </Tooltip>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -499,45 +517,58 @@ const CardMobile: React.FC<CardMobileProps> = ({
                     gap: 0.5,
                     flexWrap: "wrap",
                   }}>
-                  {allActions.map((action, index) => (
-                    <Tooltip key={index} title={action.label} arrow>
-                      <IconButton
-                        size="small"
-                        onClick={() => action.onClick(data)}
-                        className={`${actionButtonClassName || ""} ${
-                          action.className || ""
-                        }`}
-                        sx={{
-                          minWidth: 32,
-                          height: 32,
-                          color: getActionColor(action.color, theme),
-                          backgroundColor: getActionBackground(
-                            action.color,
-                            theme,
-                          ),
-                          border: `1px solid ${getActionBorder(
-                            action.color,
-                            theme,
-                          )}`,
-                          borderRadius: 1.5,
-                          transition: "all 0.2s ease",
-                          "&:hover": {
-                            backgroundColor: getActionHoverBackground(
-                              action.color,
-                              theme,
-                            ),
-                            borderColor: getActionHoverBorder(
-                              action.color,
-                              theme,
-                            ),
-                            transform: "scale(1.05)",
-                          },
-                          "& .MuiSvgIcon-root": { fontSize: "1.1rem" },
-                        }}>
-                        {action.icon}
-                      </IconButton>
-                    </Tooltip>
-                  ))}
+                  {allActions.map((action, index) => {
+                    const isDisabled =
+                      typeof action.disabled === "function"
+                        ? action.disabled(data)
+                        : Boolean(action.disabled);
+                    return (
+                      <Tooltip key={index} title={action.label} arrow>
+                        <span>
+                          <IconButton
+                            size="small"
+                            disabled={isDisabled}
+                            onClick={() => {
+                              if (isDisabled) return;
+                              action.onClick(data);
+                            }}
+                            className={`${actionButtonClassName || ""} ${
+                              action.className || ""
+                            }`}
+                            sx={{
+                              minWidth: 32,
+                              height: 32,
+                              color: getActionColor(action.color, theme),
+                              backgroundColor: getActionBackground(
+                                action.color,
+                                theme,
+                              ),
+                              border: `1px solid ${getActionBorder(
+                                action.color,
+                                theme,
+                              )}`,
+                              borderRadius: 1.5,
+                              transition: "all 0.2s ease",
+                              opacity: isDisabled ? 0.4 : 1,
+                              "&:hover": {
+                                backgroundColor: getActionHoverBackground(
+                                  action.color,
+                                  theme,
+                                ),
+                                borderColor: getActionHoverBorder(
+                                  action.color,
+                                  theme,
+                                ),
+                                transform: isDisabled ? "none" : "scale(1.05)",
+                              },
+                              "& .MuiSvgIcon-root": { fontSize: "1.1rem" },
+                            }}>
+                            {action.icon}
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    );
+                  })}
                 </Box>
               )}
             </Box>

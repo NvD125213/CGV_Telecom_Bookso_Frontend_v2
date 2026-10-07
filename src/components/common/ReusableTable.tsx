@@ -22,6 +22,7 @@ import {
 } from "../../store/selectedPhoneSlice";
 import { IoEyeOutline } from "react-icons/io5";
 import { GiConfirmed } from "react-icons/gi";
+import { MdOutlineCancel } from "react-icons/md";
 
 interface Action<T> {
   icon?: React.ReactNode;
@@ -49,6 +50,9 @@ interface Props<T> {
   onDelete?: (id: string | number) => void;
   onDetail?: (item: T) => void;
   onConfirm?: (item: any) => void;
+  onReject?: (item: any) => void;
+  canConfirm?: (item: T) => boolean;
+  canReject?: (item: T) => boolean;
   actions?: Action<T>[];
   onCheck?: (selectedIds: (string | number)[], selectedRows: T[]) => void;
   selectedIds?: (string | number)[];
@@ -73,6 +77,9 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
   onDelete,
   onDetail,
   onConfirm,
+  onReject,
+  canConfirm,
+  canReject,
   actions = [],
   onCheck,
   isLoading = false,
@@ -89,7 +96,13 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
   const [dropdownOpenId, setDropdownOpenId] = useState<string | number | null>(
     null,
   );
-  const hasActionColumn = onEdit || onDelete || onDetail || actions.length > 0;
+  const hasActionColumn =
+    onEdit ||
+    onDelete ||
+    onDetail ||
+    onConfirm ||
+    onReject ||
+    actions.length > 0;
 
   const handleSelectAll = () => {
     if (disabled) return; // Simply return if disabled
@@ -377,9 +390,26 @@ const ReusableTable = <T extends { id: string | number; [key: string]: any }>({
                               )}
                               {onConfirm && (
                                 <button
+                                  type="button"
                                   onClick={() => onConfirm(item)}
-                                  className="bg-blue-400 text-white px-3 py-2 rounded-full text-sm hover:brightness-110 transition-all duration-200 flex items-center gap-2">
+                                  disabled={
+                                    canConfirm ? !canConfirm(item) : false
+                                  }
+                                  className="bg-emerald-500 text-white px-3 py-2 rounded-full text-sm transition-all duration-200 flex items-center gap-2 hover:brightness-110 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:opacity-60 disabled:hover:brightness-100 dark:disabled:bg-gray-700 dark:disabled:text-gray-400"
+                                  title="Xác nhận">
                                   <GiConfirmed />
+                                </button>
+                              )}
+                              {onReject && (
+                                <button
+                                  type="button"
+                                  onClick={() => onReject(item)}
+                                  disabled={
+                                    canReject ? !canReject(item) : false
+                                  }
+                                  className="bg-red-500 text-white px-3 py-2 rounded-full text-sm transition-all duration-200 flex items-center gap-2 hover:brightness-110 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:opacity-60 disabled:hover:brightness-100 dark:disabled:bg-gray-700 dark:disabled:text-gray-400"
+                                  title="Từ chối">
+                                  <MdOutlineCancel />
                                 </button>
                               )}
                               {actions.length > 0 && (

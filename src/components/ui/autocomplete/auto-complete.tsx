@@ -1,4 +1,11 @@
-import { useState, useRef, useEffect, KeyboardEvent } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  KeyboardEvent,
+} from "react";
+import { createPortal } from "react-dom";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 
 export interface Option {
@@ -22,6 +29,14 @@ interface AutocompleteMultipleProps {
   className?: string;
 }
 
+type DropdownRect = {
+  top: number;
+  left: number;
+  width: number;
+  maxHeight: number;
+  openUp: boolean;
+};
+
 export default function AutocompleteMultiple({
   options,
   value = [],
@@ -37,27 +52,56 @@ export default function AutocompleteMultiple({
   const [query, setQuery] = useState("");
   const [localOptions, setLocalOptions] = useState<Option[]>(options || []);
   const [highlightIndex, setHighlightIndex] = useState(0);
+  const [dropdownRect, setDropdownRect] = useState<DropdownRect | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const optionsRef = useRef<Option[]>(options || []);
   const [loading, setLoading] = useState(false);
 
-  // keep options in sync if parent changes static options
   useEffect(() => {
-    setLocalOptions(options || []);
+    optionsRef.current = options || [];
   }, [options]);
 
-  // debounce for fetchOptions
+  // Sync options từ parent khi chưa gõ tìm
   useEffect(() => {
-    if (!fetchOptions) return;
-    if (query === "") {
-      setLocalOptions(options || []);
-      setLoading(false);
-      return;
+    if (query.trim()) return;
+    setLocalOptions(options || []);
+  }, [options, query]);
+
+  // Gõ tìm → fetch. Query rỗng: dùng options parent; nếu parent chưa có data thì bootstrap 1 lần.
+  useEffect(() => {
+    if (!fetchOptions || !open) return;
+    const q = query.trim();
+    if (!q) {
+      const cached = optionsRef.current;
+      if (cached.length > 0) {
+        setLocalOptions(cached);
+        setLoading(false);
+        return;
+      }
+      // Parent chưa kịp load (hoặc cache bị clear) → fetch bootstrap
+      let mounted = true;
+      setLoading(true);
+      fetchOptions("")
+        .then((res) => {
+          if (!mounted) return;
+          setLocalOptions(res?.length ? res : optionsRef.current);
+        })
+        .catch(() => {
+          if (!mounted) return;
+          setLocalOptions(optionsRef.current);
+        })
+        .finally(() => mounted && setLoading(false));
+      return () => {
+        mounted = false;
+      };
     }
+
     let mounted = true;
     setLoading(true);
     const id = setTimeout(() => {
-      fetchOptions(query)
+      fetchOptions(q)
         .then((res) => {
           if (!mounted) return;
           setLocalOptions(res || []);
@@ -72,7 +116,7 @@ export default function AutocompleteMultiple({
       mounted = false;
       clearTimeout(id);
     };
-  }, [query, fetchOptions, debounceMs, options]);
+  }, [open, query, fetchOptions, debounceMs]);
 
   // filtered options when not using fetchOptions
   const filtered = (
@@ -88,6 +132,28 @@ export default function AutocompleteMultiple({
         })
   ).filter((o) => !value.some((v) => v.value === o.value));
 
+  const updateDropdownPosition = () => {
+    const el = containerRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const gap = 4;
+    const maxMenuHeight = 240;
+    const spaceBelow = window.innerHeight - rect.bottom - gap;
+    const spaceAbove = rect.top - gap;
+    const openUp = spaceBelow < 160 && spaceAbove > spaceBelow;
+    const maxHeight = Math.max(
+      120,
+      Math.min(maxMenuHeight, openUp ? spaceAbove : spaceBelow),
+    );
+    setDropdownRect({
+      top: openUp ? rect.top - gap : rect.bottom + gap,
+      left: rect.left,
+      width: rect.width,
+      maxHeight,
+      openUp,
+    });
+  };
+
   function openDropdown() {
     if (disabled) return;
     setOpen(true);
@@ -97,30 +163,43 @@ export default function AutocompleteMultiple({
     setOpen(false);
     setHighlightIndex(0);
     setQuery("");
+    setDropdownRect(null);
   }
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    updateDropdownPosition();
+    const onReposition = () => updateDropdownPosition();
+    window.addEventListener("resize", onReposition);
+    window.addEventListener("scroll", onReposition, true);
+    return () => {
+      window.removeEventListener("resize", onReposition);
+      window.removeEventListener("scroll", onReposition, true);
+    };
+  }, [open, filtered.length, loading]);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
-      if (!containerRef.current) return;
-      if (!containerRef.current.contains(e.target as Node)) {
-        closeDropdown();
-      }
+      const target = e.target as Node;
+      if (containerRef.current?.contains(target)) return;
+      if (dropdownRef.current?.contains(target)) return;
+      closeDropdown();
     }
 
-    function onKeyDown(e: KeyboardEvent) {
+    function onKeyDown(e: globalThis.KeyboardEvent) {
       if (e.key === "Escape") {
         closeDropdown();
       }
     }
 
     if (open) {
-      window.addEventListener("click", onClick);
-      window.addEventListener("keydown", onKeyDown as any);
+      window.addEventListener("mousedown", onClick);
+      window.addEventListener("keydown", onKeyDown);
     }
 
     return () => {
-      window.removeEventListener("click", onClick);
-      window.removeEventListener("keydown", onKeyDown as any);
+      window.removeEventListener("mousedown", onClick);
+      window.removeEventListener("keydown", onKeyDown);
     };
   }, [open]);
 
@@ -172,11 +251,64 @@ export default function AutocompleteMultiple({
     }
   }
 
+  const dropdown =
+    open && dropdownRect && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            ref={dropdownRef}
+            className="rounded border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900"
+            style={{
+              position: "fixed",
+              zIndex: 200,
+              left: dropdownRect.left,
+              width: dropdownRect.width,
+              maxHeight: dropdownRect.maxHeight,
+              overflow: "auto",
+              ...(dropdownRect.openUp
+                ? { bottom: window.innerHeight - dropdownRect.top }
+                : { top: dropdownRect.top }),
+            }}>
+            {loading && filtered.length === 0 ? (
+              <div className="p-3 text-sm text-gray-500 dark:text-gray-400">
+                Đang tải...
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="p-3 text-sm text-gray-500 dark:text-gray-400">
+                Không có kết quả
+              </div>
+            ) : (
+              <ul role="listbox" aria-multiselectable className="divide-y divide-gray-100 dark:divide-gray-800">
+                {filtered.map((opt, idx) => (
+                  <li
+                    key={opt.value}
+                    role="option"
+                    aria-selected={false}
+                    onMouseDown={(e) => {
+                      // use onMouseDown to prevent blur before click
+                      e.preventDefault();
+                      selectOption(opt);
+                    }}
+                    onMouseEnter={() => setHighlightIndex(idx)}
+                    className={`flex cursor-pointer items-center justify-between px-3 py-2 text-sm text-gray-900 dark:text-gray-100 ${
+                      idx === highlightIndex
+                        ? "bg-blue-50 dark:bg-gray-800"
+                        : ""
+                    }`}>
+                    <span className="truncate">{opt.label}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       <div
-        className={`flex items-center gap-2 flex-wrap border rounded-lg px-2 py-1 min-h-[44px] border-gray-300 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 ${
-          disabled ? "bg-gray-100/70" : "bg-white"
+        className={`flex min-h-[44px] flex-wrap items-center gap-2 rounded-lg border border-gray-300 px-2 py-1 focus:border-brand-300 focus:ring-brand-500/20 dark:border-gray-700 ${
+          disabled ? "bg-gray-100/70" : "bg-white dark:bg-gray-900"
         } `}
         onClick={() => inputRef.current?.focus()}
         role="combobox"
@@ -184,8 +316,8 @@ export default function AutocompleteMultiple({
         {value.map((val) => (
           <div
             key={val.value}
-            className="flex items-center gap-1 px-2 py-0.5 rounded-md border bg-gray-100 text-sm">
-            <span className="truncate max-w-[160px]">{val.label}</span>
+            className="flex items-center gap-1 rounded-md border bg-gray-100 px-2 py-0.5 text-sm dark:border-gray-600 dark:bg-gray-800">
+            <span className="max-w-[160px] truncate">{val.label}</span>
             <button
               type="button"
               aria-label={`Remove ${val.label}`}
@@ -204,14 +336,6 @@ export default function AutocompleteMultiple({
           value={query}
           disabled={disabled}
           onFocus={() => openDropdown()}
-          onBlur={() => {
-            // Delay để cho phép click vào option trước khi đóng
-            setTimeout(() => {
-              if (!containerRef.current?.contains(document.activeElement)) {
-                closeDropdown();
-              }
-            }, 150);
-          }}
           onChange={(e) => {
             setQuery(e.target.value);
             setOpen(true);
@@ -219,7 +343,7 @@ export default function AutocompleteMultiple({
           }}
           onKeyDown={handleKeyDown}
           placeholder={value.length === 0 ? placeholder : ""}
-          className="flex-1 min-w-[120px] outline-none p-1 text-sm bg-transparent"
+          className="min-w-[120px] flex-1 bg-transparent p-1 text-sm outline-none"
         />
 
         {loading ? (
@@ -233,40 +357,13 @@ export default function AutocompleteMultiple({
               else openDropdown();
             }}
             aria-label={open ? "Close" : "Open"}
-            className="px-2 py-1 rounded">
+            className="rounded px-2 py-1">
             <ArrowDropDownIcon />
           </button>
         )}
       </div>
 
-      {/* Dropdown */}
-      {open && (
-        <div className="absolute z-40 mt-1 w-full bg-white border rounded shadow-lg max-h-60 overflow-auto">
-          {filtered.length === 0 ? (
-            <div className="p-3 text-sm text-gray-500">No options</div>
-          ) : (
-            <ul role="listbox" aria-multiselectable className="divide-y">
-              {filtered.map((opt, idx) => (
-                <li
-                  key={opt.value}
-                  role="option"
-                  aria-selected={false}
-                  onMouseDown={(e) => {
-                    // use onMouseDown to prevent blur before click
-                    e.preventDefault();
-                    selectOption(opt);
-                  }}
-                  onMouseEnter={() => setHighlightIndex(idx)}
-                  className={`px-3 py-2 cursor-pointer flex items-center justify-between text-sm ${
-                    idx === highlightIndex ? "bg-blue-50" : ""
-                  }`}>
-                  <span className="truncate">{opt.label}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+      {dropdown}
     </div>
   );
 }

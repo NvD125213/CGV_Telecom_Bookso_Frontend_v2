@@ -41,6 +41,8 @@ export interface ActionButton {
   label: string;
   onClick: (id: string) => void;
   color?: "primary" | "secondary" | "info" | "success" | "error" | "warning";
+  /** Disable theo id từng hàng */
+  disabled?: (id: string) => boolean;
 }
 
 interface MobileListProps {
@@ -324,7 +326,12 @@ const TableMobile: React.FC<MobileListProps> = ({
         ...action,
         onClick: (data: any) => {
           const itemId = getItemId(data as LabelValueItem[]);
+          if (action.disabled?.(itemId)) return;
           action.onClick(itemId);
+        },
+        disabled: (data: any) => {
+          const itemId = getItemId(data as LabelValueItem[]);
+          return Boolean(action.disabled?.(itemId));
         },
       })),
     [actions, getItemId]

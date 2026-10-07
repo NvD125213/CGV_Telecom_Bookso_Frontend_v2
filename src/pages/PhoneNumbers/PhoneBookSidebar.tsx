@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useSelector } from "react-redux";
 import Swal from "sweetalert2";
@@ -12,67 +6,39 @@ import {
   FiArrowLeft,
   FiCheck,
   FiCheckCircle,
-  FiHash,
   FiSearch,
-  FiStar,
-  FiTag,
   FiUser,
   FiUserPlus,
   FiX,
 } from "react-icons/fi";
-import { BsBuilding } from "react-icons/bs";
-import { FaRandom } from "react-icons/fa";
 import { HiOutlineDocumentText } from "react-icons/hi";
-import { MdOutlineBadge } from "react-icons/md";
+import { MdOutlinePhoneInTalk } from "react-icons/md";
 import Input from "../../components/form/input/InputField";
-import Label from "../../components/form/Label";
-import Select from "../../components/form/Select";
-import Switch from "../../components/form/switch/Switch";
-import AutocompleteMultiple, {
-  Option,
-} from "../../components/ui/autocomplete/auto-complete";
 import { useDebounce } from "../../hooks/useDebounce";
 import { useIsMobile } from "../../hooks/useScreenSize";
-import { useBookingRandomV3 } from "../../hooks/api-hooks/v3/useBookingV3";
+import { useBookingV3 } from "../../hooks/api-hooks/v3/useBookingV3";
 import { useCustomerList } from "../../hooks/api-hooks/v3/useCustomer";
-import { useBrandNameList } from "../../hooks/api-hooks/v3/useBrandname";
-import useSelectData from "../../hooks/useSelectData";
-import { getProviders } from "../../services/provider";
-import { getTypeNumber } from "../../services/typeNumber";
-import { getBrandName } from "../../services/brandName";
-import { validateRandomPhone } from "../../validate/phoneNumber";
+import { formatPhoneNumber } from "../../helper/formatPhoneNumber";
 import { copyToClipBoard } from "../../helper/copyToClipboard";
 import { RootState } from "../../store";
-import { IProvider, ITypeNumber } from "../../types";
 import type { ICustomer } from "../../types/customer";
 import {
   toDeploymentCustomerSnapshot,
   type IDeploymentCustomerSnapshot,
 } from "../../types/bookingV3";
 
-export interface IBookRandom {
-  quantity: number;
-  provider_id: number;
-  type_id: number;
-  brandname_id?: number;
-  is_beautiful_number?: boolean;
-}
+type BookType = "new_customer" | "deployment";
+type Step = "book_type" | "pick_customer" | "confirm";
 
-const initialBookRandom: IBookRandom = {
-  quantity: 1,
-  provider_id: 0,
-  type_id: 0,
-  is_beautiful_number: false,
+export type PhoneBookSidebarProps = {
+  isOpen: boolean;
+  phoneIds: number[];
+  phoneNumbers: string[];
+  onClose: () => void;
+  onSuccess?: () => void;
 };
 
-type BookType = "new_customer" | "deployment";
-type Step = "criteria" | "book_type" | "pick_customer" | "confirm";
-
-interface PhoneNumberProps {
-  isOpen: boolean;
-  onCloseModal: () => void;
-  onSuccess: () => void;
-}
+const STEP_ORDER: Step[] = ["book_type", "pick_customer", "confirm"];
 
 const formatCustomerSales = (
   sales: ICustomer["sales"] | null | undefined,
@@ -89,32 +55,6 @@ const formatCustomerSales = (
       .join(", ");
   }
   return saleUsername?.trim() || "";
-};
-
-const extractBookedPhones = (result: unknown): string[] => {
-  if (!result) return [];
-  if (Array.isArray(result)) {
-    return result
-      .map((item) => {
-        if (typeof item === "string" || typeof item === "number") {
-          return String(item);
-        }
-        if (item && typeof item === "object") {
-          const row = item as Record<string, unknown>;
-          return String(row.phone_number ?? row.phone ?? "");
-        }
-        return "";
-      })
-      .filter(Boolean);
-  }
-  if (typeof result === "object") {
-    const obj = result as Record<string, unknown>;
-    for (const key of ["phone_numbers", "data", "items", "phones"]) {
-      const value = obj[key];
-      if (Array.isArray(value)) return extractBookedPhones(value);
-    }
-  }
-  return [];
 };
 
 function OptionCard({
@@ -157,22 +97,19 @@ function OptionCard({
   );
 }
 
-const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
+export default function PhoneBookSidebar({
   isOpen,
-  onCloseModal,
+  phoneIds,
+  phoneNumbers,
+  onClose,
   onSuccess,
-}) => {
+}: PhoneBookSidebarProps) {
   const isMobile = useIsMobile(768);
   const user = useSelector((state: RootState) => state.auth.user);
   const saleUsername = String(user?.sub || "");
-  const { mutateAsync: bookRandomV3, isPending } = useBookingRandomV3();
+  const { mutateAsync: bookV3, isPending } = useBookingV3();
 
-  const [step, setStep] = useState<Step>("criteria");
-  const [listNumber, setListNumber] = useState<IBookRandom>(initialBookRandom);
-  const [errors, setErrors] = useState<
-    Partial<Record<keyof IBookRandom, string>>
-  >({});
-  const [selectedBrand, setSelectedBrand] = useState<Option[]>([]);
+  const [step, setStep] = useState<Step>("book_type");
   const [bookType, setBookType] = useState<BookType | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<ICustomer | null>(
     null,
@@ -180,21 +117,11 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
   const [customerQuery, setCustomerQuery] = useState("");
   const debouncedQuery = useDebounce(customerQuery, 400);
 
-  const { data: providers } = useSelectData<IProvider>({
-    service: getProviders,
-  });
-  const { data: typeNumbers } = useSelectData<ITypeNumber>({
-    service: getTypeNumber,
-  });
-  const { data: brandNameListData } = useBrandNameList(
-    { page: 1, size: 20, is_active: true },
-    { enabled: isOpen },
-  );
-
   const shouldLoadCustomers = isOpen && bookType === "deployment";
 
   const { data: customerData, isLoading: customersLoading } = useCustomerList(
     {
+      // role=1 xem toàn bộ; các role khác lọc theo sale
       sale: user?.role === 1 ? undefined : saleUsername || undefined,
       q: debouncedQuery.trim() || undefined,
     },
@@ -203,36 +130,9 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
 
   const customers = customerData?.items ?? [];
 
-  const brandOptions = useMemo(
-    () =>
-      (brandNameListData?.items ?? []).map((brand) => ({
-        label: brand.name,
-        value: String(brand.id),
-      })),
-    [brandNameListData],
-  );
-
-  const fetchBrandOptions = useCallback(async (query: string) => {
-    const result = await getBrandName({
-      page: 1,
-      size: 20,
-      is_active: true,
-      search: query.trim() || undefined,
-      order_by: "created_at",
-      order_dir: "desc",
-    });
-    return result.items.map((brand) => ({
-      label: brand.name,
-      value: String(brand.id),
-    }));
-  }, []);
-
   useEffect(() => {
     if (!isOpen) {
-      setStep("criteria");
-      setListNumber(initialBookRandom);
-      setErrors({});
-      setSelectedBrand([]);
+      setStep("book_type");
       setBookType(null);
       setSelectedCustomer(null);
       setCustomerQuery("");
@@ -255,68 +155,44 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
     };
   }, [isOpen]);
 
-  const setValue = (
-    name: keyof IBookRandom,
-    value: string | number | boolean,
-  ) => {
-    setListNumber((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    setErrors((prev) => ({ ...prev, [name]: undefined }));
-  };
+  const displayPhones = useMemo(() => {
+    if (user?.role !== 1) {
+      return phoneNumbers.map((p) => formatPhoneNumber(p));
+    }
+    return phoneNumbers;
+  }, [phoneNumbers, user?.role]);
 
   const deploymentCustomer = useMemo((): IDeploymentCustomerSnapshot | null => {
     if (bookType !== "deployment" || !selectedCustomer) return null;
     return toDeploymentCustomerSnapshot(selectedCustomer);
   }, [bookType, selectedCustomer]);
 
-  const providerName = useMemo(
-    () =>
-      providers.find((p) => Number(p.id) === Number(listNumber.provider_id))
-        ?.name || "—",
-    [providers, listNumber.provider_id],
-  );
-
-  const typeName = useMemo(
-    () =>
-      typeNumbers.find((t) => Number(t.id) === Number(listNumber.type_id))
-        ?.name || "—",
-    [typeNumbers, listNumber.type_id],
-  );
-
   const stepMeta = useMemo(() => {
     switch (step) {
-      case "criteria":
-        return {
-          title: "Book ngẫu nhiên",
-          subtitle: "Bước 1 · Điều kiện lấy số",
-          progress: 1,
-        };
       case "book_type":
         return {
           title: "Chọn loại book",
-          subtitle: "Bước 2 · Hình thức đặt số",
-          progress: 2,
+          subtitle: "Bước 1 · Hình thức đặt số",
+          progress: 1,
         };
       case "pick_customer":
         return {
           title: "Chọn khách hàng",
-          subtitle: "Bước 3 · Danh sách khách",
-          progress: 3,
+          subtitle: "Bước 2 · Danh sách khách",
+          progress: 2,
         };
       case "confirm":
         return {
-          title: "Xác nhận book random",
+          title: "Xác nhận book số",
           subtitle: "Bước cuối · Kiểm tra trước khi gửi",
-          progress: bookType === "new_customer" ? 3 : 4,
+          progress: bookType === "new_customer" ? 2 : 3,
         };
       default:
-        return { title: "Book ngẫu nhiên", subtitle: "", progress: 1 };
+        return { title: "Book số", subtitle: "", progress: 1 };
     }
   }, [step, bookType]);
 
-  const totalSteps = bookType === "new_customer" ? 3 : 4;
+  const totalSteps = bookType === "new_customer" ? 2 : 3;
 
   const goBack = () => {
     if (step === "confirm") {
@@ -328,20 +204,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
       setStep("book_type");
       return;
     }
-    if (step === "book_type") {
-      setStep("criteria");
-      return;
-    }
-    onCloseModal();
-  };
-
-  const handleContinueFromCriteria = () => {
-    const validationErrors = validateRandomPhone(listNumber);
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return;
-    }
-    setStep("book_type");
+    onClose();
   };
 
   const handleConfirmBook = async () => {
@@ -354,84 +217,58 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
       const payload =
         bookType === "new_customer"
           ? {
-              type_number_id: Number(listNumber.type_id),
-              provider_id: Number(listNumber.provider_id),
-              quantity_book: Number(listNumber.quantity),
-              is_beautiful_number: Boolean(listNumber.is_beautiful_number),
+              id_phone_numbers: phoneIds,
               is_new_customer: true,
-              ...(listNumber.brandname_id
-                ? { brandname_id: Number(listNumber.brandname_id) }
-                : {}),
             }
           : {
-              type_number_id: Number(listNumber.type_id),
-              provider_id: Number(listNumber.provider_id),
-              quantity_book: Number(listNumber.quantity),
-              is_beautiful_number: Boolean(listNumber.is_beautiful_number),
+              id_phone_numbers: phoneIds,
               is_new_customer: false,
               deployment_customer: deploymentCustomer!,
-              ...(listNumber.brandname_id
-                ? { brandname_id: Number(listNumber.brandname_id) }
-                : {}),
             };
 
-      const res = await bookRandomV3(payload);
-      const bookedPhones = extractBookedPhones(res);
-      const quantity = Number(listNumber.quantity);
-
-      onCloseModal();
-      onSuccess();
+      await bookV3(payload);
 
       const result = await Swal.fire({
-        title: "Book ngẫu nhiên thành công!",
+        title: "Book thành công",
         html: `
           <div class="text-left">
-            <label class="block mb-2 text-sm font-medium ${
-              bookedPhones.length > 0 && bookedPhones.length < quantity
-                ? "text-red-600"
-                : "text-gray-900"
-            }">
-              ${
-                bookedPhones.length > 0 && bookedPhones.length < quantity
-                  ? `Chỉ còn ${bookedPhones.length} số có thể book`
-                  : "Danh sách số đã book"
-              }
+            <label class="block text-center mb-2 text-sm font-medium text-gray-900">
+              Danh sách số đã book:
             </label>
-            <textarea rows="4" class="block max-h-[200px] w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 px-[10px]">${
-              bookedPhones.length > 0
-                ? bookedPhones.join(", ")
-                : `Đã book ${quantity} số ngẫu nhiên`
-            }</textarea>
+            <div class="p-3 bg-gray-50 rounded-lg border border-gray-300">
+              <div class="text-sm text-gray-700">${phoneNumbers.join(", ")}</div>
+            </div>
           </div>
         `,
         icon: "success",
         showDenyButton: true,
+        showCancelButton: true,
         confirmButtonText: "Sao chép",
         denyButtonText: "Bỏ qua",
         allowOutsideClick: false,
       });
 
-      if (result.isConfirmed && bookedPhones.length > 0) {
-        copyToClipBoard(bookedPhones);
-        await Swal.fire("Sao chép thành công!", "", "success");
+      if (result.isConfirmed) {
+        copyToClipBoard(phoneNumbers);
+        await Swal.fire("Đã sao chép!", "", "success");
       }
+
+      onSuccess?.();
+      onClose();
     } catch (err: any) {
       const detail = err?.response?.data?.detail;
       const message = Array.isArray(detail)
         ? detail.map((d: any) => d?.msg || JSON.stringify(d)).join("; ")
         : detail ===
-            "Currently a booking request can only book a maximum of 100 numbers."
-          ? "Bạn đã vượt quá số lượng được phép book của 1 request! Giới hạn của 1 lần book là dưới 100 số"
-          : detail ===
-              "You have reached your daily booking limit. Please contact your administrator to increase your limit if needed."
-            ? "Bạn đã vượt quá số lượng book cho phép trong ngày! Vui lòng liên hệ admin để được cấp phép thêm."
-            : typeof detail === "string"
-              ? detail
-              : "Đã xảy ra lỗi, vui lòng thử lại.";
+            "You have reached your daily booking limit. Please contact your administrator to increase your limit if needed."
+          ? "Bạn đã đạt đến giới hạn đặt số hàng ngày. Vui lòng liên hệ với quản trị viên của bạn để tăng giới hạn nếu cần."
+          : typeof detail === "string"
+            ? detail
+            : "Đã xảy ra lỗi, vui lòng thử lại.";
 
       Swal.fire({
-        icon: err?.response?.status === 404 ? "warning" : "error",
-        title: err?.response?.status === 404 ? "Thông báo" : "Oops...",
+        icon: "error",
+        title: "Oops...",
         text: String(message),
       });
     }
@@ -441,13 +278,14 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
 
   const panel = (
     <div
-      className={`flex h-dvh min-h-0 w-full flex-col bg-white dark:bg-gray-900 ${
+      className={`flex h-full min-h-0 w-full flex-col bg-white dark:bg-gray-900 ${
         isMobile ? "" : "border-l border-gray-200 dark:border-gray-800"
       }`}>
+      {/* Header */}
       <div className="shrink-0 border-b border-gray-200 bg-gradient-to-br from-brand-50 via-white to-white px-4 pb-4 pt-4 dark:border-gray-800 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 sm:px-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
-            {step !== "criteria" ? (
+            {step !== "book_type" ? (
               <button
                 type="button"
                 onClick={goBack}
@@ -458,7 +296,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
               </button>
             ) : (
               <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-white shadow-sm shadow-brand-500/30">
-                <FaRandom size={16} />
+                <MdOutlinePhoneInTalk size={18} />
               </span>
             )}
             <div className="min-w-0">
@@ -469,13 +307,17 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                 {stepMeta.title}
               </h2>
               <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                Random theo loại số + nhà cung cấp
+                Đã chọn{" "}
+                <span className="font-semibold text-gray-800 dark:text-gray-200">
+                  {phoneIds.length}
+                </span>{" "}
+                số điện thoại
               </p>
             </div>
           </div>
           <button
             type="button"
-            onClick={onCloseModal}
+            onClick={onClose}
             disabled={isPending}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 dark:hover:bg-gray-800 dark:hover:text-gray-200"
             aria-label="Đóng">
@@ -483,13 +325,14 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
           </button>
         </div>
 
+        {/* Progress */}
         <div className="mt-4 flex items-center gap-1.5">
           {Array.from({ length: totalSteps }).map((_, i) => {
             const done = i + 1 < stepMeta.progress;
             const active = i + 1 === Math.min(stepMeta.progress, totalSteps);
             return (
               <div
-                key={i}
+                key={STEP_ORDER[i] ?? i}
                 className={`h-1.5 flex-1 rounded-full transition-colors ${
                   done || active
                     ? "bg-brand-500"
@@ -501,181 +344,35 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
         </div>
       </div>
 
-      <div className="h-[calc(100dvh)] min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-5">
-        {step === "criteria" && (
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              Hệ thống sẽ lấy số ngẫu nhiên theo loại số, nhà cung cấp và số
-              lượng — không chọn từng số cụ thể.
+      {/* Body */}
+      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-5">
+        {/* Phone chips */}
+        <div className="rounded-2xl border border-gray-100 bg-gray-50/80 p-3.5 dark:border-gray-800 dark:bg-gray-800/40">
+          <div className="mb-2.5 flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              Số sẽ book
             </p>
-            <div>
-              <Label>Số lượng *</Label>
-              <Input
-                type="number"
-                min="1"
-                value={listNumber.quantity}
-                onChange={(e) =>
-                  setValue("quantity", Number(e.target.value) || 0)
-                }
-                error={errors.quantity}
-                hint={errors.quantity}
-              />
-            </div>
-            <div>
-              <Label>Nhà cung cấp *</Label>
-              <Select
-                options={[
-                  { label: "Chọn nhà cung cấp", value: "0" },
-                  ...providers.map((provider) => ({
-                    label: provider.name,
-                    value: String(provider.id),
-                  })),
-                ]}
-                value={String(listNumber.provider_id || "0")}
-                onChange={(value) => setValue("provider_id", Number(value))}
-                placeholder="Lựa chọn nhà cung cấp"
-                className="dark:bg-black dark:text-white"
-              />
-              {errors.provider_id ? (
-                <p className="mt-1 text-xs text-error-500">
-                  {errors.provider_id}
-                </p>
-              ) : null}
-            </div>
-            <div>
-              <Label>Loại số *</Label>
-              <Select
-                options={[
-                  { label: "Chọn loại số", value: "0" },
-                  ...typeNumbers.map((type) => ({
-                    label: type.name,
-                    value: String(type.id),
-                  })),
-                ]}
-                value={String(listNumber.type_id || "0")}
-                onChange={(value) => setValue("type_id", Number(value))}
-                placeholder="Lựa chọn loại số"
-                className="dark:bg-black dark:text-white"
-              />
-              {errors.type_id ? (
-                <p className="mt-1 text-xs text-error-500">{errors.type_id}</p>
-              ) : null}
-            </div>
-            <div>
-              <Label>Tên định danh (tùy chọn)</Label>
-              <AutocompleteMultiple
-                options={brandOptions}
-                value={selectedBrand}
-                fetchOptions={fetchBrandOptions}
-                placeholder="Gõ để tìm định danh..."
-                className="dark:bg-black dark:text-white"
-                onChange={(value) => {
-                  const options = Array.isArray(value) ? value : [];
-                  const single =
-                    options.length > 1
-                      ? [options[options.length - 1]]
-                      : options;
-                  setSelectedBrand(single);
-                  if (single.length === 0) {
-                    setListNumber((prev) => {
-                      const next = { ...prev };
-                      delete next.brandname_id;
-                      return next;
-                    });
-                    return;
-                  }
-                  setValue("brandname_id", Number(single[0].value));
-                }}
-              />
-            </div>
-            <div className="rounded-xl border border-gray-200 px-3 py-3 dark:border-gray-700">
-              <Switch
-                label="Số đẹp"
-                checked={Boolean(listNumber.is_beautiful_number)}
-                onChange={(checked) =>
-                  setValue("is_beautiful_number", Boolean(checked))
-                }
-              />
-            </div>
+            <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-gray-600 shadow-sm dark:bg-gray-900 dark:text-gray-300">
+              {displayPhones.length} số
+            </span>
           </div>
-        )}
+          <textarea
+            readOnly
+            rows={3}
+            value={displayPhones.join(", ") || "—"}
+            className="w-full resize-y rounded-xl border border-brand-100 bg-white px-3 py-2 font-mono text-xs font-medium leading-relaxed text-brand-700 shadow-sm outline-none dark:border-brand-900/50 dark:bg-gray-900 dark:text-brand-300"
+          />
+        </div>
 
         {step === "book_type" && (
           <div className="space-y-3">
-            <div className="rounded-2xl border border-gray-100 bg-gray-50/80 p-3.5 dark:border-gray-800 dark:bg-gray-800/40">
-              <div className="mb-3 flex items-center gap-2">
-                <FaRandom className="text-brand-500" size={13} />
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-600 dark:text-brand-400">
-                  Điều kiện random
-                </p>
-              </div>
-              <div className="space-y-2.5 text-xs text-gray-600 dark:text-gray-300">
-                <div className="flex items-start gap-2.5">
-                  <FiHash
-                    className="mt-0.5 shrink-0 text-brand-500"
-                    size={14}
-                  />
-                  <p>
-                    <span className="text-gray-400">Số lượng:</span>{" "}
-                    <span className="font-medium text-gray-800 dark:text-gray-100">
-                      {listNumber.quantity}
-                    </span>
-                  </p>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <BsBuilding
-                    className="mt-0.5 shrink-0 text-brand-500"
-                    size={13}
-                  />
-                  <p>
-                    <span className="text-gray-400">Nhà cung cấp:</span>{" "}
-                    <span className="font-medium text-gray-800 dark:text-gray-100">
-                      {providerName}
-                    </span>
-                  </p>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <FiTag className="mt-0.5 shrink-0 text-brand-500" size={14} />
-                  <p>
-                    <span className="text-gray-400">Loại số:</span>{" "}
-                    <span className="font-medium text-gray-800 dark:text-gray-100">
-                      {typeName}
-                    </span>
-                  </p>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <MdOutlineBadge
-                    className="mt-0.5 shrink-0 text-brand-500"
-                    size={15}
-                  />
-                  <p>
-                    <span className="text-gray-400">Tên định danh:</span>{" "}
-                    <span className="font-medium text-gray-800 dark:text-gray-100">
-                      {selectedBrand[0]?.label || "Không chọn"}
-                    </span>
-                  </p>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <FiStar
-                    className="mt-0.5 shrink-0 text-brand-500"
-                    size={14}
-                  />
-                  <p>
-                    <span className="text-gray-400">Số đẹp:</span>{" "}
-                    <span className="font-medium text-gray-800 dark:text-gray-100">
-                      {listNumber.is_beautiful_number ? "Có" : "Không"}
-                    </span>
-                  </p>
-                </div>
-              </div>
-            </div>
             <p className="text-sm text-gray-600 dark:text-gray-300">
               Chọn hình thức book phù hợp với khách hàng của bạn.
             </p>
             <OptionCard
               icon={<FiUserPlus size={20} />}
               title="Khách hàng mới"
-              description="Đặt số ngẫu nhiên cho khách hàng mới. Số sẽ ở trạng thái đã book."
+              description="Đặt số cho khách hàng mới. Số sẽ ở trạng thái đã book."
               onClick={() => {
                 setBookType("new_customer");
                 setSelectedCustomer(null);
@@ -708,7 +405,8 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                 className="pl-9"
               />
             </div>
-            <div className="max-h-[calc(100dvh-22rem)] space-y-2 overflow-y-auto pr-0.5">
+
+            <div className="max-h-[48vh] space-y-2 overflow-y-auto pr-0.5">
               {customersLoading ? (
                 <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-gray-200 py-10 dark:border-gray-700">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
@@ -721,6 +419,9 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                   <FiUser className="mx-auto mb-2 text-gray-300" size={28} />
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
                     Không tìm thấy khách hàng
+                  </p>
+                  <p className="mt-1 text-xs text-gray-400">
+                    Thử đổi từ khóa tìm kiếm.
                   </p>
                 </div>
               ) : (
@@ -774,7 +475,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                           </p>
                         ) : null}
                         <p>
-                          <span className="text-gray-400">No charge:</span>{" "}
+                          <span className="text-gray-400">Tính phí:</span>{" "}
                           <span className="font-medium">
                             {customer.no_charge ? "Có" : "Không"}
                           </span>
@@ -783,6 +484,14 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                           <p>
                             <span className="text-gray-400">Sale:</span>{" "}
                             <span className="font-medium">{salesLabel}</span>
+                          </p>
+                        ) : null}
+                        {customer.contract_note ? (
+                          <p className="line-clamp-2">
+                            <span className="text-gray-400">Ghi chú:</span>{" "}
+                            <span className="font-medium">
+                              {customer.contract_note}
+                            </span>
                           </p>
                         ) : null}
                       </div>
@@ -800,50 +509,10 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
               <div className="flex items-center gap-2 border-b border-gray-100 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-gray-800/50">
                 <FiCheckCircle className="text-brand-600 dark:text-brand-400" />
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                  Tóm tắt yêu cầu random
+                  Tóm tắt yêu cầu
                 </p>
               </div>
               <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                <div className="flex items-start justify-between gap-3 px-4 py-3">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Số lượng
-                  </span>
-                  <span className="text-right text-sm font-medium text-gray-900 dark:text-white">
-                    {listNumber.quantity}
-                  </span>
-                </div>
-                <div className="flex items-start justify-between gap-3 px-4 py-3">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Nhà cung cấp
-                  </span>
-                  <span className="text-right text-sm font-medium text-gray-900 dark:text-white">
-                    {providerName}
-                  </span>
-                </div>
-                <div className="flex items-start justify-between gap-3 px-4 py-3">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Loại số
-                  </span>
-                  <span className="text-right text-sm font-medium text-gray-900 dark:text-white">
-                    {typeName}
-                  </span>
-                </div>
-                <div className="flex items-start justify-between gap-3 px-4 py-3">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Tên định danh
-                  </span>
-                  <span className="text-right text-sm font-medium text-gray-900 dark:text-white">
-                    {selectedBrand[0]?.label || "Không chọn"}
-                  </span>
-                </div>
-                <div className="flex items-start justify-between gap-3 px-4 py-3">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Số đẹp
-                  </span>
-                  <span className="text-right text-sm font-medium text-gray-900 dark:text-white">
-                    {listNumber.is_beautiful_number ? "Có" : "Không"}
-                  </span>
-                </div>
                 <div className="flex items-start justify-between gap-3 px-4 py-3">
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                     Loại book
@@ -865,6 +534,14 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                         : "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
                     }`}>
                     {bookType === "new_customer" ? "Đã book" : "Chờ triển khai"}
+                  </span>
+                </div>
+                <div className="flex items-start justify-between gap-3 px-4 py-3">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    Số lượng
+                  </span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    {phoneIds.length} số
                   </span>
                 </div>
 
@@ -926,31 +603,21 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
               </div>
             </div>
             <p className="text-center text-xs text-gray-500 dark:text-gray-400">
-              Kiểm tra kỹ trước khi xác nhận. Hệ thống sẽ lấy số ngẫu nhiên theo
-              điều kiện đã chọn.
+              Kiểm tra kỹ trước khi xác nhận. Thao tác sẽ gửi yêu cầu book ngay.
             </p>
           </div>
         )}
       </div>
 
+      {/* Footer */}
       <div className="flex shrink-0 gap-2 border-t border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
         <button
           type="button"
           disabled={isPending}
           onClick={goBack}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
-          {step === "criteria" ? "Hủy" : "Quay lại"}
+          {step === "book_type" ? "Hủy" : "Quay lại"}
         </button>
-
-        {step === "criteria" && (
-          <button
-            type="button"
-            disabled={isPending}
-            onClick={handleContinueFromCriteria}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-500/25 transition hover:bg-brand-600 disabled:opacity-50">
-            Tiếp tục
-          </button>
-        )}
 
         {step === "pick_customer" && (
           <button
@@ -976,7 +643,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
             ) : (
               <>
                 <FiCheck size={16} />
-                Xác nhận random
+                Xác nhận book
               </>
             )}
           </button>
@@ -991,11 +658,11 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
         className={`fixed inset-0 z-[100] bg-black/40 backdrop-blur-[2px] transition-opacity duration-300 ease-in-out ${
           isOpen ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
-        onClick={isPending || !isOpen ? undefined : onCloseModal}
+        onClick={isPending || !isOpen ? undefined : onClose}
         aria-hidden={!isOpen}
       />
       <aside
-        className={`fixed inset-y-0 right-0 z-[101] flex h-dvh max-h-dvh flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out dark:bg-gray-900 ${
+        className={`fixed inset-y-0 right-0 z-[101] flex flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out dark:bg-gray-900 ${
           isMobile ? "w-full max-w-full" : "w-full max-w-md"
         } ${isOpen ? "translate-x-0" : "pointer-events-none translate-x-full"}`}
         aria-hidden={!isOpen}>
@@ -1004,6 +671,4 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
     </>,
     document.body,
   );
-};
-
-export default PhoneRandomModal;
+}

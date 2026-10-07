@@ -6,3 +6,6 @@ export * from "./reportByRole";
 export * from "./limitBooking";
 export * from "./reportDate";
 export * from "./historyBooked";
+export * from "./deploymentOrder";
+export * from "./customer";
+export * from "./bookingV3";

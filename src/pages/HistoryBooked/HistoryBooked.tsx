@@ -38,11 +38,19 @@ import Input from "../../components/form/input/InputField";
 const STATUS_BADGE_BASE =
   "inline-flex max-w-fit shrink-0 items-center whitespace-nowrap px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs";
 
-type StatusKey = "available" | "booked" | "book_combo" | "released";
+type StatusKey =
+  | "available"
+  | "booked"
+  | "pending_deploy"
+  | "book_combo"
+  | "released";
 
 const normalizeStatusKey = (value?: string): StatusKey | "" => {
-  const normalized = (value ?? "").toLowerCase().trim().replace(/_/g, " ");
+  const normalized = (value ?? "").toLowerCase().trim();
 
+  if (normalized === "pending_deploy" || normalized === "pending deploy") {
+    return "pending_deploy";
+  }
   if (
     normalized === "book combo" ||
     normalized === "bookcombo" ||
@@ -65,6 +73,8 @@ const getStatusBadgeClass = (value?: string) => {
       return `${STATUS_BADGE_BASE} bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500`;
     case "booked":
       return `${STATUS_BADGE_BASE} bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400`;
+    case "pending_deploy":
+      return `${STATUS_BADGE_BASE} bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400`;
     case "book_combo":
       return `${STATUS_BADGE_BASE} bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300`;
     case "released":
@@ -80,6 +90,8 @@ const getStatusLabel = (value?: string) => {
       return "Có sẵn";
     case "booked":
       return "Đã book";
+    case "pending_deploy":
+      return "Chờ triển khai";
     case "book_combo":
       return "Đặt gói";
     case "released":
@@ -95,6 +107,8 @@ const getMobileStatusClass = (value?: string) => {
       return "uppercase text-[10px] border border-green-500 rounded-full py-1 px-3 text-center shadow-sm dark:shadow-green-400/40 bg-green-100 dark:bg-green-500/40 backdrop-blur-sm dark:border-green-400 text-green-500";
     case "booked":
       return "uppercase text-brand-600 text-[12px] border border-brand-500 px-3 py-1 rounded-full text-center shadow-sm dark:shadow-brand-400/40 bg-brand-50 dark:bg-brand-500/40 backdrop-blur-sm dark:border-brand-400";
+    case "pending_deploy":
+      return "uppercase text-blue-700 text-[12px] border border-blue-500 px-3 py-1 rounded-full text-center shadow-sm dark:shadow-blue-400/40 bg-blue-50 dark:bg-blue-500/40 backdrop-blur-sm dark:border-blue-400";
     case "book_combo":
       return "uppercase text-violet-700 text-[12px] border border-violet-500 px-3 py-1 rounded-full text-center shadow-sm dark:shadow-violet-400/40 bg-violet-50 dark:bg-violet-500/40 backdrop-blur-sm dark:border-violet-400";
     case "released":
@@ -161,7 +175,7 @@ const getColumns = (status: string) => {
     getStatusSpanColumn("raw_status", "Trạng thái chính", "col_raw_status"),
     getStatusSpanColumn("status", "Trạng thái chung", "col_general_status"),
   ];
-  if (status === "booked") {
+  if (status === "booked" || status === "pending_deploy") {
     return [
       ...columns,
       { key: "booked_at" as keyof IHistoryBooked, label: "Ngày đặt" },
@@ -177,7 +191,14 @@ const getColumns = (status: string) => {
 
   return columns;
 };
-type StatusType = "booked" | "released";
+type StatusType = "booked" | "pending_deploy" | "released";
+
+const parseStatusFromSearchParams = (params: URLSearchParams): StatusType => {
+  const option = (params.get("option") || "").toLowerCase();
+  if (option === "pending_deploy") return "pending_deploy";
+  if (option === "released") return "released";
+  return "booked";
+};
 
 const HistoryBooked = () => {
   const dispatch = useDispatch();
@@ -192,7 +213,9 @@ const HistoryBooked = () => {
   const [pickerType, setPickerType] = useState<PickerType>("date");
   const [limit, setLimit] = useState(Number(searchParams.get("limit")) || 20);
   const [offset, setOffset] = useState(Number(searchParams.get("offset")) || 0);
-  const [status, setStatus] = useState<StatusType>("booked");
+  const [status, setStatus] = useState<StatusType>(() =>
+    parseStatusFromSearchParams(searchParams),
+  );
   const [totalPages, setTotalPages] = useState(0);
   const [errors, setErrors] = useState("");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -454,7 +477,7 @@ const HistoryBooked = () => {
   // Xử lý dữ liệu cho TableMobile
   const convertToMobileData = (data: IHistoryBooked[]): LabelValueItem[][] => {
     return data.map((item) => {
-      return [
+      const rows: LabelValueItem[] = [
         { label: "ID", value: item.id, hidden: true },
         { label: "Số điện thoại", value: item.phone_number },
         {
@@ -470,6 +493,21 @@ const HistoryBooked = () => {
         { label: "Nhà cung cấp", value: item.provider_name },
         { label: "Loại số", value: item.type_name },
       ];
+
+      if (status === "booked" || status === "pending_deploy") {
+        rows.push(
+          { label: "Ngày đặt", value: item.booked_at || "-" },
+          { label: "Hạn đặt", value: item.booked_until || "-" },
+        );
+      }
+      if (status === "released") {
+        rows.push({
+          label: "Ngày triển khai",
+          value: item.released_at || "-",
+        });
+      }
+
+      return rows;
     });
   };
 
@@ -515,8 +553,10 @@ const HistoryBooked = () => {
             <Select
               options={[
                 { label: "Đã book", value: "booked" },
+                { label: "Chờ triển khai", value: "pending_deploy" },
                 { label: "Triển khai", value: "released" },
               ]}
+              value={status}
               className="border rounded-md px-3 py-3 w-full dark:bg-black dark:text-white"
               onChange={(value) => handleStatusChange(value as StatusType)}
               placeholder="Chọn trạng thái"

@@ -163,8 +163,15 @@ const navItems: NavItem[] = [
 const othersItems: NavItem[] = [
   {
     name: "Quản lý dịch vụ",
-    path: "/service-management",
     icon: <MdOutlineMiscellaneousServices />,
+    subItems: [
+      {
+        name: "Đơn triển khai",
+        path: "/service-management/deploy-order",
+        pro: false,
+        icon: <MdOutlineMiscellaneousServices />,
+      },
+    ],
   },
 ];
 
@@ -243,6 +250,11 @@ const AppSidebar: React.FC = () => {
     [user?.role],
   );
 
+  const filteredOthersItems = useMemo(
+    () => (user?.role === 1 ? othersItems : []),
+    [user?.role],
+  );
+
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";
     index: number;
@@ -271,7 +283,8 @@ const AppSidebar: React.FC = () => {
     let submenuMatched = false;
     const autoOpenedNestedSubmenus: Record<string, boolean> = {};
     ["main", "others"].forEach((menuType) => {
-      const items = menuType === "main" ? filteredNavItems : othersItems;
+      const items =
+        menuType === "main" ? filteredNavItems : filteredOthersItems;
       items.forEach((nav, index) => {
         if (!nav.subItems) {
           return;
@@ -311,7 +324,12 @@ const AppSidebar: React.FC = () => {
       }
       return autoOpenedNestedSubmenus;
     });
-  }, [filteredNavItems, hasActivePathInTree, location.pathname]);
+  }, [
+    filteredNavItems,
+    filteredOthersItems,
+    hasActivePathInTree,
+    location.pathname,
+  ]);
 
   const handleMenuClick = () => {
     // Đóng sidebar trên mobile khi click vào menu item
@@ -568,21 +586,23 @@ const AppSidebar: React.FC = () => {
               </h2>
               {renderMenuItems(filteredNavItems, "main")}
             </div>
-            <div className="">
-              <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                  !isExpanded && !isHovered
-                    ? "lg:justify-center"
-                    : "justify-start"
-                }`}>
-                {isExpanded || isHovered || isMobileOpen ? (
-                  "Cài đặt khác"
-                ) : (
-                  <HorizontaLDots />
-                )}
-              </h2>
-              {renderMenuItems(othersItems, "others")}
-            </div>
+            {filteredOthersItems.length > 0 ? (
+              <div className="">
+                <h2
+                  className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
+                    !isExpanded && !isHovered
+                      ? "lg:justify-center"
+                      : "justify-start"
+                  }`}>
+                  {isExpanded || isHovered || isMobileOpen ? (
+                    "Cài đặt khác"
+                  ) : (
+                    <HorizontaLDots />
+                  )}
+                </h2>
+                {renderMenuItems(filteredOthersItems, "others")}
+              </div>
+            ) : null}
           </div>
         </nav>
         {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null}

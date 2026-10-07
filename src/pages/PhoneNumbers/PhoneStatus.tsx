@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import type { ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { FiDelete, FiEdit, FiEye } from "react-icons/fi";
 import {
@@ -52,12 +53,73 @@ interface PhoneNumberProps {
   phone_numbers: IPhoneNumber[];
 }
 
+const STATUS_BADGE_BASE =
+  "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs";
+
+const normalizePhoneStatus = (value?: string) => {
+  const normalized = (value ?? "").toLowerCase().trim();
+  if (normalized === "available") return "available";
+  if (normalized === "booked") return "booked";
+  if (normalized === "pending_deploy" || normalized === "pending deploy") {
+    return "pending_deploy";
+  }
+  if (
+    normalized === "book combo" ||
+    normalized === "book_combo" ||
+    normalized === "bookcombo"
+  ) {
+    return "book_combo";
+  }
+  if (normalized === "released" || normalized === "deployed") {
+    return "released";
+  }
+  return "";
+};
+
+const getStatusBadgeClass = (value?: string) => {
+  switch (normalizePhoneStatus(value)) {
+    case "available":
+      return `${STATUS_BADGE_BASE} bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500`;
+    case "booked":
+      return `${STATUS_BADGE_BASE} bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-orange-400`;
+    case "pending_deploy":
+      return `${STATUS_BADGE_BASE} bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400`;
+    case "book_combo":
+      return `${STATUS_BADGE_BASE} bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300`;
+    case "released":
+      return `${STATUS_BADGE_BASE} bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500`;
+    default:
+      return `${STATUS_BADGE_BASE} bg-gray-50 text-gray-600 dark:bg-gray-500/15 dark:text-gray-400`;
+  }
+};
+
+const getStatusLabel = (value?: string) => {
+  switch (normalizePhoneStatus(value)) {
+    case "available":
+      return "Có sẵn";
+    case "booked":
+      return "Đã đặt";
+    case "pending_deploy":
+      return "Chờ triển khai";
+    case "book_combo":
+      return "Đặt gói";
+    case "released":
+      return "Đã triển khai";
+    default:
+      return value?.trim() || "-";
+  }
+};
+
 const getColumns = (status: string) => {
   const columns: {
-    key: keyof IPhoneNumber;
+    key: keyof IPhoneNumber | string;
     label: string;
     type?: string;
     classname?: string;
+    render?: (item: IPhoneNumber) => {
+      text: ReactNode;
+      classname?: string;
+    };
   }[] = [
     { key: "phone_number", label: "Số điện thoại" },
     { key: "provider_name", label: "Nhà cung cấp" },
@@ -77,14 +139,10 @@ const getColumns = (status: string) => {
       key: "status",
       label: "Trạng thái",
       type: "span",
-      classname:
-        status === "available"
-          ? "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500"
-          : status === "booked"
-            ? "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-orange-400"
-            : status === "released"
-              ? "inline-flex items-center px-2.5 py-0.5 justify-center gap-1 rounded-full font-medium text-theme-xs bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500"
-              : "",
+      render: (item) => ({
+        text: getStatusLabel(String(item.status ?? "")),
+        classname: getStatusBadgeClass(String(item.status ?? "")),
+      }),
     },
   ];
   if (status === "available") {
@@ -94,6 +152,14 @@ const getColumns = (status: string) => {
     ];
   }
   if (status === "booked") {
+    return [
+      ...columns,
+      { key: "user_name" as keyof IPhoneNumber, label: "Người book" },
+      { key: "updated_at" as keyof IPhoneNumber, label: "Ngày đặt" },
+      { key: "booked_until" as keyof IPhoneNumber, label: "Hạn đặt" },
+    ];
+  }
+  if (status === "pending_deploy") {
     return [
       ...columns,
       { key: "user_name" as keyof IPhoneNumber, label: "Người book" },
@@ -151,9 +217,11 @@ function PhoneNumbers() {
     Number(searchParams.get("quantity")) || 20,
   );
   const [offset, setOffset] = useState(Number(searchParams.get("offset")) || 0);
-  const [status, setStatus] = useState(
-    searchParams.get("status") || "available",
-  );
+  const [status, setStatus] = useState(() => {
+    const fromUrl = searchParams.get("status");
+    if (!fromUrl || fromUrl === "all") return "available";
+    return fromUrl;
+  });
   const [selectedRows, setSelectedRows] = useState<IPhoneNumber[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
@@ -734,7 +802,10 @@ function PhoneNumbers() {
     return data.map((item) => [
       { label: "ID", value: item.id ?? "N/A", hidden: true },
       { label: "Số điện thoại", value: item.phone_number ?? "N/A" },
-      { label: "Trạng thái", value: item.status ?? "N/A" },
+      {
+        label: "Trạng thái",
+        value: getStatusLabel(String(item.status ?? "")),
+      },
       { label: "Nhà cung cấp", value: item.provider_name ?? "N/A" },
       { label: "Loại số", value: item.type_name ?? "N/A" },
       {
@@ -774,10 +845,12 @@ function PhoneNumbers() {
         return "uppercase text-green-500 text-[14px] border border-green-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-green-400/40 bg-green-100 dark:bg-green-500/40 backdrop-blur-sm dark:border-green-400";
       case "booked":
         return "uppercase text-yellow-500 text-[14px] border border-yellow-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-yellow-400/40 bg-yellow-100 dark:bg-yellow-500/40 backdrop-blur-sm dark:border-yellow-400";
+      case "pending_deploy":
+        return "uppercase text-blue-500 text-[14px] border border-blue-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-blue-400/40 bg-blue-100 dark:bg-blue-500/40 backdrop-blur-sm dark:border-blue-400";
       case "released":
         return "uppercase text-red-500 text-[14px] border border-red-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-red-400/40 bg-red-100 dark:bg-red-500/40 backdrop-blur-sm dark:border-red-400";
       default:
-        return "text-[14px] border border-gray-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-gray-400/40 bg-gray-100 dark:bg-gray-500/40 backdrop-blur-sm dark:border-gray-400";
+        return "uppercase text-[14px] border border-gray-500 px-9 py-1 rounded-full text-center shadow-sm dark:shadow-gray-400/40 bg-gray-100 dark:bg-gray-500/40 backdrop-blur-sm dark:border-gray-400";
     }
   };
 
@@ -815,6 +888,7 @@ function PhoneNumbers() {
                       options={[
                         { label: "Có sẵn", value: "available" },
                         { label: "Đã đặt", value: "booked" },
+                        { label: "Chờ triển khai", value: "pending_deploy" },
                         { label: "Đặt gói", value: "Book combo" },
                         { label: "Đã triển khai", value: "released" },
                       ]}
@@ -980,9 +1054,11 @@ function PhoneNumbers() {
               ) : safeData && safeData.length > 0 ? (
                 <>
                   <ReusableTable
-                    disabled={status === "available" || status === "released"}
+                    disabled={
+                      status !== "booked"
+                    }
                     disabledReset={
-                      status === "available" || status === "released"
+                      status !== "booked"
                     }
                     showId={false}
                     isLoading={loading}

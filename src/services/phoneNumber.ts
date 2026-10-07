@@ -99,7 +99,7 @@ export const bookingPhoneForOption = async ({
   is_beautiful_number,
 }: {
   quantity: number;
-  status: string;
+  status?: string;
   offset: number;
   search?: string;
   provider?: string;
@@ -109,8 +109,10 @@ export const bookingPhoneForOption = async ({
 }) => {
   const params = new URLSearchParams();
   params.append("quantity", quantity.toString());
-  params.append("option", status);
   params.append("offset", offset.toString());
+  if (status) {
+    params.append("option", status);
+  }
 
   if (search) {
     params.append("filter", search);

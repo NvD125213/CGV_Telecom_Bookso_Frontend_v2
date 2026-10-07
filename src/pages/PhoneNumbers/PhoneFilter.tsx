@@ -15,7 +15,6 @@ import { FiDelete, FiEye } from "react-icons/fi";
 import { formatDate } from "../../helper/formatDateToISOString";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
-import { copyToClipBoard } from "../../helper/copyToClipboard";
 import { formatPhoneNumber } from "../../helper/formatPhoneNumber";
 import SearchHelp from "../../components/instruct/InstructRule";
 import { resetSelectedIds } from "../../store/selectedPhoneSlice";
@@ -27,7 +26,6 @@ import TableMobile, {
 import { useScreenSize } from "../../hooks/useScreenSize";
 import { useDebounce } from "../../hooks/useDebounce";
 import {
-  booking,
   bookingPhone,
   deletePhone,
   getPhoneByID,
@@ -35,10 +33,10 @@ import {
 } from "../../services/phoneNumber";
 import Pagination from "../../components/pagination/pagination";
 import PhoneModalDetail from "./PhoneModalDetail";
+import PhoneBookSidebar from "./PhoneBookSidebar";
 import { FaRandom } from "react-icons/fa";
 import { MdSelectAll } from "react-icons/md";
 import Swal from "sweetalert2";
-import Spinner from "../../components/common/LoadingSpinner";
 import PhoneRandomModal from "./PhoneRandomModal";
 import { getTypeNumber } from "../../services/typeNumber";
 import { getBrandName } from "../../services/brandName";
@@ -93,6 +91,9 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
   const [openModal, setOpenModal] = useState(false);
   const [openModalDetail, setOpenModalDetail] = useState(false);
   const [openModalRandom, setOpenModalRandom] = useState(false);
+  const [openBookSidebar, setOpenBookSidebar] = useState(false);
+  const [bookPhoneIds, setBookPhoneIds] = useState<number[]>([]);
+  const [bookPhoneNumbers, setBookPhoneNumbers] = useState<string[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const dispatch = useDispatch();
   const selectedIdsFromStore = useSelector(
@@ -128,7 +129,6 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
   const previousSearchRef = useRef<string>(searchParams.get("search") || "");
   const [selectedPhone, setselectedPhone] = useState<IPhoneNumber | null>(null);
   const [loading, setLoading] = useState(false);
-  const [bookLoading, setBookLoading] = useState(false);
   const [error, setError] = useState("");
   const user = useSelector((state: RootState) => state.auth.user);
 
@@ -216,9 +216,7 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
         search: debouncedSearch.replace(/\s+/g, " ").trim() || "",
         brandname: brandname.trim() || undefined,
         is_beautiful_number:
-          isBeautifulNumber === ""
-            ? undefined
-            : isBeautifulNumber === "true",
+          isBeautifulNumber === "" ? undefined : isBeautifulNumber === "true",
         signal: controller.signal,
       });
       const formatNumber = (num: any) => {
@@ -367,7 +365,7 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
     setSelectedIds(data);
   };
 
-  const handleBookNumber = async () => {
+  const handleBookNumber = () => {
     if (selectedIdsFromStore.length == 0) {
       Swal.fire(
         "Thông báo",
@@ -377,105 +375,20 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
       return;
     }
 
-    const requests = selectedIdsFromStore.map((id) => getPhoneByID(Number(id)));
-    const selectedPhoneNumbers = await Promise.all(requests);
-
     const idPhoneNumbers = selectedIdsFromStore.map((id) => Number(id));
+    const phoneMap = new Map(
+      (data?.phone_numbers ?? []).map((p) => [
+        Number(p.id),
+        String(p.phone_number ?? ""),
+      ]),
+    );
+    const phoneDetails = idPhoneNumbers
+      .map((id) => phoneMap.get(id))
+      .filter((p): p is string => Boolean(p));
 
-    const requestBody = {
-      id_phone_numbers: idPhoneNumbers,
-      phone_details:
-        selectedPhoneNumbers?.map((p) => p?.data.phone_number) || [],
-    };
-
-    const formattedPhoneList = requestBody.phone_details
-      .map((phone) => formatPhoneNumber(phone))
-      .join(", ");
-
-    try {
-      const result = await Swal.fire({
-        title: "Thực hiện book số?",
-        html: `
-           <div class="text-left">
-            <label class="block text-center mb-2 text-sm font-medium text-gray-900">
-              Danh sách số sẽ book:
-            </label>
-            <div class="p-3 bg-gray-50 rounded-lg border border-gray-300">
-              <div class="text-sm not-allow-select text-gray-700">${
-                user.role !== 1
-                  ? formattedPhoneList
-                  : requestBody.phone_details.join(", ")
-              }</div>
-            </div>
-          </div>
-         `,
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#d33",
-        confirmButtonText: "Xác nhận",
-      });
-      if (result.isConfirmed) {
-        setBookLoading(true);
-
-        const res = await booking({
-          id_phone_numbers: requestBody.id_phone_numbers,
-        });
-        if (res.status === 200) {
-          Swal.fire({
-            title: "Book thành công",
-            html: `
-             <div class="text-left dark:text-white">
-            <label class="block text-center mb-2 text-sm font-medium text-gray-900">
-              Danh sách số đã book:
-            </label>
-            <div class="p-3 bg-gray-50 rounded-lg border border-gray-300">
-              <div class="text-sm text-gray-700">${requestBody.phone_details.join(
-                ", ",
-              )}</div>
-            </div>
-            `,
-            showDenyButton: true,
-            icon: "success",
-            showCancelButton: true,
-            confirmButtonText: "Sao chép",
-            denyButtonText: "Bỏ qua",
-            allowOutsideClick: false,
-          }).then((result) => {
-            if (result.isConfirmed) {
-              copyToClipBoard(requestBody.phone_details || []);
-              fetchData();
-              dispatch(resetSelectedIds());
-              Swal.fire("Đã sao chép!", "", "success");
-            } else {
-              dispatch(resetSelectedIds());
-              fetchData();
-            }
-          });
-          fetchData();
-          setSelectedIds([]);
-          dispatch(resetSelectedIds());
-        }
-      }
-    } catch (err: any) {
-      const detail = err.response?.data?.detail;
-      const message =
-        detail ===
-        "You have reached your daily booking limit. Please contact your administrator to increase your limit if needed."
-          ? "Bạn đã đạt đến giới hạn đặt số hàng ngày. Vui lòng liên hệ với quản trị viên của bạn để tăng giới hạn nếu cần."
-          : detail || "Đã xảy ra lỗi, vui lòng thử lại.";
-
-      Swal.fire({
-        icon: "error",
-        title: "Oops...",
-        text: String(message),
-      });
-
-      fetchData();
-      setSelectedIds([]);
-    } finally {
-      setBookLoading(false);
-    }
+    setBookPhoneIds(idPhoneNumbers);
+    setBookPhoneNumbers(phoneDetails);
+    setOpenBookSidebar(true);
   };
 
   // Handle delete number event
@@ -628,48 +541,44 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
 
   return (
     <>
-      {bookLoading ? (
-        <Spinner />
+      {isMobile ? null : (
+        <PageBreadcrumb pageTitle="Danh sách số điện thoại" />
+      )}{" "}
+      {user?.role === 1 ? (
+        <div className="flex justify-end">
+          <button
+            onClick={() => setOpenModal(true)}
+            className="flex items-center dark:bg-black dark:text-white  gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
+            <IoIosAdd size={24} />
+            Thêm
+          </button>
+        </div>
       ) : (
-        <>
-          {isMobile ? null : (
-            <PageBreadcrumb pageTitle="Danh sách số điện thoại" />
-          )}{" "}
-          {user?.role === 1 ? (
-            <div className="flex justify-end">
-              <button
-                onClick={() => setOpenModal(true)}
-                className="flex items-center dark:bg-black dark:text-white  gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50">
-                <IoIosAdd size={24} />
-                Thêm
-              </button>
-            </div>
-          ) : (
-            <></>
-          )}
-          {/* Form */}
-          <div className="space-y-6">
-            <SearchHelp />
+        <></>
+      )}
+      {/* Form */}
+      <div className="space-y-6">
+        <SearchHelp />
 
-            <ComponentCard>
-              <ResponsiveFilterWrapper drawerTitle="Bộ lọc tìm kiếm">
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                  <div>
-                    <Label htmlFor="inputTwo">
-                      {" "}
-                      {user.role == 1
-                        ? "Tìm kiếm theo đầu số"
-                        : "Tìm kiếm theo đuôi số"}{" "}
-                    </Label>
-                    <Input
-                      type="text"
-                      id="inputTwo"
-                      placeholder="Nhập đầu số..."
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                    />
-                  </div>
+        <ComponentCard>
+          <ResponsiveFilterWrapper drawerTitle="Bộ lọc tìm kiếm">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div>
+                <Label htmlFor="inputTwo">
+                  {" "}
+                  {user.role == 1
+                    ? "Tìm kiếm theo đầu số"
+                    : "Tìm kiếm theo đuôi số"}{" "}
+                </Label>
+                <Input
+                  type="text"
+                  id="inputTwo"
+                  placeholder="Nhập đầu số..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                />
+              </div>
                   <div>
                     <Label>Nhà cung cấp</Label>
                     <Select
@@ -879,8 +788,17 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
             onCloseModal={() => setOpenModalRandom(false)}
             onSuccess={fetchData}
           />
-        </>
-      )}
+          <PhoneBookSidebar
+            isOpen={openBookSidebar}
+            phoneIds={bookPhoneIds}
+            phoneNumbers={bookPhoneNumbers}
+            onClose={() => setOpenBookSidebar(false)}
+            onSuccess={() => {
+              fetchData();
+              setSelectedIds([]);
+              dispatch(resetSelectedIds());
+            }}
+          />
     </>
   );
 }

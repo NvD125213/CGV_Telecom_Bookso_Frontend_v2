@@ -55,6 +55,8 @@ interface CustomModalProps {
   disabledAll?: boolean;
   errorDetail?: string;
   isLoading?: false;
+  /** Ép layout 1 cột, bỏ auto 2 cột khi fields > 4 */
+  singleColumn?: boolean;
 }
 
 // Enhanced Select Component với dropdown tràn ra ngoài
@@ -261,10 +263,16 @@ const CustomModal: React.FC<CustomModalProps> = ({
   showSubmitButton = true,
   disabledAll = false,
   errorDetail,
+  singleColumn = false,
 }) => {
   // Kiểm tra xem có cần scroll không
   const needsScroll = fields.length > 6;
   const { isMobile } = useScreenSize();
+  const gridClassName = singleColumn
+    ? "grid-cols-1"
+    : fields.length > 4
+      ? "grid-cols-1 sm:grid-cols-2"
+      : "grid-cols-1";
 
   return (
     <Modal
@@ -301,9 +309,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
                 : "overflow-visible"
             }`}>
             <div
-              className={`grid ${
-                fields.length > 4 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
-              } gap-2 sm:gap-3 lg:gap-4`}>
+              className={`grid ${gridClassName} gap-2 sm:gap-3 lg:gap-4`}>
               {fields.map((field) => (
                 <div key={field.name} className="w-full">
                   <Label className="text-xs sm:text-sm lg:text-base mb-1 sm:mb-2 block font-medium">

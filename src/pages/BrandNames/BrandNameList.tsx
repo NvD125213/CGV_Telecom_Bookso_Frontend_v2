@@ -1,12 +1,14 @@
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
 import { IoIosAdd } from "react-icons/io";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import {
   IBrandName,
   formatSaleNames,
   IBrandNameListParams,
   formatBrandNameDateTime,
+  formatBrandNameCustomers,
+  IBrandNameCustomer,
 } from "../../types/brandName";
 import { BrandNameActionModal } from "./BrandNameActionModal";
 import ModalSwalAction from "../../hooks/useModalSwal";
@@ -23,32 +25,59 @@ import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
 import { useDebounce } from "../../hooks/useDebounce";
 import Select from "../../components/form/Select";
+import AutocompleteMultiple, {
+  Option as AutocompleteOption,
+} from "../../components/ui/autocomplete/auto-complete";
 import { buildSaleFilterOptions } from "./customerOptions";
 import { users } from "../../constants/user";
 import {
   useBrandNameList,
   useDeleteBrandName,
 } from "../../hooks/api-hooks/v3/useBrandname";
+import { useCustomerList } from "../../hooks/api-hooks/v3/useCustomer";
+import { getCustomers } from "../../services/customer";
 import EmptyState from "../../components/EmptyData";
 import { useSearchParams } from "react-router";
+import type { ICustomer } from "../../types/customer";
 
 type BrandNameTableRow = IBrandName & {
   sale_names_display: string;
+  customers_display: string;
   created_at_display: string;
   updated_at_display: string;
   expired_at: string;
 };
 
-const columns: { key: keyof BrandNameTableRow; label: string }[] = [
-  { key: "name", label: "Tên định danh" },
-  { key: "sale_names_display", label: "Sale" },
-  { key: "description", label: "Mô tả" },
-  { key: "created_by", label: "Người tạo" },
-  { key: "updated_by", label: "Người cập nhật" },
-  { key: "created_at_display", label: "Ngày tạo" },
-  { key: "updated_at_display", label: "Ngày cập nhật" },
-  { key: "expired_at", label: "Ngày hết hạn" },
+const CUSTOMER_BADGE_BASE =
+  "inline-flex max-w-fit shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-theme-xs font-medium";
+
+const CUSTOMER_BADGE_COLORS = [
+  "bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
+  "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+  "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+  "bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300",
+  "bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300",
 ];
+
+const renderCustomerBadges = (customers?: IBrandNameCustomer[]) => {
+  if (!customers?.length) {
+    return <span className="text-gray-400">—</span>;
+  }
+  return (
+    <div className="flex max-w-[280px] flex-wrap gap-1">
+      {customers.map((customer, index) => (
+        <span
+          key={`${customer.customer_id}-${index}`}
+          className={`${CUSTOMER_BADGE_BASE} ${
+            CUSTOMER_BADGE_COLORS[index % CUSTOMER_BADGE_COLORS.length]
+          }`}
+          title={`#${customer.customer_id}`}>
+          {customer.customer_name?.trim() || `#${customer.customer_id}`}
+        </span>
+      ))}
+    </div>
+  );
+};
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_SIZE = 10;
@@ -72,6 +101,32 @@ const parseSizeFromSearchParams = (params: URLSearchParams) => {
   return DEFAULT_SIZE;
 };
 
+const toCustomerOption = (
+  customer: ICustomer | IBrandNameCustomer | AutocompleteOption,
+): AutocompleteOption | null => {
+  if ("value" in customer && "label" in customer) {
+    const value = String(customer.value || "").trim();
+    if (!value || value === "0") return null;
+    return { label: customer.label, value };
+  }
+  const id = Number(customer.customer_id);
+  if (!id) return null;
+  const name = customer.customer_name?.trim() || `KH #${id}`;
+  return { label: `${name} (#${id})`, value: String(id) };
+};
+
+const uniqueCustomerOptions = (
+  items: Array<ICustomer | IBrandNameCustomer | AutocompleteOption>,
+): AutocompleteOption[] => {
+  const map = new Map<string, AutocompleteOption>();
+  items.forEach((item) => {
+    const option = toCustomerOption(item);
+    if (!option || map.has(option.value)) return;
+    map.set(option.value, option);
+  });
+  return Array.from(map.values());
+};
+
 const BrandNameList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [openModal, setOpenModal] = useState(false);
@@ -84,6 +139,14 @@ const BrandNameList = () => {
   const [saleFilter, setSaleFilter] = useState(
     () => searchParams.get("sale_name") || "",
   );
+  const initialCustomerId = searchParams.get("customer_id") || "";
+  const [selectedCustomerFilter, setSelectedCustomerFilter] = useState<
+    AutocompleteOption[]
+  >(() =>
+    initialCustomerId
+      ? [{ label: `KH #${initialCustomerId}`, value: initialCustomerId }]
+      : [],
+  );
   const [errorData, setErrorData] = useState("");
   const [page, setPage] = useState(() =>
     parsePageFromSearchParams(searchParams),
@@ -95,7 +158,51 @@ const BrandNameList = () => {
   const debouncedSearch = useDebounce(searchInput, 400);
   const { isMobile } = useScreenSize();
   const user = useSelector((state: RootState) => state.auth?.user);
+  const saleUsername = String(user?.sub || "");
   const deleteBrandName = useDeleteBrandName();
+
+  const customerIdFilter = useMemo(() => {
+    const raw = selectedCustomerFilter[0]?.value;
+    const id = Number(raw);
+    return id > 0 ? id : undefined;
+  }, [selectedCustomerFilter]);
+
+  const customerListParams = useMemo(
+    () => ({
+      sale: user?.role === 1 ? undefined : saleUsername || undefined,
+    }),
+    [user?.role, saleUsername],
+  );
+
+  const { data: customerData } = useCustomerList({
+    ...customerListParams,
+    customer_id: customerIdFilter,
+  });
+
+  const customerFilterOptions = useMemo(
+    () =>
+      uniqueCustomerOptions([
+        ...(customerData?.items ?? []),
+        ...selectedCustomerFilter,
+      ]),
+    [customerData?.items, selectedCustomerFilter],
+  );
+
+  useEffect(() => {
+    if (!customerIdFilter || !customerData?.items?.length) return;
+    const matched = customerData.items.find(
+      (item) => Number(item.customer_id) === customerIdFilter,
+    );
+    if (!matched) return;
+    const option = toCustomerOption(matched);
+    if (!option) return;
+    setSelectedCustomerFilter((prev) => {
+      if (prev[0]?.value === option.value && prev[0]?.label === option.label) {
+        return prev;
+      }
+      return [option];
+    });
+  }, [customerIdFilter, customerData?.items]);
 
   const listParams = useMemo((): Partial<IBrandNameListParams> => {
     const params: Partial<IBrandNameListParams> = {
@@ -107,8 +214,9 @@ const BrandNameList = () => {
     const sale = saleFilter.trim();
     if (search) params.search = search;
     if (sale) params.sale_name = sale;
+    if (customerIdFilter) params.customer_id = customerIdFilter;
     return params;
-  }, [page, size, debouncedSearch, saleFilter]);
+  }, [page, size, debouncedSearch, saleFilter, customerIdFilter]);
 
   const {
     data: listData,
@@ -124,6 +232,7 @@ const BrandNameList = () => {
     const rows: BrandNameTableRow[] = items.map((item) => ({
       ...item,
       sale_names_display: formatSaleNames(item.sale_names),
+      customers_display: formatBrandNameCustomers(item.customers),
       created_at_display: formatBrandNameDateTime(item.created_at),
       updated_at_display: formatBrandNameDateTime(item.updated_at),
       expired_at: formatBrandNameDateTime(item.expired_at),
@@ -144,6 +253,28 @@ const BrandNameList = () => {
     return buildSaleFilterOptions(Array.from(fromApi).sort());
   }, [listData]);
 
+  const columns = useMemo(
+    () => [
+      { key: "name", label: "Tên định danh" },
+      { key: "sale_names_display", label: "Sale" },
+      {
+        key: "customers_display",
+        label: "Khách hàng",
+        cellClassName: "min-w-[180px]",
+        render: (item: BrandNameTableRow) => ({
+          text: renderCustomerBadges(item.customers),
+        }),
+      },
+      { key: "description", label: "Mô tả" },
+      { key: "created_by", label: "Người tạo" },
+      { key: "updated_by", label: "Người cập nhật" },
+      { key: "created_at_display", label: "Ngày tạo" },
+      { key: "updated_at_display", label: "Ngày cập nhật" },
+      { key: "expired_at", label: "Ngày hết hạn" },
+    ],
+    [],
+  );
+
   useEffect(() => {
     if (!searchParams.get("page") || !searchParams.get("size")) {
       setSearchParams(
@@ -162,7 +293,7 @@ const BrandNameList = () => {
 
   useEffect(() => {
     setPage(DEFAULT_PAGE);
-  }, [debouncedSearch, saleFilter]);
+  }, [debouncedSearch, saleFilter, customerIdFilter]);
 
   useEffect(() => {
     const next = new URLSearchParams();
@@ -174,11 +305,21 @@ const BrandNameList = () => {
     const sale = saleFilter.trim();
     if (sale) next.set("sale_name", sale);
     else next.delete("sale_name");
+    if (customerIdFilter) next.set("customer_id", String(customerIdFilter));
+    else next.delete("customer_id");
 
     if (searchParams.toString() === next.toString()) return;
 
     setSearchParams(next, { replace: true });
-  }, [debouncedSearch, saleFilter, page, size, searchParams, setSearchParams]);
+  }, [
+    debouncedSearch,
+    saleFilter,
+    customerIdFilter,
+    page,
+    size,
+    searchParams,
+    setSearchParams,
+  ]);
 
   useEffect(() => {
     if (isLoading) {
@@ -226,6 +367,23 @@ const BrandNameList = () => {
     setPage(DEFAULT_PAGE);
   };
 
+  const handleCustomerFilterChange = (value: AutocompleteOption[]) => {
+    const next = value.slice(-1);
+    setSelectedCustomerFilter(next);
+    setPage(DEFAULT_PAGE);
+  };
+
+  const fetchCustomerOptions = useCallback(
+    async (query: string) => {
+      const result = await getCustomers({
+        ...customerListParams,
+        q: query.trim() || undefined,
+      });
+      return uniqueCustomerOptions(result.items ?? []);
+    },
+    [customerListParams],
+  );
+
   const convertToMobileData = (): LabelValueItem[][] => {
     return brandNames.map((item) => [
       {
@@ -244,6 +402,11 @@ const BrandNameList = () => {
         label: "Sale",
         value: formatSaleNames(item.sale_names),
         fieldName: "sale_names",
+      },
+      {
+        label: "Khách hàng",
+        value: formatBrandNameCustomers(item.customers),
+        fieldName: "customers",
       },
       {
         label: "Mô tả",
@@ -300,7 +463,7 @@ const BrandNameList = () => {
 
   const searchBlock = (
     <div className="mb-4 w-full">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="min-w-0">
           <Label htmlFor="brandname-search">Tìm kiếm định danh</Label>
           <Input
@@ -318,6 +481,17 @@ const BrandNameList = () => {
             value={saleFilter}
             placeholder="Tất cả sale"
             onChange={handleSaleFilterChange}
+            className="dark:bg-black dark:text-white"
+          />
+        </div>
+        <div className="min-w-0">
+          <Label htmlFor="brandname-customer-filter">Khách hàng</Label>
+          <AutocompleteMultiple
+            options={customerFilterOptions}
+            value={selectedCustomerFilter}
+            onChange={handleCustomerFilterChange}
+            fetchOptions={fetchCustomerOptions}
+            placeholder="Tìm theo khách hàng..."
             className="dark:bg-black dark:text-white"
           />
         </div>
@@ -371,6 +545,9 @@ const BrandNameList = () => {
                     font-sans
                 `,
                 Sale: `
+                    justify-end text-sm
+                  `,
+                "Khách hàng": `
                     justify-end text-sm
                   `,
                 "Mô tả": `
