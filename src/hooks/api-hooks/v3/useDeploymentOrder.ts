@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-query";
 import {
   confirmDeploymentOrder,
+  denyRejectDeploymentOrder,
   getDeploymentOrderById,
   getDeploymentOrders,
   rejectDeploymentOrder,
@@ -119,7 +120,7 @@ export const useConfirmDeploymentOrder = () => {
   });
 };
 
-/** POST reject */
+/** POST reject — sale xin hủy / admin duyệt hủy */
 export const useRejectDeploymentOrder = () => {
   const queryClient = useQueryClient();
 
@@ -135,6 +136,21 @@ export const useRejectDeploymentOrder = () => {
       invalidateListQueries(queryClient);
       queryClient.invalidateQueries({
         queryKey: [...QUERY_ROOT, "detail", variables.orderId],
+      });
+    },
+  });
+};
+
+/** POST reject/deny — admin từ chối yêu cầu / sale rút yêu cầu */
+export const useDenyRejectDeploymentOrder = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (orderId: number) => denyRejectDeploymentOrder(orderId),
+    onSuccess: (_data, orderId) => {
+      invalidateListQueries(queryClient);
+      queryClient.invalidateQueries({
+        queryKey: [...QUERY_ROOT, "detail", orderId],
       });
     },
   });

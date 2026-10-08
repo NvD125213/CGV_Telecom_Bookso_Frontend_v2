@@ -77,7 +77,7 @@ const getColumns = (status: string) => {
 const NumberStatusPieChart = () => {
   const [data, setData] = useState([
     { name: "Đã Book", value: 0, detail: "booked" },
-    { name: "Chờ triển khai", value: 0, detail: "deploy_pending" },
+    { name: "Chờ triển khai", value: 0, detail: "pending_deploy" },
     { name: "Đã Triển Khai", value: 0, detail: "released" },
   ]);
   const [selectedEntry, setSelectedEntry] = useState<{
@@ -151,11 +151,8 @@ const NumberStatusPieChart = () => {
         },
         {
           name: "Chờ triển khai",
-          value:
-            response?.data?.deploy_pending ??
-            response?.data?.pending_deploy ??
-            0,
-          detail: "deploy_pending",
+          value: response?.data?.pending_deploy || 0,
+          detail: "pending_deploy",
         },
         {
           name: "Đã Triển Khai",

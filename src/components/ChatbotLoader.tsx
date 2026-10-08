@@ -1,3 +1,5 @@
+// Chatbot widget tạm tắt — bật lại khi cần.
+/*
 import { useEffect } from "react";
 import { useSelector } from "react-redux";
 import { useLocation } from "react-router";
@@ -15,7 +17,6 @@ function ensureChatbotScriptLoaded() {
 
   const script = document.createElement("script");
   script.id = SCRIPT_ID;
-  // cache-busting để chắc chắn browser fetch/execute lần đầu
   script.src = SCRIPT_BASE;
   script.async = true;
   script.setAttribute("data-api-base-url", "https://dhtk.telesip.vn/api/v1");
@@ -42,13 +43,9 @@ export default function ChatbotLoader() {
     const isAllowed =
       Boolean(token) && Boolean(user?.sub) && ALLOWED_USERS.includes(user.sub);
 
-    // Script chỉ load 1 lần duy nhất (khi user hợp lệ lần đầu tiên)
     if (isAllowed) ensureChatbotScriptLoaded();
-
-    // Không remove DOM/widget: chỉ toggle hiển thị
     setChatbotVisible(isAllowed);
 
-    // Nếu widget render muộn sau khi script load, vẫn đảm bảo toggle đúng
     const observer = new MutationObserver(() => {
       setChatbotVisible(isAllowed);
     });
@@ -57,10 +54,14 @@ export default function ChatbotLoader() {
 
     return () => {
       observer.disconnect();
-      // Khi unmount (vd logout chuyển sang public route) thì hide đi, không remove
       setChatbotVisible(false);
     };
   }, [location.pathname, token, user?.sub]);
 
+  return null;
+}
+*/
+
+export default function ChatbotLoader() {
   return null;
 }

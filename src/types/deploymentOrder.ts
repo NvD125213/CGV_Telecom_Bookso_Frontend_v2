@@ -1,6 +1,7 @@
-/** Status đơn triển khai: pending | confirmed | rejected | cancelled */
+/** Status đơn triển khai */
 export type DeploymentOrderStatus =
   | "pending"
+  | "reject_requested"
   | "confirmed"
   | "rejected"
   | "cancelled"
@@ -41,9 +42,18 @@ export interface IDeploymentOrder {
   contract_note: string | null;
   created_at: string | null;
   updated_at: string | null;
+  /** Hạn xử lý đơn */
+  expires_at?: string | null;
+  /** Thời điểm đơn hết hạn (nếu đã hết) */
+  expired_at?: string | null;
+  /** Đã gửi cảnh báo sắp hết hạn */
+  expire_warned_at?: string | null;
   rejected_at: string | null;
   rejected_by: string | null;
   reject_reason: string | null;
+  /** Sale xin hủy — chờ admin duyệt */
+  reject_requested_at?: string | null;
+  reject_requested_by?: string | null;
   confirmed_at: string | null;
   confirmed_by: string | null;
   items: IDeploymentOrderItem[];
@@ -55,7 +65,7 @@ export interface IDeploymentOrderListParams {
   size: number;
   /** Lọc theo sale_username (admin). User thường chỉ thấy đơn của mình. */
   sale?: string;
-  /** pending | confirmed | rejected | cancelled */
+  /** pending | reject_requested | confirmed | rejected | cancelled */
   status?: DeploymentOrderStatus;
   customer_id?: number;
   contract_id?: number;
@@ -70,6 +80,7 @@ export interface IDeploymentOrderListResult {
 
 export interface IRejectDeploymentOrderBody {
   phone_number_id?: number | null;
+  /** Sale xin reject: bắt buộc. Admin duyệt: tùy chọn. */
   reason?: string | null;
 }
 
@@ -89,6 +100,7 @@ export interface IConfirmDeploymentOrderResult {
 /**
  * PATCH /api/v3/deployment-orders/{order_id}/customer
  * Chỉ đơn pending. Cập nhật snapshot khách/HĐ trên header.
+ * FE chỉ cho role = 1.
  */
 export interface IUpdateDeploymentOrderCustomerBody {
   customer_id: number;

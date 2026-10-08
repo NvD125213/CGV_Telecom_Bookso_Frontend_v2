@@ -188,15 +188,25 @@ const getColumns = (status: string) => {
       { key: "released_at" as keyof IHistoryBooked, label: "Ngày triển khai" },
     ];
   }
+  if (status === "all") {
+    return [
+      ...columns,
+      { key: "booked_at" as keyof IHistoryBooked, label: "Ngày đặt" },
+      { key: "booked_until" as keyof IHistoryBooked, label: "Hạn đặt" },
+      { key: "released_at" as keyof IHistoryBooked, label: "Ngày triển khai" },
+    ];
+  }
 
   return columns;
 };
-type StatusType = "booked" | "pending_deploy" | "released";
+type StatusType = "all" | "booked" | "pending_deploy" | "released";
 
 const parseStatusFromSearchParams = (params: URLSearchParams): StatusType => {
   const option = (params.get("option") || "").toLowerCase();
+  if (option === "all") return "all";
   if (option === "pending_deploy") return "pending_deploy";
   if (option === "released") return "released";
+  if (option === "booked") return "booked";
   return "booked";
 };
 
@@ -245,7 +255,6 @@ const HistoryBooked = () => {
       setLoading(true);
       setErrors("");
       const params: any = {
-        option: status,
         limit: limit,
         offset: offset,
       };
@@ -253,7 +262,7 @@ const HistoryBooked = () => {
       if (year) params.year = year;
       if (month) params.month = month;
       if (day) params.day = day;
-      if (status) params.option = status;
+      params.option = status;
 
       const res = await getBookingByCurrent(params);
       const formattedData = res.data.data.map((phone: IHistoryBooked) => ({
@@ -494,13 +503,17 @@ const HistoryBooked = () => {
         { label: "Loại số", value: item.type_name },
       ];
 
-      if (status === "booked" || status === "pending_deploy") {
+      if (
+        status === "booked" ||
+        status === "pending_deploy" ||
+        status === "all"
+      ) {
         rows.push(
           { label: "Ngày đặt", value: item.booked_at || "-" },
           { label: "Hạn đặt", value: item.booked_until || "-" },
         );
       }
-      if (status === "released") {
+      if (status === "released" || status === "all") {
         rows.push({
           label: "Ngày triển khai",
           value: item.released_at || "-",
@@ -552,6 +565,7 @@ const HistoryBooked = () => {
 
             <Select
               options={[
+                { label: "Tất cả", value: "all" },
                 { label: "Đã book", value: "booked" },
                 { label: "Chờ triển khai", value: "pending_deploy" },
                 { label: "Triển khai", value: "released" },

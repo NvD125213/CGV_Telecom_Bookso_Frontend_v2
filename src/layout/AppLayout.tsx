@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+// import { useEffect } from "react";
 import { SidebarProvider, useSidebar } from "../context/SidebarContext";
 import { Outlet } from "react-router";
 import AppHeader from "./AppHeader";
@@ -6,6 +6,7 @@ import Backdrop from "./Backdrop";
 import AppSidebar from "./AppSidebar";
 import Footer from "../components/footer/footer";
 
+/* Chatwoot widget tạm tắt — bật lại khi cần.
 const CHATWOOT_BASE_URL = "https://devchat.telesip.vn";
 const CHATWOOT_WEBSITE_TOKEN = "yHgjQd9cktTpBCxpiA2o1WYj";
 
@@ -15,10 +16,15 @@ function loadChatwoot() {
   if (chatwootLoaded) return;
   chatwootLoaded = true;
 
-  const w = window as typeof window & { chatwootSDK?: { run: (c: { websiteToken: string; baseUrl: string }) => void } };
+  const w = window as typeof window & {
+    chatwootSDK?: { run: (c: { websiteToken: string; baseUrl: string }) => void };
+  };
 
   if (w.chatwootSDK) {
-    w.chatwootSDK.run({ websiteToken: CHATWOOT_WEBSITE_TOKEN, baseUrl: CHATWOOT_BASE_URL });
+    w.chatwootSDK.run({
+      websiteToken: CHATWOOT_WEBSITE_TOKEN,
+      baseUrl: CHATWOOT_BASE_URL,
+    });
     return;
   }
 
@@ -29,17 +35,25 @@ function loadChatwoot() {
   s.parentNode?.insertBefore(g, s);
 
   g.onload = () => {
-    const w2 = window as typeof window & { chatwootSDK?: { run: (c: { websiteToken: string; baseUrl: string }) => void } };
-    w2.chatwootSDK?.run({ websiteToken: CHATWOOT_WEBSITE_TOKEN, baseUrl: CHATWOOT_BASE_URL });
+    const w2 = window as typeof window & {
+      chatwootSDK?: {
+        run: (c: { websiteToken: string; baseUrl: string }) => void;
+      };
+    };
+    w2.chatwootSDK?.run({
+      websiteToken: CHATWOOT_WEBSITE_TOKEN,
+      baseUrl: CHATWOOT_BASE_URL,
+    });
   };
 }
+*/
 
 const LayoutContent: React.FC = () => {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
 
-  useEffect(() => {
-    loadChatwoot();
-  }, []);
+  // useEffect(() => {
+  //   loadChatwoot();
+  // }, []);
 
   return (
     <div className="flex flex-col min-h-screen xl:flex">

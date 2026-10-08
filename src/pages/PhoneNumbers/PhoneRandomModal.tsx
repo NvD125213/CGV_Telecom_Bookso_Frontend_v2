@@ -674,14 +674,15 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
             </p>
             <OptionCard
               icon={<FiUserPlus size={20} />}
-              title="Khách hàng mới"
-              description="Đặt số ngẫu nhiên cho khách hàng mới. Số sẽ ở trạng thái đã book."
+              title="Book cho khách hàng"
+              description="Đặt số ngẫu nhiên cho khách hàng. Số sẽ ở trạng thái đã book."
               onClick={() => {
                 setBookType("new_customer");
                 setSelectedCustomer(null);
                 setStep("confirm");
               }}
             />
+            {/* Tạm ẩn — Triển khai khách hàng
             <OptionCard
               icon={<HiOutlineDocumentText size={20} />}
               title="Triển khai khách hàng"
@@ -693,6 +694,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                 setStep("pick_customer");
               }}
             />
+            */}
           </div>
         )}
 
@@ -850,7 +852,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                   </span>
                   <span className="text-right text-sm font-medium text-gray-900 dark:text-white">
                     {bookType === "new_customer"
-                      ? "Khách hàng mới"
+                      ? "Book cho khách hàng"
                       : "Triển khai khách hàng"}
                   </span>
                 </div>

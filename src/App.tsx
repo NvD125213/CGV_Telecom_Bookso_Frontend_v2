@@ -96,6 +96,10 @@ function AppWithInactivityHandler() {
             path="/subscriptions/detail/:id"
             element={<SubcriptionActionPage />}
           />
+          <Route
+            path="/service-management/deploy-order"
+            element={<ListDeployOrderPage />}
+          />
         </Route>
       </Route>
       <Route element={<PrivateRoute requiredRole="1" />}>
@@ -115,10 +119,6 @@ function AppWithInactivityHandler() {
             element={<SubcriptionActionPage />}
           />
           <Route path="/setting-order" element={<SettingOrder />} />
-          <Route
-            path="/service-management/deploy-order"
-            element={<ListDeployOrderPage />}
-          />
         </Route>
       </Route>
       <Route path="*" element={<NotFound />} />

@@ -479,7 +479,7 @@ const BrandNameList = () => {
           <Select
             options={saleFilterOptions}
             value={saleFilter}
-            placeholder="Tất cả sale"
+            placeholder="Chọn sale..."
             onChange={handleSaleFilterChange}
             className="dark:bg-black dark:text-white"
           />

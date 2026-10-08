@@ -39,13 +39,27 @@ export const confirmDeploymentOrder = async (
 
 /**
  * POST /api/v3/deployment-orders/:order_id/reject
- * Từ chối triển khai (xóa item, số về available)
+ * - Sale + pending: xin hủy → reject_requested (reason bắt buộc)
+ * - Admin + reject_requested: duyệt hủy → rejected (số về kho)
+ * - Admin + pending: có thể reject trực tiếp (backend xử lý theo role)
  */
 export const rejectDeploymentOrder = async (
   orderId: number,
   data?: IRejectDeploymentOrderBody,
 ): Promise<IRejectDeploymentOrderResult> => {
   const res = await instance.post(`${BASE}/${orderId}/reject`, data ?? {});
+  return res.data;
+};
+
+/**
+ * POST /api/v3/deployment-orders/:order_id/reject/deny
+ * - Admin từ chối yêu cầu hủy của sale → đơn về pending
+ * - Sale rút lại yêu cầu hủy trên đơn của mình → đơn về pending
+ */
+export const denyRejectDeploymentOrder = async (
+  orderId: number,
+): Promise<IDeploymentOrder> => {
+  const res = await instance.post(`${BASE}/${orderId}/reject/deny`);
   return res.data;
 };
 

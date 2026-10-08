@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { useSelector } from "react-redux";
-import { FiEye } from "react-icons/fi";
+import { FiEye, FiRefreshCw } from "react-icons/fi";
 import { GiConfirmed } from "react-icons/gi";
 import { MdOutlineCancel } from "react-icons/md";
 import Swal from "sweetalert2";
@@ -23,6 +23,7 @@ import TableMobile, {
 import { useScreenSize } from "../../../hooks/useScreenSize";
 import {
   useConfirmDeploymentOrder,
+  useDenyRejectDeploymentOrder,
   useDeploymentOrderList,
   useRejectDeploymentOrder,
 } from "../../../hooks/api-hooks/v3/useDeploymentOrder";
@@ -45,8 +46,10 @@ import { buildDeployOrderPhonesHtml } from "./deployOrderSwal";
 type DeployOrderRow = IDeploymentOrder & {
   status_label: string;
   created_at_display: string;
+  expires_at_display: string;
+  reject_request_display: string;
+  reject_reason_display: string;
   item_count_display: string;
-  no_charge_display: string;
 };
 
 const DEFAULT_PAGE = 1;
@@ -55,6 +58,7 @@ const DEFAULT_SIZE = 20;
 const STATUS_OPTIONS = [
   { label: "Tất cả trạng thái", value: "" },
   { label: "Chờ xử lý", value: "pending" },
+  { label: "Chờ duyệt hủy", value: "reject_requested" },
   { label: "Đã xác nhận", value: "confirmed" },
   { label: "Từ chối", value: "rejected" },
   { label: "Đã hủy", value: "cancelled" },
@@ -63,13 +67,19 @@ const STATUS_OPTIONS = [
 const STATUS_BADGE_BASE =
   "inline-flex max-w-fit shrink-0 items-center whitespace-nowrap px-2.5 py-0.5 justify-center rounded-full font-medium text-theme-xs";
 
-const isPending = (status?: string) =>
-  String(status || "").toLowerCase() === "pending";
+const normalizeStatus = (status?: string) => String(status || "").toLowerCase();
+
+const isPending = (status?: string) => normalizeStatus(status) === "pending";
+
+const isRejectRequested = (status?: string) =>
+  normalizeStatus(status) === "reject_requested";
 
 const getStatusLabel = (status?: string) => {
-  switch ((status || "").toLowerCase()) {
+  switch (normalizeStatus(status)) {
     case "pending":
       return "Chờ xử lý";
+    case "reject_requested":
+      return "Chờ duyệt hủy";
     case "confirmed":
       return "Đã xác nhận";
     case "rejected":
@@ -82,9 +92,11 @@ const getStatusLabel = (status?: string) => {
 };
 
 const getStatusBadgeClass = (status?: string) => {
-  switch ((status || "").toLowerCase()) {
+  switch (normalizeStatus(status)) {
     case "pending":
       return `${STATUS_BADGE_BASE} bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300`;
+    case "reject_requested":
+      return `${STATUS_BADGE_BASE} bg-orange-50 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300`;
     case "confirmed":
       return `${STATUS_BADGE_BASE} bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500`;
     case "rejected":
@@ -96,13 +108,22 @@ const getStatusBadgeClass = (status?: string) => {
   }
 };
 
+const EMPTY_DISPLAY = "—";
+
 const formatDt = (value?: string | null) => {
-  if (!value) return "—";
+  if (!value) return EMPTY_DISPLAY;
   try {
     return formatDate(value);
   } catch {
-    return value;
+    return value || EMPTY_DISPLAY;
   }
+};
+
+const formatActorDt = (at?: string | null, by?: string | null) => {
+  if (!at && !by?.trim()) return EMPTY_DISPLAY;
+  const dt = formatDt(at);
+  const actor = by?.trim();
+  return actor ? `${dt} · ${actor}` : dt;
 };
 
 const parsePage = (params: URLSearchParams) => {
@@ -185,9 +206,14 @@ const ListDeployOrderPage = () => {
   const [detailOrderId, setDetailOrderId] = useState<number | null>(null);
   const [openDetail, setOpenDetail] = useState(false);
 
+  const isAdmin = Number(user?.role) === 1;
   const confirmMutation = useConfirmDeploymentOrder();
   const rejectMutation = useRejectDeploymentOrder();
-  const actionBusy = confirmMutation.isPending || rejectMutation.isPending;
+  const denyRejectMutation = useDenyRejectDeploymentOrder();
+  const actionBusy =
+    confirmMutation.isPending ||
+    rejectMutation.isPending ||
+    denyRejectMutation.isPending;
 
   const customerIdFilter = useMemo(() => {
     const id = Number(selectedCustomerFilter[0]?.value);
@@ -307,8 +333,13 @@ const ListDeployOrderPage = () => {
       ...item,
       status_label: getStatusLabel(item.status),
       created_at_display: formatDt(item.created_at),
+      expires_at_display: formatDt(item.expires_at),
+      reject_request_display: formatActorDt(
+        item.reject_requested_at,
+        item.reject_requested_by,
+      ),
+      reject_reason_display: item.reject_reason?.trim() || EMPTY_DISPLAY,
       item_count_display: String(item.item_count ?? item.items?.length ?? 0),
-      no_charge_display: item.no_charge ? "Có" : "Không",
     }));
     const total = listData?.total ?? 0;
     const pageSize = listData?.size || size;
@@ -403,22 +434,23 @@ const ListDeployOrderPage = () => {
 
   const columns = useMemo(
     () => [
+      { key: "created_by", label: "Người tạo" },
+      { key: "sale_username", label: "Sale" },
+      { key: "created_at_display", label: "Ngày tạo" },
       { key: "customer_name", label: "Khách hàng" },
       { key: "contract_number", label: "Số HĐ" },
-      { key: "sale_username", label: "Sale" },
       { key: "item_count_display", label: "Số lượng" },
       {
         key: "status_label",
         label: "Trạng thái",
         type: "span",
-        cellClassName: "min-w-[110px]",
+        cellClassName: "min-w-[120px]",
         render: (item: DeployOrderRow) => ({
           text: getStatusLabel(item.status),
           classname: getStatusBadgeClass(item.status),
         }),
       },
-      { key: "created_by", label: "Người tạo" },
-      { key: "created_at_display", label: "Ngày tạo" },
+      { key: "expires_at_display", label: "Hạn xử lý" },
     ],
     [],
   );
@@ -451,7 +483,20 @@ const ListDeployOrderPage = () => {
     }
   };
 
+  const handleRefreshStatus = async () => {
+    try {
+      await refetch();
+    } catch (err: any) {
+      Swal.fire(
+        "Oops...",
+        err?.response?.data?.detail || "Không kiểm tra được trạng thái đơn.",
+        "error",
+      );
+    }
+  };
+
   const handleConfirm = async (order: IDeploymentOrder) => {
+    if (!isAdmin) return;
     if (!isPending(order.status)) return;
 
     let detail = order;
@@ -489,66 +534,187 @@ const ListDeployOrderPage = () => {
     }
   };
 
+  /** Sale xin hủy (pending) / Sale rút yêu cầu (reject_requested) / Admin duyệt hủy / Admin hủy trực tiếp */
   const handleReject = async (order: IDeploymentOrder) => {
-    if (!isPending(order.status)) return;
+    const pending = isPending(order.status);
+    const rejectRequested = isRejectRequested(order.status);
 
-    let detail = order;
-    let items: IDeploymentOrderItem[] = order.items ?? [];
-    try {
-      const resolved = await resolveOrderItems(order);
-      detail = resolved.detail;
-      items = resolved.items;
-    } catch {
-      Swal.fire("Oops...", "Không tải được danh sách số trong đơn.", "error");
+    // Sale rút yêu cầu hủy qua nút reject (không còn dropdown)
+    if (rejectRequested && !isAdmin) {
+      await handleDenyReject(order);
       return;
     }
 
+    if (pending) {
+      // Sale bắt buộc reason; admin có thể hủy trực tiếp (reason tùy chọn)
+      const reasonRequired = !isAdmin;
+      let detail = order;
+      let items: IDeploymentOrderItem[] = order.items ?? [];
+      try {
+        const resolved = await resolveOrderItems(order);
+        detail = resolved.detail;
+        items = resolved.items;
+      } catch {
+        Swal.fire("Oops...", "Không tải được danh sách số trong đơn.", "error");
+        return;
+      }
+
+      const result = await Swal.fire({
+        title: isAdmin ? "Từ chối đơn triển khai?" : "Xin hủy đơn triển khai?",
+        html: buildDeployOrderPhonesHtml(detail, items),
+        input: "textarea",
+        inputLabel: reasonRequired
+          ? "Lý do xin hủy (bắt buộc)"
+          : "Lý do từ chối (tùy chọn)",
+        inputPlaceholder: "Nhập lý do...",
+        inputValidator: reasonRequired
+          ? (value) => {
+              if (!String(value || "").trim()) {
+                return "Vui lòng nhập lý do xin hủy.";
+              }
+              return null;
+            }
+          : undefined,
+        icon: "warning",
+        width: 580,
+        showCancelButton: true,
+        confirmButtonText: isAdmin ? "Từ chối" : "Gửi yêu cầu hủy",
+        cancelButtonText: "Hủy",
+        confirmButtonColor: "#d33",
+      });
+      if (!result.isConfirmed) return;
+
+      try {
+        await rejectMutation.mutateAsync({
+          orderId: order.id,
+          data: { reason: String(result.value || "").trim() || null },
+        });
+        await Swal.fire(
+          "Thành công",
+          isAdmin
+            ? "Đã từ chối đơn triển khai."
+            : "Đã gửi yêu cầu hủy. Chờ admin duyệt.",
+          "success",
+        );
+        refetch();
+      } catch (err: any) {
+        Swal.fire(
+          "Oops...",
+          err?.response?.data?.detail ||
+            (isAdmin ? "Không thể từ chối đơn." : "Không thể gửi yêu cầu hủy."),
+          "error",
+        );
+      }
+      return;
+    }
+
+    if (rejectRequested && isAdmin) {
+      let detail = order;
+      let items: IDeploymentOrderItem[] = order.items ?? [];
+      try {
+        const resolved = await resolveOrderItems(order);
+        detail = resolved.detail;
+        items = resolved.items;
+      } catch {
+        Swal.fire("Oops...", "Không tải được danh sách số trong đơn.", "error");
+        return;
+      }
+
+      const reasonNote = detail.reject_reason
+        ? `<p style="margin:8px 0 0;font-size:13px;color:#6b7280"><b>Lý do sale xin hủy:</b> ${String(detail.reject_reason).replace(/</g, "&lt;")}</p>`
+        : "";
+      const result = await Swal.fire({
+        title: "Duyệt hủy đơn?",
+        html: `${buildDeployOrderPhonesHtml(detail, items)}${reasonNote}`,
+        icon: "warning",
+        width: 580,
+        showCancelButton: true,
+        confirmButtonText: "Duyệt hủy (trả số về kho)",
+        cancelButtonText: "Hủy",
+        confirmButtonColor: "#d33",
+      });
+      if (!result.isConfirmed) return;
+
+      try {
+        await rejectMutation.mutateAsync({ orderId: order.id, data: {} });
+        await Swal.fire(
+          "Thành công",
+          "Đã duyệt hủy đơn. Số đã về kho.",
+          "success",
+        );
+        refetch();
+      } catch (err: any) {
+        Swal.fire(
+          "Oops...",
+          err?.response?.data?.detail || "Không thể duyệt hủy đơn.",
+          "error",
+        );
+      }
+    }
+  };
+
+  /** Admin từ chối yêu cầu hủy / Sale rút yêu cầu */
+  const handleDenyReject = async (order: IDeploymentOrder) => {
+    if (!isRejectRequested(order.status)) return;
+
+    const isWithdraw = !isAdmin;
     const result = await Swal.fire({
-      title: "Từ chối đơn triển khai?",
-      html: buildDeployOrderPhonesHtml(detail, items),
-      input: "textarea",
-      inputLabel: "Lý do từ chối (tùy chọn)",
-      inputPlaceholder: "Nhập lý do...",
-      icon: "warning",
-      width: 580,
+      title: isWithdraw ? "Rút yêu cầu hủy?" : "Từ chối yêu cầu hủy?",
+      text: isWithdraw
+        ? "Đơn sẽ quay về trạng thái chờ xử lý."
+        : "Giữ đơn và số đang pending_deploy. Đơn quay về chờ xử lý.",
+      icon: "question",
       showCancelButton: true,
-      confirmButtonText: "Từ chối",
+      confirmButtonText: isWithdraw ? "Rút yêu cầu" : "Từ chối yêu cầu",
       cancelButtonText: "Hủy",
-      confirmButtonColor: "#d33",
     });
     if (!result.isConfirmed) return;
 
     try {
-      await rejectMutation.mutateAsync({
-        orderId: order.id,
-        data: { reason: String(result.value || "").trim() || null },
-      });
-      await Swal.fire("Thành công", "Đã từ chối đơn triển khai.", "success");
+      await denyRejectMutation.mutateAsync(order.id);
+      await Swal.fire(
+        "Thành công",
+        isWithdraw
+          ? "Đã rút yêu cầu hủy. Đơn về chờ xử lý."
+          : "Đã từ chối yêu cầu hủy. Đơn về chờ xử lý.",
+        "success",
+      );
       refetch();
     } catch (err: any) {
       Swal.fire(
         "Oops...",
-        err?.response?.data?.detail || "Không thể từ chối đơn.",
+        err?.response?.data?.detail || "Không thể xử lý yêu cầu hủy.",
         "error",
       );
     }
   };
 
+  const canRejectOrder = (order: IDeploymentOrder) => {
+    if (isPending(order.status)) return true;
+    // Admin duyệt hủy; sale rút yêu cầu hủy
+    if (isRejectRequested(order.status)) return true;
+    return false;
+  };
+
+  const canDenyRejectOrder = (order: IDeploymentOrder) =>
+    isRejectRequested(order.status);
+
   const convertToMobileData = (): LabelValueItem[][] =>
     rows.map((item) => [
       { label: "ID", value: String(item.id), hidden: true },
-      { label: "Khách hàng", value: item.customer_name || "—" },
-      { label: "Số HĐ", value: item.contract_number || "—" },
-      { label: "Sale", value: item.sale_username || "—" },
+      { label: "Khách hàng", value: item.customer_name || EMPTY_DISPLAY },
+      { label: "Số HĐ", value: item.contract_number || EMPTY_DISPLAY },
+      { label: "Sale", value: item.sale_username || EMPTY_DISPLAY },
       { label: "Số lượng", value: item.item_count_display },
       { label: "Trạng thái", value: getStatusLabel(item.status) },
+      { label: "Hạn xử lý", value: item.expires_at_display },
+      { label: "Xin hủy lúc", value: item.reject_request_display },
+      { label: "Lý do hủy", value: item.reject_reason_display },
       { label: "Ngày tạo", value: item.created_at_display },
     ]);
 
-  const isOrderPendingById = (id: string) => {
-    const order = rows.find((row) => Number(row.id) === Number(id));
-    return isPending(order?.status);
-  };
+  const findOrderById = (id: string) =>
+    rows.find((row) => Number(row.id) === Number(id));
 
   const mobileActions: ActionButton[] = [
     {
@@ -557,25 +723,45 @@ const ListDeployOrderPage = () => {
       onClick: (id) => openDetailById(Number(id)),
       color: "primary",
     },
-    {
-      icon: <GiConfirmed />,
-      label: "Xác nhận",
-      onClick: (id) => {
-        const order = rows.find((row) => Number(row.id) === Number(id));
-        if (order) handleConfirm(order);
-      },
-      color: "success",
-      disabled: (id) => !isOrderPendingById(id),
-    },
+    ...(isAdmin
+      ? [
+          {
+            icon: <GiConfirmed />,
+            label: "Xác nhận",
+            onClick: (id: string) => {
+              const order = findOrderById(id);
+              if (order) handleConfirm(order);
+            },
+            color: "success" as const,
+            disabled: (id: string) => !isPending(findOrderById(id)?.status),
+          },
+        ]
+      : []),
     {
       icon: <MdOutlineCancel />,
-      label: "Từ chối",
+      label: isAdmin ? "Từ chối / Duyệt hủy" : "Xin hủy",
       onClick: (id) => {
-        const order = rows.find((row) => Number(row.id) === Number(id));
+        const order = findOrderById(id);
         if (order) handleReject(order);
       },
       color: "error",
-      disabled: (id) => !isOrderPendingById(id),
+      disabled: (id) => {
+        const order = findOrderById(id);
+        return !order || !canRejectOrder(order);
+      },
+    },
+    {
+      icon: <MdOutlineCancel />,
+      label: isAdmin ? "Từ chối yêu cầu hủy" : "Rút yêu cầu hủy",
+      onClick: (id) => {
+        const order = findOrderById(id);
+        if (order) handleDenyReject(order);
+      },
+      color: "warning",
+      disabled: (id) => {
+        const order = findOrderById(id);
+        return !order || !canDenyRejectOrder(order);
+      },
     },
   ];
 
@@ -599,7 +785,10 @@ const ListDeployOrderPage = () => {
 
   const filterBlock = (
     <ResponsiveFilterWrapper drawerTitle="Bộ lọc đơn triển khai">
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
+      <div
+        className={`grid grid-cols-1 gap-4 lg:grid-cols-2 ${
+          isAdmin ? "xl:grid-cols-5" : "xl:grid-cols-4"
+        }`}>
         <div>
           <Label>Trạng thái</Label>
           <Select
@@ -610,14 +799,14 @@ const ListDeployOrderPage = () => {
             className="dark:bg-black dark:text-white"
           />
         </div>
-        {user?.role === 1 ? (
+        {isAdmin ? (
           <div>
             <Label>Sale</Label>
             <Select
               options={saleOptions}
               value={sale}
               onChange={(value) => setSale(value)}
-              placeholder="Tất cả sale"
+              placeholder="Chọn sale..."
               className="dark:bg-black dark:text-white"
             />
           </div>
@@ -643,6 +832,20 @@ const ListDeployOrderPage = () => {
             placeholder="Tìm theo số hợp đồng..."
             className="dark:bg-black dark:text-white"
           />
+        </div>
+        <div className="flex flex-col">
+          <Label className="invisible select-none">Thao tác</Label>
+          <button
+            type="button"
+            onClick={handleRefreshStatus}
+            disabled={isLoading || isFetching || actionBusy}
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 shadow-theme-xs transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+            title="Kiểm tra lại trạng thái đơn">
+            <FiRefreshCw
+              className={`shrink-0 text-base ${isFetching ? "animate-spin" : ""}`}
+            />
+            <span className="truncate">Kiểm tra lại trạng thái</span>
+          </button>
         </div>
       </div>
     </ResponsiveFilterWrapper>
@@ -698,10 +901,15 @@ const ListDeployOrderPage = () => {
                 isLoading={isLoading || isFetching || actionBusy}
                 error={errorMessage}
                 onDetail={(item) => openDetailById(Number(item.id))}
-                onConfirm={(item) => handleConfirm(item)}
+                {...(isAdmin
+                  ? {
+                      onConfirm: (item: DeployOrderRow) => handleConfirm(item),
+                      canConfirm: (item: DeployOrderRow) =>
+                        isPending(item.status),
+                    }
+                  : {})}
                 onReject={(item) => handleReject(item)}
-                canConfirm={(item) => isPending(item.status)}
-                canReject={(item) => isPending(item.status)}
+                canReject={(item) => canRejectOrder(item)}
               />
             ) : null}
             {showPagination ? (

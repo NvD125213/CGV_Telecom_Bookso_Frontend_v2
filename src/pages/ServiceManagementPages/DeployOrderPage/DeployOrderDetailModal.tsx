@@ -24,6 +24,7 @@ import { useIsMobile } from "../../../hooks/useScreenSize";
 import { users } from "../../../constants/user";
 import {
   useConfirmDeploymentOrder,
+  useDenyRejectDeploymentOrder,
   useDeploymentOrderById,
   useRejectDeploymentOrder,
   useUpdateDeploymentOrderCustomer,
@@ -52,6 +53,8 @@ const statusLabel = (status?: string) => {
   switch ((status || "").toLowerCase()) {
     case "pending":
       return "Chờ xử lý";
+    case "reject_requested":
+      return "Chờ duyệt hủy";
     case "confirmed":
       return "Đã xác nhận";
     case "rejected":
@@ -67,6 +70,8 @@ const statusClass = (status?: string) => {
   switch ((status || "").toLowerCase()) {
     case "pending":
       return "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:ring-amber-900/50";
+    case "reject_requested":
+      return "bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-200 dark:bg-orange-950/30 dark:text-orange-300 dark:ring-orange-900/50";
     case "confirmed":
       return "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:ring-emerald-900/50";
     case "rejected":
@@ -79,11 +84,11 @@ const statusClass = (status?: string) => {
 };
 
 const formatDt = (value?: string | null) => {
-  if (!value) return "—";
+  if (!value) return "Chưa có";
   try {
     return formatDate(value);
   } catch {
-    return value;
+    return value || "Chưa có";
   }
 };
 
@@ -147,23 +152,50 @@ const uniqueCustomersByKey = (items: ICustomer[]): ICustomer[] => {
   return Array.from(map.values());
 };
 
-function InfoRow({
-  label,
-  value,
-  hideIfEmpty = true,
-}: {
-  label: string;
-  value: ReactNode;
-  hideIfEmpty?: boolean;
-}) {
-  const empty =
-    value == null || value === "" || value === false || value === "—";
-  if (hideIfEmpty && empty) return null;
+const EMPTY_DISPLAY = "Chưa có";
+
+const isEmptyValue = (value: ReactNode) =>
+  value == null ||
+  value === "" ||
+  value === false ||
+  value === "—" ||
+  value === EMPTY_DISPLAY;
+
+/**
+ * Thời gian + người thao tác.
+ * @param byLabel ví dụ "Xác nhận bởi", "Yêu cầu hủy bởi", "Từ chối bởi"
+ */
+const formatActorDt = (
+  at?: string | null,
+  by?: string | null,
+  byLabel?: string,
+) => {
+  const actor = by?.trim();
+  if (!at && !actor) return EMPTY_DISPLAY;
+
+  const dt = at ? formatDt(at) : null;
+  const actorPart = actor
+    ? byLabel?.trim()
+      ? `${byLabel.trim()} ${actor}`
+      : actor
+    : null;
+
+  if (dt && actorPart) return `${dt} · ${actorPart}`;
+  return dt || actorPart || EMPTY_DISPLAY;
+};
+
+function InfoRow({ label, value }: { label: string; value: ReactNode }) {
+  const empty = isEmptyValue(value);
   return (
     <div className="grid grid-cols-[7.5rem_1fr] gap-3 border-b border-gray-100 py-2.5 last:border-b-0 dark:border-gray-800">
       <dt className="text-xs text-gray-500 dark:text-gray-400">{label}</dt>
-      <dd className="break-words text-sm font-medium text-gray-900 dark:text-gray-100">
-        {empty ? "—" : value}
+      <dd
+        className={`break-words text-sm font-medium ${
+          empty
+            ? "text-gray-400 dark:text-gray-500"
+            : "text-gray-900 dark:text-gray-100"
+        }`}>
+        {empty ? EMPTY_DISPLAY : value}
       </dd>
     </div>
   );
@@ -250,14 +282,24 @@ export default function DeployOrderDetailModal({
   const updateCustomerMutation = useUpdateDeploymentOrderCustomer();
   const confirmMutation = useConfirmDeploymentOrder();
   const rejectMutation = useRejectDeploymentOrder();
+  const denyRejectMutation = useDenyRejectDeploymentOrder();
 
   const order = data as IDeploymentOrder | undefined;
-  const isPendingStatus =
-    String(order?.status || "").toLowerCase() === "pending";
-  const canEditCustomer = isPendingStatus;
+  const isAdmin = Number(user?.role) === 1;
+  const orderStatus = String(order?.status || "").toLowerCase();
+  const isPendingStatus = orderStatus === "pending";
+  const isRejectRequestedStatus = orderStatus === "reject_requested";
+  /** Đổi khách/HĐ chỉ admin + đơn pending */
+  const canEditCustomer = isAdmin && isPendingStatus;
+  const canConfirm = isAdmin && isPendingStatus;
+  /** Sale xin hủy / Admin hủy trực tiếp (pending) hoặc duyệt hủy (reject_requested) */
+  const canReject = isPendingStatus || (isAdmin && isRejectRequestedStatus);
+  /** Sale rút yêu cầu / Admin từ chối yêu cầu hủy */
+  const canDenyReject = isRejectRequestedStatus;
   const actionBusy =
     confirmMutation.isPending ||
     rejectMutation.isPending ||
+    denyRejectMutation.isPending ||
     updateCustomerMutation.isPending;
 
   const saleFilterOptions = useMemo(
@@ -439,7 +481,7 @@ export default function DeployOrderDetailModal({
   };
 
   const handleConfirm = async () => {
-    if (!order || !isPendingStatus) return;
+    if (!isAdmin || !order || !isPendingStatus) return;
 
     const result = await Swal.fire({
       title: "Xác nhận đơn triển khai?",
@@ -467,35 +509,126 @@ export default function DeployOrderDetailModal({
   };
 
   const handleReject = async () => {
-    if (!order || !isPendingStatus) return;
+    if (!order) return;
 
+    if (isPendingStatus) {
+      const reasonRequired = !isAdmin;
+      const result = await Swal.fire({
+        title: isAdmin ? "Từ chối đơn triển khai?" : "Xin hủy đơn triển khai?",
+        html: buildDeployOrderPhonesHtml(order, order.items ?? []),
+        input: "textarea",
+        inputLabel: reasonRequired
+          ? "Lý do xin hủy (bắt buộc)"
+          : "Lý do từ chối (tùy chọn)",
+        inputPlaceholder: "Nhập lý do...",
+        inputValidator: reasonRequired
+          ? (value) => {
+              if (!String(value || "").trim()) {
+                return "Vui lòng nhập lý do xin hủy.";
+              }
+              return null;
+            }
+          : undefined,
+        icon: "warning",
+        width: 580,
+        showCancelButton: true,
+        confirmButtonText: isAdmin ? "Từ chối" : "Gửi yêu cầu hủy",
+        cancelButtonText: "Hủy",
+        confirmButtonColor: "#d33",
+      });
+      if (!result.isConfirmed) return;
+
+      try {
+        await rejectMutation.mutateAsync({
+          orderId: order.id,
+          data: { reason: String(result.value || "").trim() || null },
+        });
+        await Swal.fire(
+          "Thành công",
+          isAdmin
+            ? "Đã từ chối đơn triển khai."
+            : "Đã gửi yêu cầu hủy. Chờ admin duyệt.",
+          "success",
+        );
+        await refetch();
+        onSuccess?.();
+      } catch (err: any) {
+        Swal.fire(
+          "Oops...",
+          err?.response?.data?.detail ||
+            (isAdmin ? "Không thể từ chối đơn." : "Không thể gửi yêu cầu hủy."),
+          "error",
+        );
+      }
+      return;
+    }
+
+    if (isRejectRequestedStatus && isAdmin) {
+      const reasonNote = order.reject_reason
+        ? `<p style="margin:8px 0 0;font-size:13px;color:#6b7280"><b>Lý do sale xin hủy:</b> ${String(order.reject_reason).replace(/</g, "&lt;")}</p>`
+        : "";
+      const result = await Swal.fire({
+        title: "Duyệt hủy đơn?",
+        html: `${buildDeployOrderPhonesHtml(order, order.items ?? [])}${reasonNote}`,
+        icon: "warning",
+        width: 580,
+        showCancelButton: true,
+        confirmButtonText: "Duyệt hủy (trả số về kho)",
+        cancelButtonText: "Hủy",
+        confirmButtonColor: "#d33",
+      });
+      if (!result.isConfirmed) return;
+
+      try {
+        await rejectMutation.mutateAsync({ orderId: order.id, data: {} });
+        await Swal.fire(
+          "Thành công",
+          "Đã duyệt hủy đơn. Số đã về kho.",
+          "success",
+        );
+        await refetch();
+        onSuccess?.();
+      } catch (err: any) {
+        Swal.fire(
+          "Oops...",
+          err?.response?.data?.detail || "Không thể duyệt hủy đơn.",
+          "error",
+        );
+      }
+    }
+  };
+
+  const handleDenyReject = async () => {
+    if (!order || !isRejectRequestedStatus) return;
+
+    const isWithdraw = !isAdmin;
     const result = await Swal.fire({
-      title: "Từ chối đơn triển khai?",
-      html: buildDeployOrderPhonesHtml(order, order.items ?? []),
-      input: "textarea",
-      inputLabel: "Lý do từ chối (tùy chọn)",
-      inputPlaceholder: "Nhập lý do...",
-      icon: "warning",
-      width: 580,
+      title: isWithdraw ? "Rút yêu cầu hủy?" : "Từ chối yêu cầu hủy?",
+      text: isWithdraw
+        ? "Đơn sẽ quay về trạng thái chờ xử lý."
+        : "Giữ đơn và số đang pending_deploy. Đơn quay về chờ xử lý.",
+      icon: "question",
       showCancelButton: true,
-      confirmButtonText: "Từ chối",
+      confirmButtonText: isWithdraw ? "Rút yêu cầu" : "Từ chối yêu cầu",
       cancelButtonText: "Hủy",
-      confirmButtonColor: "#d33",
     });
     if (!result.isConfirmed) return;
 
     try {
-      await rejectMutation.mutateAsync({
-        orderId: order.id,
-        data: { reason: String(result.value || "").trim() || null },
-      });
-      await Swal.fire("Thành công", "Đã từ chối đơn triển khai.", "success");
+      await denyRejectMutation.mutateAsync(order.id);
+      await Swal.fire(
+        "Thành công",
+        isWithdraw
+          ? "Đã rút yêu cầu hủy. Đơn về chờ xử lý."
+          : "Đã từ chối yêu cầu hủy. Đơn về chờ xử lý.",
+        "success",
+      );
       await refetch();
       onSuccess?.();
     } catch (err: any) {
       Swal.fire(
         "Oops...",
-        err?.response?.data?.detail || "Không thể từ chối đơn.",
+        err?.response?.data?.detail || "Không thể xử lý yêu cầu hủy.",
         "error",
       );
     }
@@ -607,7 +740,7 @@ export default function DeployOrderDetailModal({
                                 options={saleFilterOptions}
                                 value={saleFilter}
                                 onChange={handleSaleFilterChange}
-                                placeholder="Tất cả sale"
+                                placeholder="Chọn sale..."
                                 className="dark:bg-gray-900 dark:text-white"
                               />
                             </div>
@@ -735,19 +868,16 @@ export default function DeployOrderDetailModal({
                         <InfoRow
                           label="Khách hàng"
                           value={order.customer_name}
-                          hideIfEmpty={false}
                         />
                         <InfoRow
                           label="Số hợp đồng"
                           value={order.contract_number}
-                          hideIfEmpty={false}
                         />
                         <InfoRow label="Loại HĐ" value={order.contract_type} />
                         <InfoRow label="MST" value={order.tax_code} />
                         <InfoRow
                           label="No charge"
                           value={order.no_charge ? "Có" : "Không"}
-                          hideIfEmpty={false}
                         />
                         <InfoRow label="Ghi chú" value={order.contract_note} />
                       </dl>
@@ -762,43 +892,63 @@ export default function DeployOrderDetailModal({
                   <Section
                     icon={<FiFileText size={14} />}
                     title="Thông tin đơn">
-                    <dl>
-                      <InfoRow
-                        label="Sale"
-                        value={order.sale_username}
-                        hideIfEmpty={false}
-                      />
-                      <InfoRow
-                        label="Người tạo"
-                        value={order.created_by}
-                        hideIfEmpty={false}
-                      />
-                      <InfoRow
-                        label="Ngày tạo"
-                        value={formatDt(order.created_at)}
-                        hideIfEmpty={false}
-                      />
-                      {order.confirmed_at ? (
+                    <div
+                      className={
+                        editingCustomer
+                          ? "grid grid-cols-1 gap-x-6 sm:grid-cols-2"
+                          : undefined
+                      }>
+                      <dl>
+                        <InfoRow label="Sale" value={order.sale_username} />
+                        <InfoRow label="Người tạo" value={order.created_by} />
+                        <InfoRow
+                          label="Ngày tạo"
+                          value={formatDt(order.created_at)}
+                        />
+                        <InfoRow
+                          label="Hạn xử lý"
+                          value={formatDt(order.expires_at)}
+                        />
+                        <InfoRow
+                          label="Đã hết hạn"
+                          value={formatDt(order.expired_at)}
+                        />
+                      </dl>
+                      <dl>
+                        <InfoRow
+                          label="Cảnh báo hết hạn"
+                          value={formatDt(order.expire_warned_at)}
+                        />
                         <InfoRow
                           label="Xác nhận"
-                          value={`${formatDt(order.confirmed_at)}${
-                            order.confirmed_by ? ` · ${order.confirmed_by}` : ""
-                          }`}
+                          value={formatActorDt(
+                            order.confirmed_at,
+                            order.confirmed_by,
+                            "Xác nhận bởi",
+                          )}
                         />
-                      ) : null}
-                      {order.rejected_at ? (
+                        <InfoRow
+                          label="Xin hủy lúc"
+                          value={formatActorDt(
+                            order.reject_requested_at,
+                            order.reject_requested_by,
+                            "Yêu cầu hủy bởi",
+                          )}
+                        />
                         <InfoRow
                           label="Từ chối"
-                          value={`${formatDt(order.rejected_at)}${
-                            order.rejected_by ? ` · ${order.rejected_by}` : ""
-                          }`}
+                          value={formatActorDt(
+                            order.rejected_at,
+                            order.rejected_by,
+                            "Từ chối bởi",
+                          )}
                         />
-                      ) : null}
-                      <InfoRow
-                        label="Lý do từ chối"
-                        value={order.reject_reason}
-                      />
-                    </dl>
+                        <InfoRow
+                          label="Lý do hủy / từ chối"
+                          value={order.reject_reason}
+                        />
+                      </dl>
+                    </div>
                   </Section>
                 </div>
               </div>
@@ -898,24 +1048,49 @@ export default function DeployOrderDetailModal({
             className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800 sm:flex-1">
             Đóng
           </button>
-          <button
-            type="button"
-            disabled={!order || !isPendingStatus || actionBusy}
-            onClick={handleReject}
-            className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:opacity-60 disabled:hover:brightness-100 dark:disabled:bg-gray-700 dark:disabled:text-gray-400 sm:flex-1"
-            title="Từ chối">
-            <MdOutlineCancel className="text-base" />
-            Từ chối
-          </button>
-          <button
-            type="button"
-            disabled={!order || !isPendingStatus || actionBusy}
-            onClick={handleConfirm}
-            className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:opacity-60 disabled:hover:brightness-100 dark:disabled:bg-gray-700 dark:disabled:text-gray-400 sm:flex-1"
-            title="Xác nhận">
-            <GiConfirmed className="text-base" />
-            Xác nhận
-          </button>
+          {canDenyReject ? (
+            <button
+              type="button"
+              disabled={!order || actionBusy}
+              onClick={handleDenyReject}
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-orange-300 bg-orange-50 px-4 py-2.5 text-sm font-semibold text-orange-700 transition hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-300 dark:hover:bg-orange-950/60 sm:flex-1"
+              title={isAdmin ? "Từ chối yêu cầu hủy" : "Rút yêu cầu hủy"}>
+              <MdOutlineCancel className="text-base" />
+              {isAdmin ? "Từ chối yêu cầu hủy" : "Rút yêu cầu hủy"}
+            </button>
+          ) : null}
+          {canReject ? (
+            <button
+              type="button"
+              disabled={!order || actionBusy}
+              onClick={handleReject}
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:opacity-60 disabled:hover:brightness-100 dark:disabled:bg-gray-700 dark:disabled:text-gray-400 sm:flex-1"
+              title={
+                isRejectRequestedStatus
+                  ? "Duyệt hủy"
+                  : isAdmin
+                    ? "Từ chối"
+                    : "Xin hủy đơn"
+              }>
+              <MdOutlineCancel className="text-base" />
+              {isRejectRequestedStatus
+                ? "Duyệt hủy"
+                : isAdmin
+                  ? "Từ chối"
+                  : "Xin hủy đơn"}
+            </button>
+          ) : null}
+          {isAdmin ? (
+            <button
+              type="button"
+              disabled={!order || !canConfirm || actionBusy}
+              onClick={handleConfirm}
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:opacity-60 disabled:hover:brightness-100 dark:disabled:bg-gray-700 dark:disabled:text-gray-400 sm:flex-1"
+              title="Xác nhận">
+              <GiConfirmed className="text-base" />
+              Xác nhận
+            </button>
+          ) : null}
         </div>
       </aside>
     </>,

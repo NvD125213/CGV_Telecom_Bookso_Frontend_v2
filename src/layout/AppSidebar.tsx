@@ -250,10 +250,8 @@ const AppSidebar: React.FC = () => {
     [user?.role],
   );
 
-  const filteredOthersItems = useMemo(
-    () => (user?.role === 1 ? othersItems : []),
-    [user?.role],
-  );
+  // Đơn triển khai: mọi user đã đăng nhập đều xem được (accept chỉ role=1 ở trang)
+  const filteredOthersItems = useMemo(() => othersItems, []);
 
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";
