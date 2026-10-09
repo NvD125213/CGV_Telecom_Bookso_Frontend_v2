@@ -95,6 +95,8 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
   const [bookPhoneIds, setBookPhoneIds] = useState<number[]>([]);
   const [bookPhoneNumbers, setBookPhoneNumbers] = useState<string[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  /** Giữ số đã thấy theo id, kể cả khi đổi định dạng / trang nên không còn trong data hiện tại */
+  const phoneByIdRef = useRef<Map<number, string>>(new Map());
   const dispatch = useDispatch();
   const selectedIdsFromStore = useSelector(
     (state: RootState) => state.selectedPhone.selectedIds,
@@ -249,6 +251,14 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
       }
 
       // Update data first
+      formattedData.forEach((phone: IPhoneNumber) => {
+        const id = Number(phone.id);
+        const number = String(phone.phone_number ?? "").trim();
+        if (Number.isFinite(id) && number) {
+          phoneByIdRef.current.set(id, number);
+        }
+      });
+
       setData({
         ...response.data,
         phone_numbers: formattedData,
@@ -376,15 +386,16 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
     }
 
     const idPhoneNumbers = selectedIdsFromStore.map((id) => Number(id));
-    const phoneMap = new Map(
-      (data?.phone_numbers ?? []).map((p) => [
-        Number(p.id),
-        String(p.phone_number ?? ""),
-      ]),
-    );
+    (data?.phone_numbers ?? []).forEach((phone) => {
+      const id = Number(phone.id);
+      const number = String(phone.phone_number ?? "").trim();
+      if (Number.isFinite(id) && number) {
+        phoneByIdRef.current.set(id, number);
+      }
+    });
     const phoneDetails = idPhoneNumbers
-      .map((id) => phoneMap.get(id))
-      .filter((p): p is string => Boolean(p));
+      .map((id) => phoneByIdRef.current.get(id))
+      .filter((phone): phone is string => Boolean(phone));
 
     setBookPhoneIds(idPhoneNumbers);
     setBookPhoneNumbers(phoneDetails);
@@ -794,6 +805,7 @@ function PhoneNumberFilters({ onCheck }: PhoneNumberFiltersProps) {
             phoneNumbers={bookPhoneNumbers}
             onClose={() => setOpenBookSidebar(false)}
             onSuccess={() => {
+              phoneByIdRef.current.clear();
               fetchData();
               setSelectedIds([]);
               dispatch(resetSelectedIds());
