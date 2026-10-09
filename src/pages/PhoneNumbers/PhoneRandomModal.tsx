@@ -23,6 +23,7 @@ import {
 import { BsBuilding } from "react-icons/bs";
 import { FaRandom } from "react-icons/fa";
 import { HiOutlineDocumentText } from "react-icons/hi";
+import { LuCircleDot } from "react-icons/lu";
 import { MdOutlineBadge } from "react-icons/md";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
@@ -42,11 +43,15 @@ import { getTypeNumber } from "../../services/typeNumber";
 import { getBrandName } from "../../services/brandName";
 import { validateRandomPhone } from "../../validate/phoneNumber";
 import { copyToClipBoard } from "../../helper/copyToClipboard";
+import { groupDataCustomer } from "../../helper/group-data-customer";
 import { RootState } from "../../store";
 import { IProvider, ITypeNumber } from "../../types";
-import type { ICustomer } from "../../types/customer";
+import type {
+  ICustomerSsAccount,
+  IGroupedCustomer,
+} from "../../types/customer";
 import {
-  toDeploymentCustomerSnapshot,
+  toDeploymentCustomerSnapshotFromGrouped,
   type IDeploymentCustomerSnapshot,
 } from "../../types/bookingV3";
 
@@ -75,7 +80,7 @@ interface PhoneNumberProps {
 }
 
 const formatCustomerSales = (
-  sales: ICustomer["sales"] | null | undefined,
+  sales: IGroupedCustomer["sales"] | null | undefined,
   saleUsername?: string | null,
 ): string => {
   if (Array.isArray(sales) && sales.length > 0) {
@@ -174,9 +179,10 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
   >({});
   const [selectedBrand, setSelectedBrand] = useState<Option[]>([]);
   const [bookType, setBookType] = useState<BookType | null>(null);
-  const [selectedCustomer, setSelectedCustomer] = useState<ICustomer | null>(
-    null,
-  );
+  const [selectedCustomer, setSelectedCustomer] =
+    useState<IGroupedCustomer | null>(null);
+  const [selectedAccount, setSelectedAccount] =
+    useState<ICustomerSsAccount | null>(null);
   const [customerQuery, setCustomerQuery] = useState("");
   const debouncedQuery = useDebounce(customerQuery, 400);
 
@@ -201,7 +207,69 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
     { enabled: shouldLoadCustomers },
   );
 
-  const customers = customerData?.items ?? [];
+  const customers = useMemo(
+    () => groupDataCustomer(customerData),
+    [customerData],
+  );
+
+  /** 1 thẻ = 1 mã SS (gắn kèm khách hàng) — chọn 1 lần */
+  const pickRows = useMemo(() => {
+    const q = customerQuery.trim().toLowerCase();
+    const rows: Array<{
+      key: string;
+      customer: IGroupedCustomer;
+      account: ICustomerSsAccount;
+    }> = [];
+
+    customers.forEach((customer) => {
+      const salesLabel = formatCustomerSales(
+        customer.sales,
+        customer.sale_username,
+      );
+      (customer.ss_accounts ?? []).forEach((account) => {
+        const title = [
+          customer.customer_name,
+          account.name,
+          account.description,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        const haystack = [
+          title,
+          account.name,
+          account.description,
+          account.display_account,
+          salesLabel,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (q && !haystack.includes(q)) return;
+        rows.push({
+          key: `${customer.customer_id}-${account.account_id}`,
+          customer,
+          account,
+        });
+      });
+    });
+    return rows;
+  }, [customers, customerQuery]);
+
+  const canContinueCustomerPick = Boolean(selectedCustomer && selectedAccount);
+
+  const resetCustomerPick = () => {
+    setSelectedCustomer(null);
+    setSelectedAccount(null);
+    setCustomerQuery("");
+  };
+
+  const handlePickRow = (
+    customer: IGroupedCustomer,
+    account: ICustomerSsAccount,
+  ) => {
+    setSelectedCustomer(customer);
+    setSelectedAccount(account);
+  };
 
   const brandOptions = useMemo(
     () =>
@@ -234,8 +302,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
       setErrors({});
       setSelectedBrand([]);
       setBookType(null);
-      setSelectedCustomer(null);
-      setCustomerQuery("");
+      resetCustomerPick();
     }
   }, [isOpen]);
 
@@ -267,9 +334,14 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
   };
 
   const deploymentCustomer = useMemo((): IDeploymentCustomerSnapshot | null => {
-    if (bookType !== "deployment" || !selectedCustomer) return null;
-    return toDeploymentCustomerSnapshot(selectedCustomer);
-  }, [bookType, selectedCustomer]);
+    if (bookType !== "deployment" || !selectedCustomer || !selectedAccount) {
+      return null;
+    }
+    return toDeploymentCustomerSnapshotFromGrouped(
+      selectedCustomer,
+      selectedAccount,
+    );
+  }, [bookType, selectedCustomer, selectedAccount]);
 
   const providerName = useMemo(
     () =>
@@ -301,8 +373,8 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
         };
       case "pick_customer":
         return {
-          title: "Chọn khách hàng",
-          subtitle: "Bước 3 · Danh sách khách",
+          title: "Chọn mã Softwitch",
+          subtitle: "Bước 3 · Doanh nghiệp & Softswitch",
           progress: 3,
         };
       case "confirm":
@@ -346,8 +418,12 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
 
   const handleConfirmBook = async () => {
     try {
-      if (bookType === "deployment" && !selectedCustomer) {
-        Swal.fire("Thiếu thông tin", "Vui lòng chọn khách hàng", "warning");
+      if (bookType === "deployment" && !deploymentCustomer) {
+        Swal.fire(
+          "Thiếu thông tin",
+          "Vui lòng chọn khách hàng và mã SS (nếu có).",
+          "warning",
+        );
         return;
       }
 
@@ -678,23 +754,20 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
               description="Đặt số ngẫu nhiên cho khách hàng. Số sẽ ở trạng thái đã book."
               onClick={() => {
                 setBookType("new_customer");
-                setSelectedCustomer(null);
+                resetCustomerPick();
                 setStep("confirm");
               }}
             />
-            {/* Tạm ẩn — Triển khai khách hàng
             <OptionCard
               icon={<HiOutlineDocumentText size={20} />}
               title="Triển khai khách hàng"
-              description="Chọn khách hàng / hợp đồng và tạo đơn triển khai."
+              description="Chọn khách hàng / mã SS và tạo đơn triển khai."
               onClick={() => {
                 setBookType("deployment");
-                setSelectedCustomer(null);
-                setCustomerQuery("");
+                resetCustomerPick();
                 setStep("pick_customer");
               }}
             />
-            */}
           </div>
         )}
 
@@ -704,7 +777,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
               <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <Input
                 type="text"
-                placeholder="Tìm tên KH hoặc số hợp đồng..."
+                placeholder="Tìm tên doanh nghiệp, sale..."
                 value={customerQuery}
                 onChange={(e) => setCustomerQuery(e.target.value)}
                 className="pl-9"
@@ -718,27 +791,28 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                     Đang tải danh sách...
                   </p>
                 </div>
-              ) : customers.length === 0 ? (
+              ) : pickRows.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-gray-200 px-4 py-10 text-center dark:border-gray-700">
                   <FiUser className="mx-auto mb-2 text-gray-300" size={28} />
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                    Không tìm thấy khách hàng
+                    Không tìm thấy mã SS
                   </p>
                 </div>
               ) : (
-                customers.map((customer) => {
+                pickRows.map(({ key, customer, account }) => {
                   const active =
                     selectedCustomer?.customer_id === customer.customer_id &&
-                    selectedCustomer?.contract_id === customer.contract_id;
-                  const salesLabel = formatCustomerSales(
-                    customer.sales,
-                    customer.sale_username,
-                  );
+                    selectedAccount?.account_id === account.account_id;
+                  const salesLabel =
+                    formatCustomerSales(
+                      customer.sales,
+                      customer.sale_username,
+                    ) || "—";
                   return (
                     <button
-                      key={`${customer.customer_id}-${customer.contract_id}-${customer.contract_number}`}
+                      key={key}
                       type="button"
-                      onClick={() => setSelectedCustomer(customer)}
+                      onClick={() => handlePickRow(customer, account)}
                       className={`relative w-full rounded-2xl border p-3.5 text-left transition ${
                         active
                           ? "border-brand-500 bg-brand-50 shadow-sm ring-1 ring-brand-500/30 dark:border-brand-400 dark:bg-brand-950/30"
@@ -749,44 +823,50 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                           <FiCheckCircle size={18} />
                         </span>
                       ) : null}
-                      <p className="pr-6 text-sm font-semibold text-gray-900 dark:text-white">
-                        {customer.customer_name || "—"}
+                      <p className="flex min-w-0 items-center gap-1.5 pr-6 text-sm font-bold text-gray-900 dark:text-white">
+                        <span className="truncate">{account.name || "—"}</span>
+                        <LuCircleDot
+                          className="shrink-0 text-brand-500 dark:text-brand-400"
+                          size={14}
+                          aria-hidden
+                        />
+                        <span className="truncate">
+                          {account.description || "—"}
+                        </span>
                       </p>
-                      <div className="mt-2 space-y-1.5 text-xs text-gray-600 dark:text-gray-300">
+                      <div className="mt-2 space-y-1.5 text-xs text-gray-700 dark:text-gray-200">
                         <p>
-                          <span className="text-gray-400">HĐ:</span>{" "}
-                          <span className="font-medium">
-                            {customer.contract_number || "—"}
+                          <span className="font-medium text-gray-500 dark:text-gray-400">
+                            Tên khách hàng:
+                          </span>{" "}
+                          <span className="font-bold text-gray-900 dark:text-white">
+                            {customer.customer_name || "—"}
                           </span>
                         </p>
-                        {customer.contract_type ? (
-                          <p>
-                            <span className="text-gray-400">Loại HĐ:</span>{" "}
-                            <span className="font-medium">
-                              {customer.contract_type}
-                            </span>
-                          </p>
-                        ) : null}
-                        {customer.tax_code ? (
-                          <p>
-                            <span className="text-gray-400">MST:</span>{" "}
-                            <span className="font-medium">
-                              {customer.tax_code}
-                            </span>
-                          </p>
-                        ) : null}
                         <p>
-                          <span className="text-gray-400">No charge:</span>{" "}
-                          <span className="font-medium">
-                            {customer.no_charge ? "Có" : "Không"}
+                          <span className="font-medium text-gray-500 dark:text-gray-400">
+                            Mã SS:
+                          </span>{" "}
+                          <span className="font-bold text-gray-900 dark:text-white">
+                            {account.name || "—"}
                           </span>
                         </p>
-                        {salesLabel ? (
-                          <p>
-                            <span className="text-gray-400">Sale:</span>{" "}
-                            <span className="font-medium">{salesLabel}</span>
-                          </p>
-                        ) : null}
+                        <p>
+                          <span className="font-medium text-gray-500 dark:text-gray-400">
+                            Chi tiết SS:
+                          </span>{" "}
+                          <span className="font-bold text-gray-900 dark:text-white">
+                            {account.description || "—"}
+                          </span>
+                        </p>
+                        <p>
+                          <span className="font-medium text-gray-500 dark:text-gray-400">
+                            Sale:
+                          </span>{" "}
+                          <span className="font-bold text-gray-900 dark:text-white">
+                            {salesLabel}
+                          </span>
+                        </p>
                       </div>
                     </button>
                   );
@@ -881,36 +961,26 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                           label: "Khách hàng",
                           value: deploymentCustomer.customer_name || "—",
                         },
-                        {
-                          label: "Số hợp đồng",
-                          value: deploymentCustomer.contract_number || "—",
-                        },
                       ];
-                      if (deploymentCustomer.contract_type) {
-                        rows.push({
-                          label: "Loại HĐ",
-                          value: deploymentCustomer.contract_type,
-                        });
-                      }
                       if (deploymentCustomer.tax_code) {
                         rows.push({
                           label: "MST",
                           value: deploymentCustomer.tax_code,
                         });
                       }
-                      rows.push({
-                        label: "No charge",
-                        value: deploymentCustomer.no_charge ? "Có" : "Không",
-                      });
                       if (salesLabel) {
                         rows.push({ label: "Sale", value: salesLabel });
                       }
-                      if (deploymentCustomer.contract_note) {
-                        rows.push({
-                          label: "Ghi chú",
-                          value: deploymentCustomer.contract_note,
-                        });
-                      }
+                      rows.push(
+                        {
+                          label: "Mã SS",
+                          value: deploymentCustomer.name || "—",
+                        },
+                        {
+                          label: "Description",
+                          value: deploymentCustomer.description || "—",
+                        },
+                      );
                       return rows.map((row) => (
                         <div
                           key={row.label}
@@ -957,7 +1027,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
         {step === "pick_customer" && (
           <button
             type="button"
-            disabled={!selectedCustomer || isPending}
+            disabled={!canContinueCustomerPick || isPending}
             onClick={() => setStep("confirm")}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-500/25 transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">
             Tiếp tục

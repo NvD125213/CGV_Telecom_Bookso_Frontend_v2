@@ -32,14 +32,23 @@ export interface IDeploymentOrder {
   sale_username: string;
   customer_id: number;
   customer_name: string;
-  contract_id: number;
-  contract_number: string;
+  /** HĐ tạm ẩn — API có thể null */
+  contract_id?: number | null;
+  contract_number?: string | null;
   status: DeploymentOrderStatus;
   created_by: string;
   tax_code: string | null;
-  contract_type: string | null;
-  no_charge: number;
-  contract_note: string | null;
+  contract_type?: string | null;
+  no_charge?: number | null;
+  contract_note?: string | null;
+  /** Softswitch account gắn đơn (API list/detail) */
+  ss_account_id?: number | null;
+  name_ss_account?: string | null;
+  description_ss_account?: string | null;
+  /** Alias cũ — PATCH / snapshot book vẫn dùng */
+  account_id?: number | null;
+  name?: string | null;
+  description?: string | null;
   created_at: string | null;
   updated_at: string | null;
   /** Hạn xử lý đơn */
@@ -106,12 +115,19 @@ export interface IUpdateDeploymentOrderCustomerBody {
   customer_id: number;
   customer_name: string;
   tax_code?: string | null;
-  contract_id: number;
-  contract_number: string;
+  /** Không dùng HĐ — gửi null */
+  contract_id?: number | null;
+  contract_number?: string | null;
   contract_type?: string | null;
-  no_charge?: number;
+  no_charge?: number | null;
   contract_note?: string | null;
   sales?: Array<string | { username?: string; full_name?: string }> | null;
   sale_username?: string | null;
+  account_id?: number | null;
+  name?: string | null;
+  description?: string | null;
+  ss_account_id?: number | null;
+  name_ss_account?: string | null;
+  description_ss_account?: string | null;
   reason?: string | null;
 }

@@ -15,10 +15,17 @@ const escapeHtml = (value: unknown) =>
 export const buildDeployOrderPhonesHtml = (
   order: Pick<
     IDeploymentOrder,
-    "customer_name" | "sale_username" | "contract_number"
+    | "customer_name"
+    | "sale_username"
+    | "name_ss_account"
+    | "description_ss_account"
+    | "name"
+    | "description"
   >,
   items: IDeploymentOrderItem[] = [],
 ) => {
+  const ssName = order.name_ss_account || order.name || "—";
+  const ssDesc = order.description_ss_account || order.description || "—";
   const phoneRows = items.length
     ? items
         .map(
@@ -49,7 +56,8 @@ export const buildDeployOrderPhonesHtml = (
       <p style="margin:0 0 12px;font-size:14px;line-height:1.5;color:#444">
         Đơn <strong>${escapeHtml(order.customer_name || "—")}</strong>
         của sale <strong>${escapeHtml(order.sale_username || "—")}</strong>,
-        số HĐ <strong>${escapeHtml(order.contract_number || "—")}</strong>
+        Mã SS <strong>${escapeHtml(ssName)}</strong>,
+        Chi tiết SS <strong>${escapeHtml(ssDesc)}</strong>
       </p>
       <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#333">
         Danh sách số (${items.length})

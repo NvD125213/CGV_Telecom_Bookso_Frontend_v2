@@ -50,6 +50,8 @@ type DeployOrderRow = IDeploymentOrder & {
   reject_request_display: string;
   reject_reason_display: string;
   item_count_display: string;
+  name_ss_display: string;
+  description_ss_display: string;
 };
 
 const DEFAULT_PAGE = 1;
@@ -340,6 +342,12 @@ const ListDeployOrderPage = () => {
       ),
       reject_reason_display: item.reject_reason?.trim() || EMPTY_DISPLAY,
       item_count_display: String(item.item_count ?? item.items?.length ?? 0),
+      name_ss_display:
+        item.name_ss_account?.trim() || item.name?.trim() || EMPTY_DISPLAY,
+      description_ss_display:
+        item.description_ss_account?.trim() ||
+        item.description?.trim() ||
+        EMPTY_DISPLAY,
     }));
     const total = listData?.total ?? 0;
     const pageSize = listData?.size || size;
@@ -434,11 +442,12 @@ const ListDeployOrderPage = () => {
 
   const columns = useMemo(
     () => [
-      { key: "created_by", label: "Người tạo" },
-      { key: "sale_username", label: "Sale" },
-      { key: "created_at_display", label: "Ngày tạo" },
+      { key: "name_ss_display", label: "Mã SS" },
+      { key: "description_ss_display", label: "Chi tiết SS" },
       { key: "customer_name", label: "Khách hàng" },
-      { key: "contract_number", label: "Số HĐ" },
+      { key: "sale_username", label: "Sale" },
+      { key: "created_by", label: "Người tạo" },
+      { key: "created_at_display", label: "Ngày tạo" },
       { key: "item_count_display", label: "Số lượng" },
       {
         key: "status_label",
@@ -702,8 +711,9 @@ const ListDeployOrderPage = () => {
   const convertToMobileData = (): LabelValueItem[][] =>
     rows.map((item) => [
       { label: "ID", value: String(item.id), hidden: true },
+      { label: "Mã SS", value: item.name_ss_display },
+      { label: "Chi tiết SS", value: item.description_ss_display },
       { label: "Khách hàng", value: item.customer_name || EMPTY_DISPLAY },
-      { label: "Số HĐ", value: item.contract_number || EMPTY_DISPLAY },
       { label: "Sale", value: item.sale_username || EMPTY_DISPLAY },
       { label: "Số lượng", value: item.item_count_display },
       { label: "Trạng thái", value: getStatusLabel(item.status) },
@@ -819,17 +829,6 @@ const ListDeployOrderPage = () => {
             onChange={handleCustomerFilterChange}
             fetchOptions={fetchCustomerIdOptions}
             placeholder="Tìm theo khách hàng..."
-            className="dark:bg-black dark:text-white"
-          />
-        </div>
-        <div>
-          <Label>Hợp đồng</Label>
-          <AutocompleteMultiple
-            options={contractFilterOptions}
-            value={selectedContractFilter}
-            onChange={handleContractFilterChange}
-            fetchOptions={fetchContractIdOptions}
-            placeholder="Tìm theo số hợp đồng..."
             className="dark:bg-black dark:text-white"
           />
         </div>

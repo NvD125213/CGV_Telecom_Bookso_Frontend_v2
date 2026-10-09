@@ -33,14 +33,18 @@ import { useCustomerList } from "../../../hooks/api-hooks/v3/useCustomer";
 import { getCustomers } from "../../../services/customer";
 import { formatDate } from "../../../helper/formatDateToISOString";
 import { formatCurrency } from "../../../helper/formatCurrency";
-import { toDeploymentCustomerSnapshot } from "../../../types/bookingV3";
-import type { ICustomer } from "../../../types/customer";
+import { toDeploymentCustomerSnapshotFromGrouped } from "../../../types/bookingV3";
+import type {
+  ICustomerSsAccount,
+  IGroupedCustomer,
+} from "../../../types/customer";
 import type {
   IDeploymentOrder,
   IDeploymentOrderItem,
 } from "../../../types/deploymentOrder";
 import { RootState } from "../../../store";
 import { buildDeployOrderPhonesHtml } from "./deployOrderSwal";
+import { groupDataCustomer } from "../../../helper/group-data-customer";
 
 type Props = {
   isOpen: boolean;
@@ -93,7 +97,7 @@ const formatDt = (value?: string | null) => {
 };
 
 const formatCustomerSales = (
-  sales: ICustomer["sales"] | null | undefined,
+  sales: IGroupedCustomer["sales"] | null | undefined,
   saleUsername?: string | null,
 ): string => {
   if (Array.isArray(sales) && sales.length > 0) {
@@ -109,47 +113,55 @@ const formatCustomerSales = (
   return saleUsername?.trim() || "";
 };
 
-const customerOptionValue = (customer: ICustomer) =>
-  `${customer.customer_id}:${customer.contract_id}`;
+const toSsPickOptions = (
+  customer: IGroupedCustomer,
+  q = "",
+): AutocompleteOption[] => {
+  const customerId = Number(customer.customer_id);
+  if (!customerId) return [];
+  const name = customer.customer_name?.trim() || `KH #${customerId}`;
+  const qLower = q.trim().toLowerCase();
+  const nameMatch = !qLower || name.toLowerCase().includes(qLower);
 
-const matchesCustomerSearch = (customer: ICustomer, q: string) => {
-  if (!q) return true;
-  return (
-    customer.customer_name?.toLowerCase().includes(q) ||
-    customer.contract_number?.toLowerCase().includes(q) ||
-    (customer.contract_type || "").toLowerCase().includes(q)
-  );
+  return (customer.ss_accounts ?? [])
+    .filter((account) => {
+      if (nameMatch) return true;
+      return [account.name, account.description, account.display_account]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(qLower);
+    })
+    .map((account) => ({
+      label: [name, account.name || "—", account.description || "—"].join(
+        " · ",
+      ),
+      value: `${customerId}:${account.account_id}`,
+    }));
 };
 
-const toCustomerOption = (customer: ICustomer): AutocompleteOption | null => {
-  const customerId = Number(customer.customer_id);
-  if (!customerId) return null;
-  const name = customer.customer_name?.trim() || `KH #${customerId}`;
-  const contract = customer.contract_number?.trim() || "—";
+const parseSsOptionValue = (value: string) => {
+  const [customerId, accountId] = value.split(":");
   return {
-    label: `${name} (${contract})`,
-    value: customerOptionValue(customer),
+    customerId: Number(customerId),
+    accountId: Number(accountId),
   };
 };
 
-const uniqueCustomerOptions = (items: ICustomer[]): AutocompleteOption[] => {
-  const map = new Map<string, AutocompleteOption>();
-  items.forEach((item) => {
-    const option = toCustomerOption(item);
-    if (!option || map.has(option.value)) return;
-    map.set(option.value, option);
-  });
-  return Array.from(map.values());
-};
-
-const uniqueCustomersByKey = (items: ICustomer[]): ICustomer[] => {
-  const map = new Map<string, ICustomer>();
-  items.forEach((item) => {
-    const key = customerOptionValue(item);
-    if (!key || key.startsWith("0:")) return;
-    if (!map.has(key)) map.set(key, item);
-  });
-  return Array.from(map.values());
+const matchesGroupedCustomerSearch = (
+  customer: IGroupedCustomer,
+  q: string,
+) => {
+  if (!q) return true;
+  const qLower = q.toLowerCase();
+  if (customer.customer_name?.toLowerCase().includes(qLower)) return true;
+  if ((customer.tax_code || "").toLowerCase().includes(qLower)) return true;
+  return (customer.ss_accounts ?? []).some(
+    (a) =>
+      (a.name || "").toLowerCase().includes(qLower) ||
+      (a.description || "").toLowerCase().includes(qLower) ||
+      (a.display_account || "").toLowerCase().includes(qLower),
+  );
 };
 
 const EMPTY_DISPLAY = "Chưa có";
@@ -245,32 +257,60 @@ export default function DeployOrderDetailModal({
   const [selectedCustomerOpts, setSelectedCustomerOpts] = useState<
     AutocompleteOption[]
   >([]);
-  const [pickedCustomer, setPickedCustomer] = useState<ICustomer | null>(null);
-  const [customerCache, setCustomerCache] = useState<ICustomer[]>([]);
-  const customerCacheRef = useRef<ICustomer[]>([]);
+  const [pickedCustomer, setPickedCustomer] = useState<IGroupedCustomer | null>(
+    null,
+  );
+  const [pickedAccount, setPickedAccount] = useState<ICustomerSsAccount | null>(
+    null,
+  );
+  const [groupedCache, setGroupedCache] = useState<IGroupedCustomer[]>([]);
+  const groupedCacheRef = useRef<IGroupedCustomer[]>([]);
   const [updateReason, setUpdateReason] = useState("");
   const [saleFilter, setSaleFilter] = useState("");
 
-  const mergeCustomerCache = useCallback((items: ICustomer[]) => {
+  const mergeGroupedCache = useCallback((items: IGroupedCustomer[]) => {
     if (!items.length) return;
-    setCustomerCache((prev) => {
-      const map = new Map(
-        prev.map((item) => [customerOptionValue(item), item]),
-      );
+    setGroupedCache((prev) => {
+      const map = new Map(prev.map((item) => [String(item.customer_id), item]));
       let changed = false;
       items.forEach((item) => {
-        const key = customerOptionValue(item);
+        const key = String(item.customer_id);
         if (!map.has(key)) {
           changed = true;
           map.set(key, item);
+        } else {
+          // Merge contracts / accounts nếu đã có
+          const existing = map.get(key)!;
+          const contractIds = new Set(
+            existing.contracts.map((c) => c.contract_id),
+          );
+          const accountIds = new Set(
+            existing.ss_accounts.map((a) => a.account_id),
+          );
+          let localChanged = false;
+          item.contracts.forEach((c) => {
+            if (!contractIds.has(c.contract_id)) {
+              existing.contracts.push(c);
+              contractIds.add(c.contract_id);
+              localChanged = true;
+            }
+          });
+          item.ss_accounts.forEach((a) => {
+            if (!accountIds.has(a.account_id)) {
+              existing.ss_accounts.push(a);
+              accountIds.add(a.account_id);
+              localChanged = true;
+            }
+          });
+          if (localChanged) changed = true;
         }
       });
       if (!changed) {
-        customerCacheRef.current = prev;
+        groupedCacheRef.current = prev;
         return prev;
       }
       const next = Array.from(map.values());
-      customerCacheRef.current = next;
+      groupedCacheRef.current = next;
       return next;
     });
   }, []);
@@ -303,21 +343,20 @@ export default function DeployOrderDetailModal({
     updateCustomerMutation.isPending;
 
   const saleFilterOptions = useMemo(
-    () => [
-      { label: "Tất cả sale", value: "" },
-      ...users.map((name) => ({ label: name, value: name })),
-    ],
+    () => users.map((name) => ({ label: name, value: name })),
     [],
   );
 
+  const selectedSale = saleFilter.trim();
+  const canPickCustomer = isAdmin
+    ? Boolean(selectedSale)
+    : Boolean(saleUsername);
+
   const customerListParams = useMemo(
     () => ({
-      sale:
-        user?.role === 1
-          ? saleFilter.trim() || undefined
-          : saleUsername || undefined,
+      sale: isAdmin ? selectedSale || undefined : saleUsername || undefined,
     }),
-    [user?.role, saleUsername, saleFilter],
+    [isAdmin, saleUsername, selectedSale],
   );
 
   const {
@@ -325,20 +364,40 @@ export default function DeployOrderDetailModal({
     isLoading: isCustomerListLoading,
     isFetching: isCustomerListFetching,
   } = useCustomerList(customerListParams, {
-    enabled: isOpen && editingCustomer,
+    enabled: isOpen && editingCustomer && canPickCustomer,
   });
+
+  const groupedFromApi = useMemo(
+    () => groupDataCustomer(customerData),
+    [customerData],
+  );
 
   // Merge lại mỗi lần bật edit (kể cả khi react-query trả cùng reference cache)
   useEffect(() => {
     if (!editingCustomer) return;
-    mergeCustomerCache(customerData?.items ?? []);
-  }, [editingCustomer, customerData?.items, mergeCustomerCache]);
+    mergeGroupedCache(groupedFromApi);
+  }, [editingCustomer, groupedFromApi, mergeGroupedCache]);
 
-  const customerOptions = useMemo(
+  const customerOptions = useMemo(() => {
+    const map = new Map<string, AutocompleteOption>();
+    [...groupedFromApi, ...groupedCache].forEach((item) => {
+      toSsPickOptions(item).forEach((option) => {
+        if (!map.has(option.value)) map.set(option.value, option);
+      });
+    });
+    return Array.from(map.values());
+  }, [groupedFromApi, groupedCache]);
+
+  const accountOptions = useMemo(
     () =>
-      uniqueCustomerOptions([...(customerData?.items ?? []), ...customerCache]),
-    [customerData?.items, customerCache],
+      (pickedCustomer?.ss_accounts ?? []).map((a) => ({
+        label: a.display_account || `${a.name} * ${a.description || ""}`,
+        value: String(a.account_id),
+      })),
+    [pickedCustomer],
   );
+
+  const canSaveCustomer = Boolean(pickedCustomer && pickedAccount);
 
   const customersLoading =
     editingCustomer &&
@@ -358,8 +417,9 @@ export default function DeployOrderDetailModal({
   const clearPickedCustomer = useCallback(() => {
     setSelectedCustomerOpts([]);
     setPickedCustomer(null);
-    setCustomerCache([]);
-    customerCacheRef.current = [];
+    setPickedAccount(null);
+    setGroupedCache([]);
+    groupedCacheRef.current = [];
   }, []);
 
   const resetEditState = useCallback(() => {
@@ -403,30 +463,31 @@ export default function DeployOrderDetailModal({
         ...customerListParams,
         q: q || undefined,
       });
-      const apiItems = result.items ?? [];
-      // Cập nhật ref ngay để chọn được; merge state chỉ khi có KH mới (tránh loop)
+      const grouped = groupDataCustomer(result);
       const map = new Map(
-        customerCacheRef.current.map((item) => [
-          customerOptionValue(item),
-          item,
-        ]),
+        groupedCacheRef.current.map((item) => [String(item.customer_id), item]),
       );
-      apiItems.forEach((item) => map.set(customerOptionValue(item), item));
-      customerCacheRef.current = Array.from(map.values());
-      mergeCustomerCache(apiItems);
+      grouped.forEach((item) => map.set(String(item.customer_id), item));
+      groupedCacheRef.current = Array.from(map.values());
+      mergeGroupedCache(grouped);
 
-      // Filter client theo tên KH / số HĐ / loại HĐ; sale lọc qua param API `sale`
       const qLower = q.toLowerCase();
-      const merged = uniqueCustomersByKey([
-        ...apiItems,
-        ...customerCacheRef.current,
-      ]);
+      const merged = Array.from(map.values());
       const filtered = q
-        ? merged.filter((item) => matchesCustomerSearch(item, qLower))
-        : apiItems;
-      return uniqueCustomerOptions(filtered);
+        ? merged.filter((item) => matchesGroupedCustomerSearch(item, qLower))
+        : grouped;
+      const seen = new Set<string>();
+      const options: AutocompleteOption[] = [];
+      filtered.forEach((item) => {
+        toSsPickOptions(item, q).forEach((option) => {
+          if (seen.has(option.value)) return;
+          seen.add(option.value);
+          options.push(option);
+        });
+      });
+      return options;
     },
-    [customerListParams, mergeCustomerCache],
+    [customerListParams, mergeGroupedCache],
   );
 
   const handleSelectCustomer = (opts: AutocompleteOption[]) => {
@@ -435,26 +496,36 @@ export default function DeployOrderDetailModal({
     const value = next[0]?.value;
     if (!value) {
       setPickedCustomer(null);
+      setPickedAccount(null);
       return;
     }
+    const { customerId, accountId } = parseSsOptionValue(value);
     const matched =
-      customerCacheRef.current.find(
-        (item) => customerOptionValue(item) === value,
-      ) || null;
+      groupedCacheRef.current.find((item) => item.customer_id === customerId) ||
+      groupedFromApi.find((item) => item.customer_id === customerId) ||
+      null;
     setPickedCustomer(matched);
+    setPickedAccount(
+      matched?.ss_accounts.find(
+        (account) => account.account_id === accountId,
+      ) || null,
+    );
   };
 
   const handleSaveCustomer = async () => {
-    if (!orderId || !pickedCustomer) {
+    if (!orderId || !pickedCustomer || !pickedAccount) {
       Swal.fire(
         "Thiếu thông tin",
-        "Vui lòng chọn khách hàng / hợp đồng.",
+        "Vui lòng chọn sale, rồi chọn khách hàng kèm mã SS.",
         "warning",
       );
       return;
     }
 
-    const snapshot = toDeploymentCustomerSnapshot(pickedCustomer);
+    const snapshot = toDeploymentCustomerSnapshotFromGrouped(
+      pickedCustomer,
+      pickedAccount,
+    );
     try {
       await updateCustomerMutation.mutateAsync({
         orderId,
@@ -465,7 +536,7 @@ export default function DeployOrderDetailModal({
       });
       await Swal.fire(
         "Thành công",
-        "Đã cập nhật thông tin khách/HĐ.",
+        "Đã cập nhật thông tin khách/SS.",
         "success",
       );
       resetEditState();
@@ -474,7 +545,7 @@ export default function DeployOrderDetailModal({
     } catch (err: any) {
       Swal.fire(
         "Oops...",
-        err?.response?.data?.detail || "Không thể cập nhật khách/HĐ.",
+        err?.response?.data?.detail || "Không thể cập nhật khách/SS.",
         "error",
       );
     }
@@ -708,188 +779,6 @@ export default function DeployOrderDetailModal({
                     editingCustomer ? "lg:col-span-2" : ""
                   }`}>
                   <Section
-                    icon={<FiUser size={14} />}
-                    title="Khách hàng & hợp đồng"
-                    action={
-                      canEditCustomer ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (editingCustomer) {
-                              resetEditState();
-                              return;
-                            }
-                            setEditingCustomer(true);
-                          }}
-                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-brand-600 transition hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-950/30">
-                          <FiEdit2 size={12} />
-                          {editingCustomer ? "Hủy đổi" : "Đổi khách hàng"}
-                        </button>
-                      ) : null
-                    }>
-                    {editingCustomer ? (
-                      <div className="space-y-3 py-2">
-                        <div
-                          className={`grid grid-cols-1 gap-3 ${
-                            user?.role === 1 ? "lg:grid-cols-2" : ""
-                          }`}>
-                          {user?.role === 1 ? (
-                            <div>
-                              <Label>Lọc theo sale</Label>
-                              <Select
-                                options={saleFilterOptions}
-                                value={saleFilter}
-                                onChange={handleSaleFilterChange}
-                                placeholder="Chọn sale..."
-                                className="dark:bg-gray-900 dark:text-white"
-                              />
-                            </div>
-                          ) : null}
-                          <div className={user?.role === 1 ? "" : undefined}>
-                            <Label>Chọn khách hàng / hợp đồng</Label>
-                            <AutocompleteMultiple
-                              options={customerOptions}
-                              value={selectedCustomerOpts}
-                              onChange={handleSelectCustomer}
-                              fetchOptions={fetchCustomerOptions}
-                              placeholder={
-                                customersLoading
-                                  ? "Đang tải danh sách khách hàng..."
-                                  : "Tìm theo tên KH hoặc số HĐ..."
-                              }
-                              disabled={customersLoading}
-                            />
-                          </div>
-                        </div>
-                        {pickedCustomer ? (
-                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                            <div className="sm:col-span-2 lg:col-span-3">
-                              <Label>Khách hàng</Label>
-                              <Input
-                                type="text"
-                                disabled
-                                disabledWhite
-                                value={pickedCustomer.customer_name || ""}
-                                placeholder="—"
-                              />
-                            </div>
-                            <div>
-                              <Label>MST</Label>
-                              <Input
-                                type="text"
-                                disabled
-                                disabledWhite
-                                value={pickedCustomer.tax_code || ""}
-                                placeholder="—"
-                              />
-                            </div>
-                            <div>
-                              <Label>Số hợp đồng</Label>
-                              <Input
-                                type="text"
-                                disabled
-                                disabledWhite
-                                value={pickedCustomer.contract_number || ""}
-                                placeholder="—"
-                              />
-                            </div>
-                            <div>
-                              <Label>Loại HĐ</Label>
-                              <Input
-                                type="text"
-                                disabled
-                                disabledWhite
-                                value={pickedCustomer.contract_type || ""}
-                                placeholder="—"
-                              />
-                            </div>
-                            <div>
-                              <Label>No charge</Label>
-                              <Input
-                                type="text"
-                                disabled
-                                disabledWhite
-                                value={
-                                  pickedCustomer.no_charge ? "Có" : "Không"
-                                }
-                                placeholder="—"
-                              />
-                            </div>
-                            <div>
-                              <Label>Sale</Label>
-                              <Input
-                                type="text"
-                                disabled
-                                disabledWhite
-                                value={
-                                  formatCustomerSales(
-                                    pickedCustomer.sales,
-                                    pickedCustomer.sale_username,
-                                  ) || ""
-                                }
-                                placeholder="—"
-                              />
-                            </div>
-                            <div className="sm:col-span-2 lg:col-span-3">
-                              <Label>Ghi chú HĐ</Label>
-                              <Input
-                                type="text"
-                                disabled
-                                disabledWhite
-                                value={pickedCustomer.contract_note || ""}
-                                placeholder="—"
-                              />
-                            </div>
-                          </div>
-                        ) : null}
-                        <div>
-                          <Label>Lý do đổi (tùy chọn)</Label>
-                          <TextArea
-                            value={updateReason}
-                            onChange={(value) => setUpdateReason(value)}
-                            placeholder="Nhập lý do đổi khách/HĐ..."
-                            size="sm"
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          disabled={
-                            !pickedCustomer || updateCustomerMutation.isPending
-                          }
-                          onClick={handleSaveCustomer}
-                          className="w-full rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">
-                          {updateCustomerMutation.isPending
-                            ? "Đang lưu..."
-                            : "Lưu khách/HĐ"}
-                        </button>
-                      </div>
-                    ) : (
-                      <dl>
-                        <InfoRow
-                          label="Khách hàng"
-                          value={order.customer_name}
-                        />
-                        <InfoRow
-                          label="Số hợp đồng"
-                          value={order.contract_number}
-                        />
-                        <InfoRow label="Loại HĐ" value={order.contract_type} />
-                        <InfoRow label="MST" value={order.tax_code} />
-                        <InfoRow
-                          label="No charge"
-                          value={order.no_charge ? "Có" : "Không"}
-                        />
-                        <InfoRow label="Ghi chú" value={order.contract_note} />
-                      </dl>
-                    )}
-                  </Section>
-                </div>
-
-                <div
-                  className={`h-full ${
-                    editingCustomer ? "lg:col-span-2" : ""
-                  }`}>
-                  <Section
                     icon={<FiFileText size={14} />}
                     title="Thông tin đơn">
                     <div
@@ -949,6 +838,175 @@ export default function DeployOrderDetailModal({
                         />
                       </dl>
                     </div>
+                  </Section>
+                </div>
+                <div
+                  className={`h-full ${
+                    editingCustomer ? "lg:col-span-2" : ""
+                  }`}>
+                  <Section
+                    icon={<FiUser size={14} />}
+                    title="Khách hàng & Softswitch"
+                    action={
+                      canEditCustomer ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (editingCustomer) {
+                              resetEditState();
+                              return;
+                            }
+                            setEditingCustomer(true);
+                          }}
+                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-brand-600 transition hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-950/30">
+                          <FiEdit2 size={12} />
+                          {editingCustomer ? "Hủy đổi" : "Đổi khách hàng"}
+                        </button>
+                      ) : null
+                    }>
+                    {editingCustomer ? (
+                      <div className="space-y-3 py-2">
+                        <div
+                          className={`grid grid-cols-1 gap-3 ${
+                            user?.role === 1 ? "lg:grid-cols-1" : ""
+                          }`}>
+                          {isAdmin ? (
+                            <div>
+                              <Label>Sale *</Label>
+                              <Select
+                                options={saleFilterOptions}
+                                value={saleFilter}
+                                onChange={handleSaleFilterChange}
+                                placeholder="Chọn sale trước..."
+                                className="dark:bg-gray-900 dark:text-white"
+                              />
+                            </div>
+                          ) : null}
+                          <div className={isAdmin ? "" : undefined}>
+                            <Label>Chọn khách hàng</Label>
+                            <AutocompleteMultiple
+                              options={canPickCustomer ? customerOptions : []}
+                              value={selectedCustomerOpts}
+                              onChange={handleSelectCustomer}
+                              fetchOptions={
+                                canPickCustomer
+                                  ? fetchCustomerOptions
+                                  : undefined
+                              }
+                              placeholder={
+                                !canPickCustomer
+                                  ? "Chọn sale trước..."
+                                  : customersLoading
+                                    ? "Đang tải danh sách khách hàng..."
+                                    : "Tên khách hàng · mã SS · chi tiết SS"
+                              }
+                              disabled={!canPickCustomer || customersLoading}
+                            />
+                          </div>
+                        </div>
+                        {pickedCustomer ? (
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                            <div className="sm:col-span-2 lg:col-span-3">
+                              <Label>Khách hàng</Label>
+                              <Input
+                                type="text"
+                                disabled
+                                disabledWhite
+                                value={pickedCustomer.customer_name || ""}
+                                placeholder="—"
+                              />
+                            </div>
+                            <div>
+                              <Label>MST</Label>
+                              <Input
+                                type="text"
+                                disabled
+                                disabledWhite
+                                value={pickedCustomer.tax_code || ""}
+                                placeholder="—"
+                              />
+                            </div>
+                            <div>
+                              <Label>Sale</Label>
+                              <Input
+                                type="text"
+                                disabled
+                                disabledWhite
+                                value={
+                                  formatCustomerSales(
+                                    pickedCustomer.sales,
+                                    pickedCustomer.sale_username,
+                                  ) || ""
+                                }
+                                placeholder="—"
+                              />
+                            </div>
+                            <div className="sm:col-span-2 lg:col-span-3">
+                              <Label>Mã Softswitch (SS)</Label>
+                              <Select
+                                options={accountOptions}
+                                value={
+                                  pickedAccount
+                                    ? String(pickedAccount.account_id)
+                                    : ""
+                                }
+                                onChange={(value) => {
+                                  const matched =
+                                    pickedCustomer.ss_accounts.find(
+                                      (a) => String(a.account_id) === value,
+                                    ) || null;
+                                  setPickedAccount(matched);
+                                }}
+                                placeholder={
+                                  accountOptions.length
+                                    ? "Chọn mã Softwitch"
+                                    : "Không có mã SS"
+                                }
+                                className="dark:bg-gray-900 dark:text-white"
+                              />
+                            </div>
+                          </div>
+                        ) : null}
+                        <div>
+                          <Label>Lý do đổi (tùy chọn)</Label>
+                          <TextArea
+                            value={updateReason}
+                            onChange={(value) => setUpdateReason(value)}
+                            placeholder="Nhập lý do đổi khách/SS..."
+                            size="sm"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          disabled={
+                            !canSaveCustomer || updateCustomerMutation.isPending
+                          }
+                          onClick={handleSaveCustomer}
+                          className="w-full rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">
+                          {updateCustomerMutation.isPending
+                            ? "Đang lưu..."
+                            : "Lưu khách/SS"}
+                        </button>
+                      </div>
+                    ) : (
+                      <dl>
+                        <InfoRow
+                          label="Mã SS"
+                          value={order.name_ss_account || order.name}
+                        />
+                        <InfoRow
+                          label="Chi tiết SS"
+                          value={
+                            order.description_ss_account || order.description
+                          }
+                        />
+                        <InfoRow
+                          label="Khách hàng"
+                          value={order.customer_name}
+                        />
+                        <InfoRow label="MST" value={order.tax_code} />
+                      </dl>
+                    )}
                   </Section>
                 </div>
               </div>

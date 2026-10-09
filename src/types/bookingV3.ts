@@ -1,35 +1,83 @@
-import type { ICustomer, ICustomerSale } from "./customer";
+import type {
+  ICustomer,
+  ICustomerSale,
+  ICustomerSsAccount,
+  IGroupedCustomer,
+} from "./customer";
 
-/** Snapshot khách/HĐ gắn đơn triển khai — OpenAPI `DeploymentCustomerSnapshot` */
+/** Snapshot khách gắn đơn triển khai — OpenAPI `DeploymentCustomerSnapshot` */
 export interface IDeploymentCustomerSnapshot {
   customer_id: number;
   customer_name: string;
   tax_code?: string | null;
-  contract_id: number;
-  contract_number: string;
+  /** Không dùng HĐ — gửi null */
+  contract_id?: number | null;
+  contract_number?: string | null;
   contract_type?: string | null;
-  no_charge?: number;
+  no_charge?: number | null;
   contract_note?: string | null;
-  /** vd [{ username: "HUYLQ", full_name: "..." }] */
-  sales?: ICustomerSale[] | null;
+  /** vd [{ username: "HUYLQ", full_name: "..." }] hoặc ["HUYLQ"] */
+  sales?: Array<ICustomerSale | string> | null;
   /** Sale gắn đơn nếu không gửi sales[] */
   sale_username?: string | null;
+  /** Softswitch account đã chọn (alias cũ) */
+  account_id?: number | null;
+  name?: string | null;
+  description?: string | null;
+  /** Softswitch — field name khớp API list/detail */
+  ss_account_id?: number | null;
+  name_ss_account?: string | null;
+  description_ss_account?: string | null;
 }
 
-/** Map từ item GET /customers sang snapshot book v3 */
+const mapSsFields = (account?: ICustomerSsAccount | null) => {
+  const accountId = account?.account_id ?? null;
+  const name = account?.name ?? null;
+  const description = account?.description ?? null;
+  return {
+    account_id: accountId,
+    name,
+    description,
+    ss_account_id: accountId,
+    name_ss_account: name,
+    description_ss_account: description,
+  };
+};
+
+/** Map từ item flat GET /customers + SS account sang snapshot book v3 */
 export const toDeploymentCustomerSnapshot = (
   customer: ICustomer,
+  account?: ICustomerSsAccount | null,
 ): IDeploymentCustomerSnapshot => ({
   customer_id: customer.customer_id,
   customer_name: customer.customer_name,
   tax_code: customer.tax_code,
-  contract_id: customer.contract_id,
-  contract_number: customer.contract_number,
-  contract_type: customer.contract_type,
-  no_charge: customer.no_charge,
-  contract_note: customer.contract_note,
+  contract_id: null,
+  contract_number: null,
+  contract_type: null,
+  no_charge: null,
+  contract_note: null,
   sales: customer.sales,
   sale_username: customer.sale_username,
+  ...mapSsFields(account),
+});
+
+/** Map từ khách đã group + SS account (bỏ HĐ → null) */
+export const toDeploymentCustomerSnapshotFromGrouped = (
+  customer: IGroupedCustomer,
+  account?: ICustomerSsAccount | null,
+): IDeploymentCustomerSnapshot => ({
+  customer_id: customer.customer_id,
+  customer_name: customer.customer_name,
+  tax_code: customer.tax_code,
+  contract_id: null,
+  contract_number: null,
+  contract_type: null,
+  no_charge: null,
+  contract_note: null,
+  sales: customer.sales,
+  sale_username: customer.sale_username ?? null,
+  ...mapSsFields(account),
 });
 
 /**
