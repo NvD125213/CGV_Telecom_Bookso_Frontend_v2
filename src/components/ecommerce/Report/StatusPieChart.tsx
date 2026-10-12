@@ -9,6 +9,7 @@ import {
 } from "recharts";
 import { getDashBoard } from "../../../services/report";
 import { IReportDetail } from "../../../types";
+import ApiLoadError from "../../common/ApiLoadError";
 import ComponentCard from "../../common/ComponentCard";
 import ModalPagination from "../../common/ModalPagination";
 import Select from "../../form/Select";
@@ -91,6 +92,7 @@ const NumberStatusPieChart = () => {
   const prevSelectedEntry = useRef<typeof selectedEntry>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [loadError, setLoadError] = useState("");
 
   // Sử dụng useRef để theo dõi các thay đổi và tránh gọi API không cần thiết
   const lastFetchParamsRef = useRef<any>(null);
@@ -135,6 +137,7 @@ const NumberStatusPieChart = () => {
     if (!shouldFetchData()) return;
 
     try {
+      setLoadError("");
       const currentParams = getCurrentParams();
 
       const response = await getDashBoard({
@@ -166,6 +169,7 @@ const NumberStatusPieChart = () => {
       hasFetchedRef.current = true;
     } catch (error: any) {
       console.log("Lỗi khi lấy dữ liệu:", error.response?.data?.detail);
+      setLoadError("Đang có lỗi xảy ra");
     }
   }, [shouldFetchData, getCurrentParams]);
 
@@ -319,7 +323,9 @@ const NumberStatusPieChart = () => {
           </div>
         </div>
 
-        {totalValue === 0 ? (
+        {loadError ? (
+          <ApiLoadError message={loadError} className="mt-4" />
+        ) : totalValue === 0 ? (
           <div className="text-center text-gray-500 text-base sm:text-lg dark:text-white">
             Chưa có dữ liệu
           </div>

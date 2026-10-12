@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import ApexCharts from "react-apexcharts";
 import { useTheme } from "../../../context/ThemeContext";
 import { getDashBoard } from "../../../services/report";
+import ApiLoadError from "../../common/ApiLoadError";
 import ComponentCard from "../../common/ComponentCard";
 import ModalDetailReport from "./ModalDetailReport";
 import { RootState } from "../../../store";
@@ -93,6 +94,7 @@ const ProviderReport = () => {
     booked_by_sales: [],
   });
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
   const [chartRenderKey, setChartRenderKey] = useState(0);
   const [chartColors] = useState({
     totalAvailable: ["#4CAF50", "#2196F3"],
@@ -159,6 +161,7 @@ const ProviderReport = () => {
 
       try {
         setLoading(true);
+        setLoadError("");
         const params: any = {
           year: parseInt(year),
           month: parseInt(month),
@@ -167,7 +170,17 @@ const ProviderReport = () => {
           params.day = parseInt(day);
         }
         const response = await getDashBoard(params);
-        setData({ ...response.data });
+        const payload = response?.data;
+        setData({
+          booked: payload?.booked ?? 0,
+          deployed: payload?.deployed ?? 0,
+          total_available: Array.isArray(payload?.total_available)
+            ? payload.total_available
+            : [],
+          booked_by_sales: Array.isArray(payload?.booked_by_sales)
+            ? payload.booked_by_sales
+            : [],
+        });
         setChartRenderKey((prev) => prev + 1);
 
         // Cập nhật tham số cuối cùng đã fetch
@@ -175,6 +188,7 @@ const ProviderReport = () => {
         hasFetchedRef.current = true;
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
+        setLoadError("Đang có lỗi xảy ra");
       } finally {
         setLoading(false);
       }
@@ -230,7 +244,11 @@ const ProviderReport = () => {
     fetchDataImmediate(year, month, day);
   };
 
-  const chartSource = data;
+  const chartSource = {
+    ...data,
+    total_available: data.total_available ?? [],
+    booked_by_sales: data.booked_by_sales ?? [],
+  };
 
   const chartData: ChartDataItem[] =
     selectedData === "total_available"
@@ -1348,6 +1366,8 @@ const ProviderReport = () => {
               width="100%"
             />
           </div>
+        ) : loadError ? (
+          <ApiLoadError message={loadError} className="mt-6" />
         ) : (
           <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
             <div className="text-center">

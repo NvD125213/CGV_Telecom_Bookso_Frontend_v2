@@ -1,4 +1,4 @@
-import { IBookRandom } from "../pages/PhoneNumbers/PhoneRandomModal";
+import type { IRandomSelectionLine } from "../pages/PhoneNumbers/PhoneRandomModal";
 import { IPhoneNumber } from "../types";
 
 export const validatePhoneNumber = (phone: IPhoneNumber) => {
@@ -36,18 +36,24 @@ export const validatePhoneNumber = (phone: IPhoneNumber) => {
   return errors;
 };
 
-export const validateRandomPhone = (phone: IBookRandom) => {
-  const errors: Partial<Record<keyof IBookRandom, string>> = {};
-  if (!phone.quantity) {
-    errors.quantity = "Nhập số điện thoại";
-  }
-  if (!phone.provider_id) {
-    errors.provider_id = "Vui lòng chọn nhà cung cấp";
-  }
+export type RandomLineErrors = Partial<
+  Record<"quantity" | "provider_id" | "type_id", string>
+>;
 
-  if (!phone.type_id) {
-    errors.type_id = "Vui lòng chọn loại số";
-  }
-
+export const validateRandomSelections = (lines: IRandomSelectionLine[]) => {
+  const errors: Record<string, RandomLineErrors> = {};
+  lines.forEach((line) => {
+    const row: RandomLineErrors = {};
+    if (!line.quantity || line.quantity < 1) {
+      row.quantity = "Nhập số lượng";
+    }
+    if (!line.provider_id) {
+      row.provider_id = "Vui lòng chọn nhà cung cấp";
+    }
+    if (!line.type_id) {
+      row.type_id = "Vui lòng chọn loại số";
+    }
+    if (Object.keys(row).length > 0) errors[line.id] = row;
+  });
   return errors;
 };

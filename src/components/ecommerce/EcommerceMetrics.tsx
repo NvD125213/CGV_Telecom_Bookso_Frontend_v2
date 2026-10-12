@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { MdEventAvailable } from "react-icons/md";
 import { MdCalendarMonth } from "react-icons/md";
 
+import ApiLoadError from "../common/ApiLoadError";
 import { getQuantityAvailable } from "../../services/phoneNumber";
 import { getNumberCurrent } from "../../services/report";
 
@@ -14,7 +15,8 @@ interface INumberCurrent {
 export default function EcommerceMetrics() {
   const [quantityPhoneNumberAvailable, setQuantityPhoneNumberAvailable] =
     useState<number>(0);
-  const [phoneCurrent, setPhoneCurrent] = useState(null);
+  const [phoneCurrent, setPhoneCurrent] = useState<number | null>(null);
+  const [loadError, setLoadError] = useState("");
 
   // Sử dụng useRef để theo dõi việc đã gọi API
   const hasFetchedData = useRef(false);
@@ -34,6 +36,7 @@ export default function EcommerceMetrics() {
         "Lỗi khi lấy dữ liệu:",
         error?.response?.data?.detail ?? error.message
       );
+      setLoadError("Đang có lỗi xảy ra");
     }
   };
 
@@ -43,6 +46,7 @@ export default function EcommerceMetrics() {
       setQuantityPhoneNumberAvailable(response?.data?.quantity_available || 0);
     } catch (error) {
       console.error("Lỗi khi lấy dữ liệu:", error);
+      setLoadError("Đang có lỗi xảy ra");
     }
   };
 
@@ -61,6 +65,7 @@ export default function EcommerceMetrics() {
 
   return (
     <div className="grid grid-cols-1 gap-4 md:gap-6">
+      {loadError ? <ApiLoadError message={loadError} /> : null}
       {/* Tổng số điện thoại chưa book */}
       <div className="rounded-2xl border border-yellow-300 bg-white p-5 shadow-md dark:bg-[#1a1a1a] dark:border-yellow-600 md:p-6">
         {/* Icon container */}

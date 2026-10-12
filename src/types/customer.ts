@@ -64,7 +64,23 @@ export interface ICustomerListParams {
   q?: string;
   /** Lọc 1 KH theo id */
   customer_id?: number;
+  /**
+   * Lọc theo Softswitch account trong ss_accounts.
+   * account_id (1948) hoặc tên (CGV717, không phân biệt hoa thường).
+   * Nhiều account cách nhau dấu phẩy: CGV717,1949
+   */
+  ss_account?: string;
 }
+
+/** Chuẩn hóa `ss_account`: bỏ khoảng trắng quanh dấu phẩy, bỏ token rỗng. */
+export const toSsAccountQuery = (value?: string) => {
+  const normalized = (value ?? "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(",");
+  return normalized || undefined;
+};
 
 export interface ICustomerListResult {
   items: ICustomer[];

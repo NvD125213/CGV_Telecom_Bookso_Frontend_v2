@@ -11,6 +11,7 @@ import ReusableTable from "../../../components/common/ReusableTable";
 import ResponsiveFilterWrapper from "../../../components/common/FlipperWrapper";
 import EmptyState from "../../../components/EmptyData";
 import Label from "../../../components/form/Label";
+import Input from "../../../components/form/input/InputField";
 import Select from "../../../components/form/Select";
 import AutocompleteMultiple, {
   Option as AutocompleteOption,
@@ -21,6 +22,7 @@ import TableMobile, {
   LabelValueItem,
 } from "../../../mobiles/TableMobile";
 import { useScreenSize } from "../../../hooks/useScreenSize";
+import { useDebounce } from "../../../hooks/useDebounce";
 import {
   useConfirmDeploymentOrder,
   useDenyRejectDeploymentOrder,
@@ -33,7 +35,7 @@ import { getDeploymentOrderById } from "../../../services/deploymentOrder";
 import { formatDate } from "../../../helper/formatDateToISOString";
 import { users } from "../../../constants/user";
 import { RootState } from "../../../store";
-import type { ICustomer } from "../../../types/customer";
+import { toSsAccountQuery, type ICustomer } from "../../../types/customer";
 import type {
   DeploymentOrderStatus,
   IDeploymentOrder,
@@ -179,6 +181,10 @@ const ListDeployOrderPage = () => {
   const [size, setSize] = useState(() => parseSize(searchParams));
   const [status, setStatus] = useState(() => searchParams.get("status") || "");
   const [sale, setSale] = useState(() => searchParams.get("sale") || "");
+  const [ssAccountInput, setSsAccountInput] = useState(
+    () => searchParams.get("ss_account") || "",
+  );
+  const debouncedSsAccount = useDebounce(ssAccountInput, 400);
   const initialCustomerId = Number(searchParams.get("customer_id") || 0);
   const initialContractId = Number(searchParams.get("contract_id") || 0);
   const [selectedCustomerFilter, setSelectedCustomerFilter] = useState<
@@ -230,8 +236,9 @@ const ListDeployOrderPage = () => {
   const customerListParams = useMemo(
     () => ({
       sale: user?.role === 1 ? undefined : saleUsername || undefined,
+      ss_account: toSsAccountQuery(debouncedSsAccount),
     }),
-    [user?.role, saleUsername],
+    [user?.role, saleUsername, debouncedSsAccount],
   );
 
   const { data: customerData } = useCustomerList({
@@ -372,6 +379,9 @@ const ListDeployOrderPage = () => {
         else next.delete("customer_id");
         if (contractIdFilter) next.set("contract_id", String(contractIdFilter));
         else next.delete("contract_id");
+        const ssAccount = toSsAccountQuery(debouncedSsAccount);
+        if (ssAccount) next.set("ss_account", ssAccount);
+        else next.delete("ss_account");
         return next;
       },
       { replace: true },
@@ -384,6 +394,7 @@ const ListDeployOrderPage = () => {
     user?.role,
     customerIdFilter,
     contractIdFilter,
+    debouncedSsAccount,
     setSearchParams,
   ]);
 
@@ -821,6 +832,15 @@ const ListDeployOrderPage = () => {
             />
           </div>
         ) : null}
+        <div>
+          <Label>Mã SS</Label>
+          <Input
+            type="text"
+            placeholder="Nhập mã SS cần tìm..."
+            value={ssAccountInput}
+            onChange={(e) => setSsAccountInput(e.target.value)}
+          />
+        </div>
         <div>
           <Label>Khách hàng</Label>
           <AutocompleteMultiple

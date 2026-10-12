@@ -18,6 +18,7 @@ export const getTypeNumber = async () => {
     return res.data;
   } catch (error) {
     console.error("Failed to fetch profile:", error);
+    throw error;
   }
 };
 

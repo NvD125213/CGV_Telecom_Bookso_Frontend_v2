@@ -22,6 +22,7 @@ import TableMobile, { LabelValueItem } from "../../mobiles/TableMobile";
 import ResponsiveFilterWrapper from "../../components/common/FlipperWrapper";
 import { useScreenSize } from "../../hooks/useScreenSize";
 import EmptyState from "../../components/EmptyData";
+import ApiLoadError from "../../components/common/ApiLoadError";
 
 // Define types for different data sources
 type DataSource = "gvoice" | "vpbx" | "gigafone";
@@ -156,24 +157,23 @@ const DigitalChannel = () => {
             // For VPBX, we'll fetch all data and handle pagination on client side
             res = await getPublicNumberVPBX();
             if (isMounted) {
-              // Store all VPBX data
-              setAllVPBXData(res.data.data as VPBXDataType[]);
+              const allRows = Array.isArray(res?.data?.data)
+                ? (res.data.data as VPBXDataType[])
+                : [];
+              setAllVPBXData(allRows);
 
-              // Calculate pagination info
-              const totalResults = res.data.data.length;
-              const totalPages = Math.ceil(totalResults / currentPerPage);
+              const totalResults = allRows.length;
+              const totalPages = Math.ceil(totalResults / currentPerPage) || 1;
 
-              // Get current page data
               const startIndex = (currentPage - 1) * currentPerPage;
               const endIndex = startIndex + currentPerPage;
-              const currentPageData = res.data.data.slice(startIndex, endIndex);
+              const currentPageData = allRows.slice(startIndex, endIndex);
 
-              // Update response data with paginated data
               res.data = {
                 ...res.data,
                 data: currentPageData,
                 pagination: {
-                  ...res.data.pagination,
+                  ...res.data?.pagination,
                   total_results: totalResults,
                   total_pages: totalPages,
                   current_page: currentPage,
@@ -187,6 +187,12 @@ const DigitalChannel = () => {
         }
 
         if (isMounted) {
+          if (!res?.data || !Array.isArray(res.data.data)) {
+            setData(undefined);
+            setError("Đang có lỗi xảy ra");
+            setErrorData("");
+            return;
+          }
           // Add 1 to total_pages for gigafone data source
           if (
             dataSource === "gigafone" &&
@@ -196,6 +202,7 @@ const DigitalChannel = () => {
             res.data.pagination.total_pages += 1;
           }
           setData(res.data);
+          setError(null);
           if (!res.data.data || res.data.data.length === 0) {
             setErrorData("Không có dữ liệu");
           } else {
@@ -204,7 +211,8 @@ const DigitalChannel = () => {
         }
       } catch (err) {
         if (isMounted) {
-          setError("Lỗi tải dữ liệu");
+          setData(undefined);
+          setError("Đang có lỗi xảy ra");
         }
       } finally {
         if (isMounted) {
@@ -225,7 +233,9 @@ const DigitalChannel = () => {
   useEffect(() => {
     if (dataSource === "vpbx" && searchQuery) {
       const filteredData = allVPBXData.filter((item) =>
-        item.phone_number.toLowerCase().includes(searchQuery.toLowerCase()),
+        String(item.phone_number ?? "")
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()),
       );
 
       const currentPage = Number(page) || 1;
@@ -237,17 +247,20 @@ const DigitalChannel = () => {
       const endIndex = startIndex + currentPerPage;
       const currentPageData = filteredData.slice(startIndex, endIndex);
 
-      setData((prev) => ({
-        ...prev!,
-        data: currentPageData,
-        pagination: {
-          ...prev!.pagination,
-          total_results: totalResults,
-          total_pages: totalPages,
-          current_page: currentPage,
-          per_page: currentPerPage,
-        },
-      }));
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          data: currentPageData,
+          pagination: {
+            ...prev.pagination,
+            total_results: totalResults,
+            total_pages: totalPages,
+            current_page: currentPage,
+            per_page: currentPerPage,
+          },
+        };
+      });
     }
   }, [searchQuery, page, perPage, allVPBXData, dataSource]);
 
@@ -468,11 +481,13 @@ const DigitalChannel = () => {
             </div>
           </ResponsiveFilterWrapper>
 
-          {isMobile ? (
+          {error ? (
+            <ApiLoadError message={error} />
+          ) : isMobile ? (
             <TableMobile
               data={dataMobile}
               pageTitle="Danh sách đầu số các kênh"
-              totalPages={data?.pagination.total_pages ?? 1}
+              totalPages={data?.pagination?.total_pages ?? 1}
               currentPage={Number(page) || 1}
               onPageChange={handleMobilePageChange}
               onItemsPerPageChange={handleMobileItemsPerPageChange}
@@ -508,8 +523,8 @@ const DigitalChannel = () => {
                   <Pagination
                     limit={Number(perPage) || 10}
                     offset={(Number(page) || 1) - 1}
-                    totalPages={data?.pagination.total_pages ?? 1}
-                    totalResults={data?.pagination.total_results}
+                    totalPages={data?.pagination?.total_pages ?? 1}
+                    totalResults={data?.pagination?.total_results}
                     paginationMode={dataSource === "vpbx" ? "total" : "page"}
                     onPageChange={(limit, newOffset) =>
                       onPaginationChange(limit, newOffset)

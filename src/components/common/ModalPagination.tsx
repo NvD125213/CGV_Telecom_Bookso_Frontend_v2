@@ -209,7 +209,14 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
         username: currentParams.username,
       });
 
-      const formattedData = response.data.data.map((item: any) => ({
+      const rows = response?.data?.data;
+      if (!Array.isArray(rows)) {
+        setData([]);
+        setError("Đang có lỗi xảy ra");
+        return;
+      }
+
+      const formattedData = rows.map((item: any) => ({
         ...item,
         booked_until: item.booked_until ? formatDate(item.booked_until) : "0",
         booked_at: item.booked_at ? formatDate(item.booked_at) : "0",
@@ -219,7 +226,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
       setData(formattedData);
       setPagination((prev) => ({
         ...prev,
-        totalPages: response.data.total_pages,
+        totalPages: response.data?.total_pages || 1,
       }));
 
       // Cập nhật tham số cuối cùng đã fetch
@@ -570,7 +577,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
               <Select
                 options={[
                   { label: "Tất cả", value: "" },
-                  ...types.map((type) => ({
+                  ...(Array.isArray(types) ? types : []).map((type) => ({
                     label: type.name,
                     value: type.name,
                     key: type.id,
@@ -589,11 +596,13 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
               <Select
                 options={[
                   { label: "Tất cả", value: "" },
-                  ...providers.map((provider) => ({
-                    label: provider.name,
-                    value: provider.name,
-                    key: provider.id,
-                  })),
+                  ...(Array.isArray(providers) ? providers : []).map(
+                    (provider) => ({
+                      label: provider.name,
+                      value: provider.name,
+                      key: provider.id,
+                    }),
+                  ),
                 ]}
                 value={searchTelco}
                 className="dark:bg-black dark:text-white "
@@ -604,7 +613,7 @@ const ModalPagination: React.FC<ModalPaginationProps> = ({
           </div>
         </ResponsiveFilterWrapper>
         <FloatingActionPanel>
-          {user.role === 1 && option == "booked" && (
+          {user?.role === 1 && option == "booked" && (
             <div className="flex items-center gap-2 justify-end mb-4">
               <button
                 onClick={handleRevoke}

@@ -12,7 +12,7 @@ const invalidateRelated = (
   queryClient.invalidateQueries({ queryKey: ["v3", "customers"] });
 };
 
-/** POST /api/v3/booking — book chọn tay hoặc auto */
+/** POST /api/v3/booking — chọn tay, random 1 dòng, hoặc selections[] */
 export const useBookingV3 = () => {
   const queryClient = useQueryClient();
 
@@ -22,7 +22,10 @@ export const useBookingV3 = () => {
   });
 };
 
-/** POST /api/v3/booking/random — book random theo type + provider */
+/**
+ * POST /api/v3/booking/random — gom 1 đơn.
+ * Payload: selections[] (nhiều loại) hoặc type_number_id + provider_id (1 dòng).
+ */
 export const useBookingRandomV3 = () => {
   const queryClient = useQueryClient();
 

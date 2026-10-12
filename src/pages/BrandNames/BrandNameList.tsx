@@ -38,7 +38,7 @@ import { useCustomerList } from "../../hooks/api-hooks/v3/useCustomer";
 import { getCustomers } from "../../services/customer";
 import EmptyState from "../../components/EmptyData";
 import { useSearchParams } from "react-router";
-import type { ICustomer } from "../../types/customer";
+import { toSsAccountQuery, type ICustomer } from "../../types/customer";
 
 type BrandNameTableRow = IBrandName & {
   sale_names_display: string;
@@ -139,6 +139,9 @@ const BrandNameList = () => {
   const [saleFilter, setSaleFilter] = useState(
     () => searchParams.get("sale_name") || "",
   );
+  const [ssAccountInput, setSsAccountInput] = useState(
+    () => searchParams.get("ss_account") || "",
+  );
   const initialCustomerId = searchParams.get("customer_id") || "";
   const [selectedCustomerFilter, setSelectedCustomerFilter] = useState<
     AutocompleteOption[]
@@ -156,6 +159,7 @@ const BrandNameList = () => {
   );
 
   const debouncedSearch = useDebounce(searchInput, 400);
+  const debouncedSsAccount = useDebounce(ssAccountInput, 400);
   const { isMobile } = useScreenSize();
   const user = useSelector((state: RootState) => state.auth?.user);
   const saleUsername = String(user?.sub || "");
@@ -170,8 +174,9 @@ const BrandNameList = () => {
   const customerListParams = useMemo(
     () => ({
       sale: user?.role === 1 ? undefined : saleUsername || undefined,
+      ss_account: toSsAccountQuery(debouncedSsAccount),
     }),
-    [user?.role, saleUsername],
+    [user?.role, saleUsername, debouncedSsAccount],
   );
 
   const { data: customerData } = useCustomerList({
@@ -307,6 +312,9 @@ const BrandNameList = () => {
     else next.delete("sale_name");
     if (customerIdFilter) next.set("customer_id", String(customerIdFilter));
     else next.delete("customer_id");
+    const ssAccount = toSsAccountQuery(debouncedSsAccount);
+    if (ssAccount) next.set("ss_account", ssAccount);
+    else next.delete("ss_account");
 
     if (searchParams.toString() === next.toString()) return;
 
@@ -315,6 +323,7 @@ const BrandNameList = () => {
     debouncedSearch,
     saleFilter,
     customerIdFilter,
+    debouncedSsAccount,
     page,
     size,
     searchParams,
@@ -463,7 +472,7 @@ const BrandNameList = () => {
 
   const searchBlock = (
     <div className="mb-4 w-full">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <div className="min-w-0">
           <Label htmlFor="brandname-search">Tìm kiếm định danh</Label>
           <Input
@@ -482,6 +491,16 @@ const BrandNameList = () => {
             placeholder="Chọn sale..."
             onChange={handleSaleFilterChange}
             className="dark:bg-black dark:text-white"
+          />
+        </div>
+        <div className="min-w-0">
+          <Label htmlFor="brandname-ss-account">Mã SS</Label>
+          <Input
+            id="brandname-ss-account"
+            type="text"
+            placeholder="Nhập mã SS cần tìm..."
+            value={ssAccountInput}
+            onChange={(e) => setSsAccountInput(e.target.value)}
           />
         </div>
         <div className="min-w-0">

@@ -23,9 +23,10 @@ import { formatPhoneNumber } from "../../helper/formatPhoneNumber";
 import { copyToClipBoard } from "../../helper/copyToClipboard";
 import { groupDataCustomer } from "../../helper/group-data-customer";
 import { RootState } from "../../store";
-import type {
-  ICustomerSsAccount,
-  IGroupedCustomer,
+import {
+  toSsAccountQuery,
+  type ICustomerSsAccount,
+  type IGroupedCustomer,
 } from "../../types/customer";
 import {
   toDeploymentCustomerSnapshotFromGrouped,
@@ -121,7 +122,9 @@ export default function PhoneBookSidebar({
   const [selectedAccount, setSelectedAccount] =
     useState<ICustomerSsAccount | null>(null);
   const [customerQuery, setCustomerQuery] = useState("");
+  const [ssAccountInput, setSsAccountInput] = useState("");
   const debouncedQuery = useDebounce(customerQuery, 400);
+  const debouncedSsAccount = useDebounce(ssAccountInput, 400);
 
   const shouldLoadCustomers = isOpen && bookType === "deployment";
 
@@ -130,6 +133,7 @@ export default function PhoneBookSidebar({
       // role=1 xem toàn bộ; các role khác lọc theo sale
       sale: user?.role === 1 ? undefined : saleUsername || undefined,
       q: debouncedQuery.trim() || undefined,
+      ss_account: toSsAccountQuery(debouncedSsAccount),
     },
     { enabled: shouldLoadCustomers },
   );
@@ -142,6 +146,10 @@ export default function PhoneBookSidebar({
   /** 1 thẻ = 1 mã SS (gắn kèm khách hàng) — chọn 1 lần */
   const pickRows = useMemo(() => {
     const q = customerQuery.trim().toLowerCase();
+    const ssTokens = (toSsAccountQuery(debouncedSsAccount) ?? "")
+      .split(",")
+      .filter(Boolean)
+      .map((token) => token.toLowerCase());
     const rows: Array<{
       key: string;
       customer: IGroupedCustomer;
@@ -172,6 +180,16 @@ export default function PhoneBookSidebar({
           .join(" ")
           .toLowerCase();
         if (q && !haystack.includes(q)) return;
+        if (
+          ssTokens.length > 0 &&
+          !ssTokens.some(
+            (token) =>
+              String(account.account_id) === token ||
+              account.name.toLowerCase().includes(token),
+          )
+        ) {
+          return;
+        }
         rows.push({
           key: `${customer.customer_id}-${account.account_id}`,
           customer,
@@ -180,7 +198,7 @@ export default function PhoneBookSidebar({
       });
     });
     return rows;
-  }, [customers, customerQuery]);
+  }, [customers, customerQuery, debouncedSsAccount]);
 
   const canContinueCustomerPick = Boolean(selectedCustomer && selectedAccount);
 
@@ -188,6 +206,7 @@ export default function PhoneBookSidebar({
     setSelectedCustomer(null);
     setSelectedAccount(null);
     setCustomerQuery("");
+    setSsAccountInput("");
   };
 
   const handlePickRow = (
@@ -480,6 +499,12 @@ export default function PhoneBookSidebar({
                 className="pl-9"
               />
             </div>
+            <Input
+              type="text"
+              placeholder="Nhập mã SS cần tìm..."
+              value={ssAccountInput}
+              onChange={(e) => setSsAccountInput(e.target.value)}
+            />
 
             <div className="max-h-[48vh] space-y-2 overflow-y-auto pr-0.5">
               {customersLoading ? (

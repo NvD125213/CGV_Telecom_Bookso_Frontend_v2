@@ -21,6 +21,7 @@ import Input from "../../../components/form/input/InputField";
 import TextArea from "../../../components/form/input/TextArea";
 import Select from "../../../components/form/Select";
 import { useIsMobile } from "../../../hooks/useScreenSize";
+import { useDebounce } from "../../../hooks/useDebounce";
 import { users } from "../../../constants/user";
 import {
   useConfirmDeploymentOrder,
@@ -34,9 +35,10 @@ import { getCustomers } from "../../../services/customer";
 import { formatDate } from "../../../helper/formatDateToISOString";
 import { formatCurrency } from "../../../helper/formatCurrency";
 import { toDeploymentCustomerSnapshotFromGrouped } from "../../../types/bookingV3";
-import type {
-  ICustomerSsAccount,
-  IGroupedCustomer,
+import {
+  toSsAccountQuery,
+  type ICustomerSsAccount,
+  type IGroupedCustomer,
 } from "../../../types/customer";
 import type {
   IDeploymentOrder,
@@ -116,15 +118,30 @@ const formatCustomerSales = (
 const toSsPickOptions = (
   customer: IGroupedCustomer,
   q = "",
+  ssAccount?: string,
 ): AutocompleteOption[] => {
   const customerId = Number(customer.customer_id);
   if (!customerId) return [];
   const name = customer.customer_name?.trim() || `KH #${customerId}`;
   const qLower = q.trim().toLowerCase();
   const nameMatch = !qLower || name.toLowerCase().includes(qLower);
+  const ssTokens = (ssAccount ?? "")
+    .split(",")
+    .map((token) => token.trim().toLowerCase())
+    .filter(Boolean);
 
   return (customer.ss_accounts ?? [])
     .filter((account) => {
+      if (
+        ssTokens.length > 0 &&
+        !ssTokens.some(
+          (token) =>
+            String(account.account_id) === token ||
+            account.name.toLowerCase().includes(token),
+        )
+      ) {
+        return false;
+      }
       if (nameMatch) return true;
       return [account.name, account.description, account.display_account]
         .filter(Boolean)
@@ -219,16 +236,21 @@ function Section({
   children,
   action,
   className = "",
+  fill = true,
 }: {
   icon: ReactNode;
   title: string;
   children: ReactNode;
   action?: ReactNode;
   className?: string;
+  /** Kéo cao bằng ô cạnh. Danh sách số để false để co theo số dòng. */
+  fill?: boolean;
 }) {
   return (
     <section
-      className={`flex h-full flex-col rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 ${className}`}>
+      className={`flex flex-col rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 ${
+        fill ? "h-full" : ""
+      } ${className}`}>
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-100 px-3.5 py-2.5 dark:border-gray-800">
         <div className="flex items-center gap-2">
           <span className="text-brand-500">{icon}</span>
@@ -238,7 +260,10 @@ function Section({
         </div>
         {action}
       </div>
-      <div className="flex min-h-0 flex-1 flex-col px-3.5 py-1">{children}</div>
+      <div
+        className={`flex flex-col px-3.5 py-1 ${fill ? "min-h-0 flex-1" : ""}`}>
+        {children}
+      </div>
     </section>
   );
 }
@@ -267,6 +292,8 @@ export default function DeployOrderDetailModal({
   const groupedCacheRef = useRef<IGroupedCustomer[]>([]);
   const [updateReason, setUpdateReason] = useState("");
   const [saleFilter, setSaleFilter] = useState("");
+  const [ssAccountInput, setSsAccountInput] = useState("");
+  const debouncedSsAccount = useDebounce(ssAccountInput, 400);
 
   const mergeGroupedCache = useCallback((items: IGroupedCustomer[]) => {
     if (!items.length) return;
@@ -355,8 +382,9 @@ export default function DeployOrderDetailModal({
   const customerListParams = useMemo(
     () => ({
       sale: isAdmin ? selectedSale || undefined : saleUsername || undefined,
+      ss_account: toSsAccountQuery(debouncedSsAccount),
     }),
-    [isAdmin, saleUsername, selectedSale],
+    [isAdmin, saleUsername, selectedSale, debouncedSsAccount],
   );
 
   const {
@@ -381,12 +409,14 @@ export default function DeployOrderDetailModal({
   const customerOptions = useMemo(() => {
     const map = new Map<string, AutocompleteOption>();
     [...groupedFromApi, ...groupedCache].forEach((item) => {
-      toSsPickOptions(item).forEach((option) => {
-        if (!map.has(option.value)) map.set(option.value, option);
-      });
+      toSsPickOptions(item, "", customerListParams.ss_account).forEach(
+        (option) => {
+          if (!map.has(option.value)) map.set(option.value, option);
+        },
+      );
     });
     return Array.from(map.values());
-  }, [groupedFromApi, groupedCache]);
+  }, [groupedFromApi, groupedCache, customerListParams.ss_account]);
 
   const accountOptions = useMemo(
     () =>
@@ -427,6 +457,7 @@ export default function DeployOrderDetailModal({
     clearPickedCustomer();
     setUpdateReason("");
     setSaleFilter("");
+    setSsAccountInput("");
   }, [clearPickedCustomer]);
 
   const handleSaleFilterChange = (value: string) => {
@@ -479,11 +510,13 @@ export default function DeployOrderDetailModal({
       const seen = new Set<string>();
       const options: AutocompleteOption[] = [];
       filtered.forEach((item) => {
-        toSsPickOptions(item, q).forEach((option) => {
-          if (seen.has(option.value)) return;
-          seen.add(option.value);
-          options.push(option);
-        });
+        toSsPickOptions(item, q, customerListParams.ss_account).forEach(
+          (option) => {
+            if (seen.has(option.value)) return;
+            seen.add(option.value);
+            options.push(option);
+          },
+        );
       });
       return options;
     },
@@ -882,6 +915,18 @@ export default function DeployOrderDetailModal({
                               />
                             </div>
                           ) : null}
+                          <div>
+                            <Label>Mã SS</Label>
+                            <Input
+                              type="text"
+                              value={ssAccountInput}
+                              onChange={(e) =>
+                                setSsAccountInput(e.target.value)
+                              }
+                              placeholder="Nhập mã SS cần tìm..."
+                              disabled={!canPickCustomer}
+                            />
+                          </div>
                           <div className={isAdmin ? "" : undefined}>
                             <Label>Chọn khách hàng</Label>
                             <AutocompleteMultiple
@@ -1013,7 +1058,8 @@ export default function DeployOrderDetailModal({
 
               <Section
                 icon={<FiClipboard size={14} />}
-                title={`Danh sách số (${items.length})`}>
+                title={`Danh sách số (${items.length})`}
+                fill={false}>
                 <div className="-mx-3.5 overflow-x-auto">
                   {items.length === 0 ? (
                     <p className="px-3.5 py-6 text-center text-sm text-gray-500">

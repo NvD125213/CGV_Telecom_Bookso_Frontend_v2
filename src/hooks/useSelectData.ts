@@ -23,12 +23,18 @@ const useSelectData = <T>({
       setError(null);
       try {
         const result = await service();
-        setData(result);
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
+        if (Array.isArray(result)) {
+          setData(result);
         } else {
-          setError("An unknown error occurred");
+          setData([]);
+          setError("Đang có lỗi xảy ra");
+        }
+      } catch (err) {
+        setData([]);
+        if (err instanceof Error) {
+          setError(err.message || "Đang có lỗi xảy ra");
+        } else {
+          setError("Đang có lỗi xảy ra");
         }
       } finally {
         setLoading(false);

@@ -81,12 +81,26 @@ export const toDeploymentCustomerSnapshotFromGrouped = (
 });
 
 /**
+ * Một dòng random — OpenAPI `BookingRandomSelection`.
+ * Bắt buộc type_number_id + provider_id.
+ */
+export interface IBookingRandomSelection {
+  type_number_id: number;
+  provider_id: number;
+  quantity_book?: number;
+  brandname_id?: number | null;
+  is_beautiful_number?: boolean;
+}
+
+/**
  * POST /api/v3/booking — BookRequestV3
  * Bắt buộc: is_new_customer=true HOẶC deployment_customer
- * Chọn số: id_phone_numbers HOẶC (type_number_id + provider_id)
+ * Chọn số (chỉ một cách): id_phone_numbers | selections[] | type_number_id + provider_id
  */
 export interface IBookingRequestV3 {
   id_phone_numbers?: number[];
+  /** Random nhiều loại/NCC gom 1 đơn. Không gửi kèm id_phone_numbers hay cặp type/provider. */
+  selections?: IBookingRandomSelection[] | null;
   type_number_id?: number | null;
   provider_id?: number | null;
   brandname_id?: number | null;
@@ -98,17 +112,30 @@ export interface IBookingRequestV3 {
 
 /**
  * POST /api/v3/booking/random — BookingRandomRequestV3
- * Bắt buộc type_number_id + provider_id; không nhận id_phone_numbers
+ * Cách 1: selections[] (nhiều loại → 1 đơn)
+ * Cách 2: type_number_id + provider_id + quantity_book (legacy 1 dòng)
+ * Không gửi đồng thời selections và cặp type/provider. Không nhận id_phone_numbers.
  */
 export interface IBookingRandomRequestV3 {
-  type_number_id: number;
-  provider_id: number;
+  selections?: IBookingRandomSelection[] | null;
+  /** Legacy — khi không dùng selections */
+  type_number_id?: number | null;
+  /** Legacy — khi không dùng selections */
+  provider_id?: number | null;
   brandname_id?: number | null;
+  /** Legacy — số lượng khi book 1 dòng */
   quantity_book?: number;
+  /** Legacy — chỉ áp dụng book 1 dòng */
   is_beautiful_number?: boolean;
   is_new_customer?: boolean;
   deployment_customer?: IDeploymentCustomerSnapshot | null;
 }
 
-/** Response book v3 — schema OpenAPI để trống (forward), giữ linh hoạt */
-export type IBookingV3Result = Record<string, unknown>;
+/**
+ * Response book v3 — body 200 để trống trên OpenAPI.
+ * Random có thêm `selections_result` khi book theo selections hoặc legacy.
+ */
+export interface IBookingV3Result {
+  selections_result?: unknown;
+  [key: string]: unknown;
+}

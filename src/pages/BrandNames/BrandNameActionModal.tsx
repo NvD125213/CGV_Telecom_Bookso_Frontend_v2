@@ -15,9 +15,10 @@ import {
   useUpdateBrandNameForSale,
 } from "../../hooks/api-hooks/v3/useBrandname";
 import { useCustomerList } from "../../hooks/api-hooks/v3/useCustomer";
+import { useDebounce } from "../../hooks/useDebounce";
 import { getCustomers } from "../../services/customer";
 import { RootState } from "../../store";
-import type { ICustomer } from "../../types/customer";
+import { toSsAccountQuery, type ICustomer } from "../../types/customer";
 import { parseSubmitApiError } from "../../helper/apiValidationError";
 
 interface SaleOption {
@@ -131,6 +132,8 @@ export const BrandNameActionModal: React.FC<BrandNameActionModalProps> = ({
   >([]);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [error, setError] = useState("");
+  const [ssAccountInput, setSsAccountInput] = useState("");
+  const debouncedSsAccount = useDebounce(ssAccountInput, 400);
 
   const createBrandName = useCreateBrandName();
   const updateBrandName = useUpdateBrandName();
@@ -139,8 +142,9 @@ export const BrandNameActionModal: React.FC<BrandNameActionModalProps> = ({
   const customerListParams = useMemo(
     () => ({
       sale: user?.role === 1 ? undefined : saleUsername || undefined,
+      ss_account: toSsAccountQuery(debouncedSsAccount),
     }),
-    [user?.role, saleUsername],
+    [user?.role, saleUsername, debouncedSsAccount],
   );
 
   const { data: customerData } = useCustomerList(customerListParams, {
@@ -190,6 +194,7 @@ export const BrandNameActionModal: React.FC<BrandNameActionModalProps> = ({
     }
     setErrors({});
     setError("");
+    setSsAccountInput("");
   }, [data, isOpen]);
 
   const setValue = (
@@ -291,6 +296,14 @@ export const BrandNameActionModal: React.FC<BrandNameActionModalProps> = ({
         error: errors.sale_names,
       },
       {
+        name: "ss_account_filter",
+        label: "Lọc mã SS",
+        type: "text" as const,
+        value: ssAccountInput,
+        onChange: (value: FieldValue) => setSsAccountInput(String(value ?? "")),
+        placeholder: "Nhập mã SS cần tìm...",
+      },
+      {
         name: "customers",
         label: "Khách hàng",
         type: "autocomplete" as const,
@@ -329,6 +342,7 @@ export const BrandNameActionModal: React.FC<BrandNameActionModalProps> = ({
       brandName.expired_at,
       selectedSales,
       selectedCustomers,
+      ssAccountInput,
       saleOptions,
       customerOptions,
       fetchCustomerOptions,

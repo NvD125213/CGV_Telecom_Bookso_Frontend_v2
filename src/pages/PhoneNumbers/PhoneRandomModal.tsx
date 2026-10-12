@@ -12,26 +12,20 @@ import {
   FiArrowLeft,
   FiCheck,
   FiCheckCircle,
-  FiHash,
   FiSearch,
-  FiStar,
-  FiTag,
   FiUser,
   FiUserPlus,
   FiX,
 } from "react-icons/fi";
-import { BsBuilding } from "react-icons/bs";
 import { FaRandom } from "react-icons/fa";
 import { HiOutlineDocumentText } from "react-icons/hi";
+import { IoIosAdd, IoIosRemove } from "react-icons/io";
 import { LuCircleDot } from "react-icons/lu";
-import { MdOutlineBadge } from "react-icons/md";
 import Input from "../../components/form/input/InputField";
 import Label from "../../components/form/Label";
 import Select from "../../components/form/Select";
 import Switch from "../../components/form/switch/Switch";
-import AutocompleteMultiple, {
-  Option,
-} from "../../components/ui/autocomplete/auto-complete";
+import AutocompleteMultiple from "../../components/ui/autocomplete/auto-complete";
 import { useDebounce } from "../../hooks/useDebounce";
 import { useIsMobile } from "../../hooks/useScreenSize";
 import { useBookingRandomV3 } from "../../hooks/api-hooks/v3/useBookingV3";
@@ -41,34 +35,39 @@ import useSelectData from "../../hooks/useSelectData";
 import { getProviders } from "../../services/provider";
 import { getTypeNumber } from "../../services/typeNumber";
 import { getBrandName } from "../../services/brandName";
-import { validateRandomPhone } from "../../validate/phoneNumber";
+import { validateRandomSelections } from "../../validate/phoneNumber";
 import { copyToClipBoard } from "../../helper/copyToClipboard";
 import { groupDataCustomer } from "../../helper/group-data-customer";
 import { RootState } from "../../store";
 import { IProvider, ITypeNumber } from "../../types";
-import type {
-  ICustomerSsAccount,
-  IGroupedCustomer,
+import {
+  toSsAccountQuery,
+  type ICustomerSsAccount,
+  type IGroupedCustomer,
 } from "../../types/customer";
 import {
   toDeploymentCustomerSnapshotFromGrouped,
+  type IBookingRandomSelection,
   type IDeploymentCustomerSnapshot,
 } from "../../types/bookingV3";
 
-export interface IBookRandom {
-  quantity: number;
+export interface IRandomSelectionLine {
+  id: string;
   provider_id: number;
   type_id: number;
+  quantity: number;
   brandname_id?: number;
-  is_beautiful_number?: boolean;
+  brand_label?: string;
+  is_beautiful_number: boolean;
 }
 
-const initialBookRandom: IBookRandom = {
-  quantity: 1,
+const createSelectionLine = (): IRandomSelectionLine => ({
+  id: `line-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
   provider_id: 0,
   type_id: 0,
+  quantity: 1,
   is_beautiful_number: false,
-};
+});
 
 type BookType = "new_customer" | "deployment";
 type Step = "criteria" | "book_type" | "pick_customer" | "confirm";
@@ -96,30 +95,41 @@ const formatCustomerSales = (
   return saleUsername?.trim() || "";
 };
 
-const extractBookedPhones = (result: unknown): string[] => {
-  if (!result) return [];
+const collectBookedPhones = (result: unknown): string[] => {
+  if (result == null || result === "") return [];
+  if (typeof result === "string" || typeof result === "number") {
+    return [String(result)];
+  }
   if (Array.isArray(result)) {
-    return result
-      .map((item) => {
-        if (typeof item === "string" || typeof item === "number") {
-          return String(item);
-        }
-        if (item && typeof item === "object") {
-          const row = item as Record<string, unknown>;
-          return String(row.phone_number ?? row.phone ?? "");
-        }
-        return "";
-      })
-      .filter(Boolean);
+    return result.flatMap((item) => collectBookedPhones(item));
   }
   if (typeof result === "object") {
-    const obj = result as Record<string, unknown>;
-    for (const key of ["phone_numbers", "data", "items", "phones"]) {
-      const value = obj[key];
-      if (Array.isArray(value)) return extractBookedPhones(value);
-    }
+    const row = result as Record<string, unknown>;
+    const direct = row.phone_number ?? row.phone;
+    const nested = [
+      "phone_numbers",
+      "phones",
+      "data",
+      "items",
+      "selections_result",
+    ].flatMap((key) =>
+      row[key] != null ? collectBookedPhones(row[key]) : [],
+    );
+    return [
+      ...(direct != null && direct !== "" ? [String(direct)] : []),
+      ...nested,
+    ];
   }
   return [];
+};
+
+const extractBookedPhones = (result: unknown): string[] => {
+  const seen = new Set<string>();
+  return collectBookedPhones(result).filter((phone) => {
+    if (seen.has(phone)) return false;
+    seen.add(phone);
+    return true;
+  });
 };
 
 function OptionCard({
@@ -173,18 +183,24 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
   const { mutateAsync: bookRandomV3, isPending } = useBookingRandomV3();
 
   const [step, setStep] = useState<Step>("criteria");
-  const [listNumber, setListNumber] = useState<IBookRandom>(initialBookRandom);
-  const [errors, setErrors] = useState<
-    Partial<Record<keyof IBookRandom, string>>
+  const [lines, setLines] = useState<IRandomSelectionLine[]>(() => [
+    createSelectionLine(),
+  ]);
+  const [lineErrors, setLineErrors] = useState<
+    Record<
+      string,
+      Partial<Record<"quantity" | "provider_id" | "type_id", string>>
+    >
   >({});
-  const [selectedBrand, setSelectedBrand] = useState<Option[]>([]);
   const [bookType, setBookType] = useState<BookType | null>(null);
   const [selectedCustomer, setSelectedCustomer] =
     useState<IGroupedCustomer | null>(null);
   const [selectedAccount, setSelectedAccount] =
     useState<ICustomerSsAccount | null>(null);
   const [customerQuery, setCustomerQuery] = useState("");
+  const [ssAccountInput, setSsAccountInput] = useState("");
   const debouncedQuery = useDebounce(customerQuery, 400);
+  const debouncedSsAccount = useDebounce(ssAccountInput, 400);
 
   const { data: providers } = useSelectData<IProvider>({
     service: getProviders,
@@ -203,6 +219,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
     {
       sale: user?.role === 1 ? undefined : saleUsername || undefined,
       q: debouncedQuery.trim() || undefined,
+      ss_account: toSsAccountQuery(debouncedSsAccount),
     },
     { enabled: shouldLoadCustomers },
   );
@@ -215,6 +232,10 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
   /** 1 thẻ = 1 mã SS (gắn kèm khách hàng) — chọn 1 lần */
   const pickRows = useMemo(() => {
     const q = customerQuery.trim().toLowerCase();
+    const ssTokens = (toSsAccountQuery(debouncedSsAccount) ?? "")
+      .split(",")
+      .filter(Boolean)
+      .map((token) => token.toLowerCase());
     const rows: Array<{
       key: string;
       customer: IGroupedCustomer;
@@ -245,6 +266,16 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
           .join(" ")
           .toLowerCase();
         if (q && !haystack.includes(q)) return;
+        if (
+          ssTokens.length > 0 &&
+          !ssTokens.some(
+            (token) =>
+              String(account.account_id) === token ||
+              account.name.toLowerCase().includes(token),
+          )
+        ) {
+          return;
+        }
         rows.push({
           key: `${customer.customer_id}-${account.account_id}`,
           customer,
@@ -253,7 +284,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
       });
     });
     return rows;
-  }, [customers, customerQuery]);
+  }, [customers, customerQuery, debouncedSsAccount]);
 
   const canContinueCustomerPick = Boolean(selectedCustomer && selectedAccount);
 
@@ -261,6 +292,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
     setSelectedCustomer(null);
     setSelectedAccount(null);
     setCustomerQuery("");
+    setSsAccountInput("");
   };
 
   const handlePickRow = (
@@ -298,9 +330,8 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
   useEffect(() => {
     if (!isOpen) {
       setStep("criteria");
-      setListNumber(initialBookRandom);
-      setErrors({});
-      setSelectedBrand([]);
+      setLines([createSelectionLine()]);
+      setLineErrors({});
       setBookType(null);
       resetCustomerPick();
     }
@@ -322,16 +353,57 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
     };
   }, [isOpen]);
 
-  const setValue = (
-    name: keyof IBookRandom,
-    value: string | number | boolean,
+  const updateLine = (
+    id: string,
+    patch: Partial<Omit<IRandomSelectionLine, "id">>,
   ) => {
-    setListNumber((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    setErrors((prev) => ({ ...prev, [name]: undefined }));
+    setLines((prev) =>
+      prev.map((line) => (line.id === id ? { ...line, ...patch } : line)),
+    );
+    setLineErrors((prev) => {
+      if (!prev[id]) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
   };
+
+  const addLine = () => {
+    setLines((prev) => [...prev, createSelectionLine()]);
+  };
+
+  const removeLine = (id: string) => {
+    setLines((prev) =>
+      prev.length <= 1 ? prev : prev.filter((line) => line.id !== id),
+    );
+    setLineErrors((prev) => {
+      if (!prev[id]) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  };
+
+  const providerLabel = (id: number) =>
+    providers.find((provider) => Number(provider.id) === Number(id))?.name ||
+    "—";
+
+  const typeLabel = (id: number) =>
+    typeNumbers.find((type) => Number(type.id) === Number(id))?.name || "—";
+
+  const totalQuantity = lines.reduce(
+    (sum, line) => sum + (Number(line.quantity) || 0),
+    0,
+  );
+
+  const toSelections = (): IBookingRandomSelection[] =>
+    lines.map((line) => ({
+      type_number_id: Number(line.type_id),
+      provider_id: Number(line.provider_id),
+      quantity_book: Number(line.quantity),
+      is_beautiful_number: Boolean(line.is_beautiful_number),
+      ...(line.brandname_id ? { brandname_id: Number(line.brandname_id) } : {}),
+    }));
 
   const deploymentCustomer = useMemo((): IDeploymentCustomerSnapshot | null => {
     if (bookType !== "deployment" || !selectedCustomer || !selectedAccount) {
@@ -342,20 +414,6 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
       selectedAccount,
     );
   }, [bookType, selectedCustomer, selectedAccount]);
-
-  const providerName = useMemo(
-    () =>
-      providers.find((p) => Number(p.id) === Number(listNumber.provider_id))
-        ?.name || "—",
-    [providers, listNumber.provider_id],
-  );
-
-  const typeName = useMemo(
-    () =>
-      typeNumbers.find((t) => Number(t.id) === Number(listNumber.type_id))
-        ?.name || "—",
-    [typeNumbers, listNumber.type_id],
-  );
 
   const stepMeta = useMemo(() => {
     switch (step) {
@@ -408,9 +466,9 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
   };
 
   const handleContinueFromCriteria = () => {
-    const validationErrors = validateRandomPhone(listNumber);
+    const validationErrors = validateRandomSelections(lines);
     if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
+      setLineErrors(validationErrors);
       return;
     }
     setStep("book_type");
@@ -427,33 +485,22 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
         return;
       }
 
+      const selections = toSelections();
       const payload =
         bookType === "new_customer"
           ? {
-              type_number_id: Number(listNumber.type_id),
-              provider_id: Number(listNumber.provider_id),
-              quantity_book: Number(listNumber.quantity),
-              is_beautiful_number: Boolean(listNumber.is_beautiful_number),
+              selections,
               is_new_customer: true,
-              ...(listNumber.brandname_id
-                ? { brandname_id: Number(listNumber.brandname_id) }
-                : {}),
             }
           : {
-              type_number_id: Number(listNumber.type_id),
-              provider_id: Number(listNumber.provider_id),
-              quantity_book: Number(listNumber.quantity),
-              is_beautiful_number: Boolean(listNumber.is_beautiful_number),
+              selections,
               is_new_customer: false,
               deployment_customer: deploymentCustomer!,
-              ...(listNumber.brandname_id
-                ? { brandname_id: Number(listNumber.brandname_id) }
-                : {}),
             };
 
       const res = await bookRandomV3(payload);
       const bookedPhones = extractBookedPhones(res);
-      const quantity = Number(listNumber.quantity);
+      const quantity = totalQuantity;
 
       onCloseModal();
       onSuccess();
@@ -545,7 +592,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                 {stepMeta.title}
               </h2>
               <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                Random theo loại số + nhà cung cấp
+                Nhiều nhà cung cấp · một mã SS
               </p>
             </div>
           </div>
@@ -579,209 +626,248 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
 
       <div className="h-[calc(100dvh)] min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-5">
         {step === "criteria" && (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <p className="text-sm text-gray-600 dark:text-gray-300">
-              Hệ thống sẽ lấy số ngẫu nhiên theo loại số, nhà cung cấp và số
-              lượng — không chọn từng số cụ thể.
+              Thêm một hoặc nhiều nhà cung cấp. Toàn bộ số random đi vào cùng
+              một đơn và một mã SS.
             </p>
-            <div>
-              <Label>Số lượng *</Label>
-              <Input
-                type="number"
-                min="1"
-                value={listNumber.quantity}
-                onChange={(e) =>
-                  setValue("quantity", Number(e.target.value) || 0)
-                }
-                error={errors.quantity}
-                hint={errors.quantity}
-              />
-            </div>
-            <div>
-              <Label>Nhà cung cấp *</Label>
-              <Select
-                options={[
-                  { label: "Chọn nhà cung cấp", value: "0" },
-                  ...providers.map((provider) => ({
-                    label: provider.name,
-                    value: String(provider.id),
-                  })),
-                ]}
-                value={String(listNumber.provider_id || "0")}
-                onChange={(value) => setValue("provider_id", Number(value))}
-                placeholder="Lựa chọn nhà cung cấp"
-                className="dark:bg-black dark:text-white"
-              />
-              {errors.provider_id ? (
-                <p className="mt-1 text-xs text-error-500">
-                  {errors.provider_id}
-                </p>
-              ) : null}
-            </div>
-            <div>
-              <Label>Loại số *</Label>
-              <Select
-                options={[
-                  { label: "Chọn loại số", value: "0" },
-                  ...typeNumbers.map((type) => ({
-                    label: type.name,
-                    value: String(type.id),
-                  })),
-                ]}
-                value={String(listNumber.type_id || "0")}
-                onChange={(value) => setValue("type_id", Number(value))}
-                placeholder="Lựa chọn loại số"
-                className="dark:bg-black dark:text-white"
-              />
-              {errors.type_id ? (
-                <p className="mt-1 text-xs text-error-500">{errors.type_id}</p>
-              ) : null}
-            </div>
-            <div>
-              <Label>Tên định danh (tùy chọn)</Label>
-              <AutocompleteMultiple
-                options={brandOptions}
-                value={selectedBrand}
-                fetchOptions={fetchBrandOptions}
-                placeholder="Gõ để tìm định danh..."
-                className="dark:bg-black dark:text-white"
-                onChange={(value) => {
-                  const options = Array.isArray(value) ? value : [];
-                  const single =
-                    options.length > 1
-                      ? [options[options.length - 1]]
-                      : options;
-                  setSelectedBrand(single);
-                  if (single.length === 0) {
-                    setListNumber((prev) => {
-                      const next = { ...prev };
-                      delete next.brandname_id;
-                      return next;
-                    });
-                    return;
-                  }
-                  setValue("brandname_id", Number(single[0].value));
-                }}
-              />
-            </div>
-            <div className="rounded-xl border border-gray-200 px-3 py-3 dark:border-gray-700">
-              <Switch
-                label="Số đẹp"
-                checked={Boolean(listNumber.is_beautiful_number)}
-                onChange={(checked) =>
-                  setValue("is_beautiful_number", Boolean(checked))
-                }
-              />
+            <Label>Cấu hình nhà cung cấp</Label>
+            <div className="flex flex-col gap-3">
+              {lines.map((line, index) => {
+                const rowError = lineErrors[line.id];
+                return (
+                  <div
+                    key={line.id}
+                    className="rounded-xl border border-gray-200 p-3 dark:border-gray-700 min-[1024px]:border-0 min-[1024px]:p-0">
+                    <div className="flex flex-col gap-3 min-[1024px]:flex-row min-[1024px]:items-start min-[1024px]:gap-2">
+                      <button
+                        type="button"
+                        onClick={() => removeLine(line.id)}
+                        disabled={lines.length <= 1}
+                        className="self-end rounded-full bg-red-100 p-2 text-red-600 hover:bg-red-200 disabled:cursor-not-allowed disabled:opacity-40 min-[1024px]:mt-1.5 min-[1024px]:self-auto"
+                        aria-label={`Xóa tuyến ${index + 1}`}>
+                        <IoIosRemove size={18} />
+                      </button>
+                      <div className="w-full min-w-0 min-[1024px]:flex-1">
+                        <Select
+                          options={[
+                            { label: "Chọn nhà cung cấp", value: "0" },
+                            ...providers.map((provider) => ({
+                              label: provider.name,
+                              value: String(provider.id),
+                            })),
+                          ]}
+                          value={String(line.provider_id || "0")}
+                          onChange={(value) =>
+                            updateLine(line.id, { provider_id: Number(value) })
+                          }
+                          placeholder="Nhà cung cấp"
+                          className="dark:bg-black dark:text-white"
+                        />
+                        {rowError?.provider_id ? (
+                          <p className="mt-1 text-xs text-error-500">
+                            {rowError.provider_id}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div className="w-full min-w-0 min-[1024px]:flex-1">
+                        <Select
+                          options={[
+                            { label: "Chọn loại số", value: "0" },
+                            ...typeNumbers.map((type) => ({
+                              label: type.name,
+                              value: String(type.id),
+                            })),
+                          ]}
+                          value={String(line.type_id || "0")}
+                          onChange={(value) =>
+                            updateLine(line.id, { type_id: Number(value) })
+                          }
+                          placeholder="Loại số"
+                          className="dark:bg-black dark:text-white"
+                        />
+                        {rowError?.type_id ? (
+                          <p className="mt-1 text-xs text-error-500">
+                            {rowError.type_id}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div className="w-full min-w-0 min-[1024px]:flex-1">
+                        <AutocompleteMultiple
+                          options={brandOptions}
+                          value={
+                            line.brandname_id
+                              ? [
+                                  {
+                                    label: line.brand_label || "Định danh",
+                                    value: String(line.brandname_id),
+                                  },
+                                ]
+                              : []
+                          }
+                          fetchOptions={fetchBrandOptions}
+                          placeholder="Tên định danh (tùy chọn)"
+                          className="dark:bg-black dark:text-white"
+                          onChange={(value) => {
+                            const options = Array.isArray(value) ? value : [];
+                            const single =
+                              options.length > 1
+                                ? [options[options.length - 1]]
+                                : options;
+                            if (single.length === 0) {
+                              updateLine(line.id, {
+                                brandname_id: undefined,
+                                brand_label: undefined,
+                              });
+                              return;
+                            }
+                            updateLine(line.id, {
+                              brandname_id: Number(single[0].value),
+                              brand_label: single[0].label,
+                            });
+                          }}
+                        />
+                      </div>
+                      <div className="w-full shrink-0 min-[1024px]:w-24">
+                        <Input
+                          type="number"
+                          min="1"
+                          value={line.quantity}
+                          onChange={(e) =>
+                            updateLine(line.id, {
+                              quantity: Number(e.target.value) || 0,
+                            })
+                          }
+                          placeholder="SL"
+                          error={rowError?.quantity}
+                          hint={rowError?.quantity}
+                        />
+                      </div>
+                      <div className="flex h-11 w-full shrink-0 items-center rounded-xl border border-gray-200 px-3 dark:border-gray-700 min-[1024px]:w-auto">
+                        <Switch
+                          label="Số đẹp"
+                          checked={line.is_beautiful_number}
+                          onChange={(checked) =>
+                            updateLine(line.id, {
+                              is_beautiful_number: Boolean(checked),
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              <button
+                type="button"
+                onClick={addLine}
+                className="mt-1 flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400">
+                <IoIosAdd size={20} />
+                Thêm nhà cung cấp
+              </button>
             </div>
           </div>
         )}
 
         {step === "book_type" && (
           <div className="space-y-3">
-            <div className="rounded-2xl border border-gray-100 bg-gray-50/80 p-3.5 dark:border-gray-800 dark:bg-gray-800/40">
-              <div className="mb-3 flex items-center gap-2">
-                <FaRandom className="text-brand-500" size={13} />
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-600 dark:text-brand-400">
-                  Điều kiện random
-                </p>
+            <div className="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
+              <div className="flex items-center gap-3 border-b border-gray-100 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-gray-800/50">
+                <FaRandom className="text-2xl text-brand-600 dark:text-brand-400" />
+                <div>
+                  <div className="text-base font-semibold text-gray-900 dark:text-white">
+                    Điều kiện random
+                  </div>
+                  <div className="mt-0.5 text-xs font-medium text-gray-600 dark:text-gray-300">
+                    Tổng{" "}
+                    <span className="font-bold text-brand-600 dark:text-brand-400">
+                      {totalQuantity}
+                    </span>{" "}
+                    số &middot;{" "}
+                    <span className="font-bold text-brand-600 dark:text-brand-400">
+                      {lines.length}
+                    </span>{" "}
+                    nhà cung cấp
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2.5 text-xs text-gray-600 dark:text-gray-300">
-                <div className="flex items-start gap-2.5">
-                  <FiHash
-                    className="mt-0.5 shrink-0 text-brand-500"
-                    size={14}
-                  />
-                  <p>
-                    <span className="text-gray-400">Số lượng:</span>{" "}
-                    <span className="font-medium text-gray-800 dark:text-gray-100">
-                      {listNumber.quantity}
+              <div className="space-y-2 px-4 py-3 text-xs text-gray-600 dark:text-gray-300">
+                {lines.map((line) => (
+                  <div
+                    key={line.id}
+                    className="flex items-center gap-x-6 px-1 py-1 flex-nowrap">
+                    <span className="flex items-center font-medium text-gray-800 dark:text-gray-100 gap-x-2">
+                      <LuCircleDot
+                        className="shrink-0 text-brand-500 dark:text-brand-400"
+                        size={14}
+                        aria-hidden
+                      />
+                      {providerLabel(line.provider_id)} ·{" "}
+                      {typeLabel(line.type_id)}
                     </span>
-                  </p>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <BsBuilding
-                    className="mt-0.5 shrink-0 text-brand-500"
-                    size={13}
-                  />
-                  <p>
-                    <span className="text-gray-400">Nhà cung cấp:</span>{" "}
-                    <span className="font-medium text-gray-800 dark:text-gray-100">
-                      {providerName}
+                    <span className="text-gray-500 dark:text-gray-400">
+                      Số lượng: {line.quantity}
                     </span>
-                  </p>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <FiTag className="mt-0.5 shrink-0 text-brand-500" size={14} />
-                  <p>
-                    <span className="text-gray-400">Loại số:</span>{" "}
-                    <span className="font-medium text-gray-800 dark:text-gray-100">
-                      {typeName}
+                    <span className="text-gray-500 dark:text-gray-400">
+                      {line.brand_label || "Không định danh"}
                     </span>
-                  </p>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <MdOutlineBadge
-                    className="mt-0.5 shrink-0 text-brand-500"
-                    size={15}
-                  />
-                  <p>
-                    <span className="text-gray-400">Tên định danh:</span>{" "}
-                    <span className="font-medium text-gray-800 dark:text-gray-100">
-                      {selectedBrand[0]?.label || "Không chọn"}
+                    <span className="text-gray-500 dark:text-gray-400">
+                      {line.is_beautiful_number ? "Số đẹp" : "Số thường"}
                     </span>
-                  </p>
-                </div>
-                <div className="flex items-start gap-2.5">
-                  <FiStar
-                    className="mt-0.5 shrink-0 text-brand-500"
-                    size={14}
-                  />
-                  <p>
-                    <span className="text-gray-400">Số đẹp:</span>{" "}
-                    <span className="font-medium text-gray-800 dark:text-gray-100">
-                      {listNumber.is_beautiful_number ? "Có" : "Không"}
-                    </span>
-                  </p>
-                </div>
+                  </div>
+                ))}
               </div>
             </div>
+
             <p className="text-sm text-gray-600 dark:text-gray-300">
               Chọn hình thức book phù hợp với khách hàng của bạn.
             </p>
-            <OptionCard
-              icon={<FiUserPlus size={20} />}
-              title="Book cho khách hàng"
-              description="Đặt số ngẫu nhiên cho khách hàng. Số sẽ ở trạng thái đã book."
-              onClick={() => {
-                setBookType("new_customer");
-                resetCustomerPick();
-                setStep("confirm");
-              }}
-            />
-            <OptionCard
-              icon={<HiOutlineDocumentText size={20} />}
-              title="Triển khai khách hàng"
-              description="Chọn khách hàng / mã SS và tạo đơn triển khai."
-              onClick={() => {
-                setBookType("deployment");
-                resetCustomerPick();
-                setStep("pick_customer");
-              }}
-            />
+            <div className="grid grid-cols-1 gap-3 min-[1024px]:grid-cols-2">
+              <OptionCard
+                icon={<FiUserPlus size={20} />}
+                title="Book cho khách hàng"
+                description="Đặt số ngẫu nhiên cho khách hàng. Số sẽ ở trạng thái đã book."
+                onClick={() => {
+                  setBookType("new_customer");
+                  resetCustomerPick();
+                  setStep("confirm");
+                }}
+              />
+              <OptionCard
+                icon={<HiOutlineDocumentText size={20} />}
+                title="Triển khai khách hàng"
+                description="Chọn khách hàng / mã SS và tạo đơn triển khai."
+                onClick={() => {
+                  setBookType("deployment");
+                  resetCustomerPick();
+                  setStep("pick_customer");
+                }}
+              />
+            </div>
           </div>
         )}
 
         {step === "pick_customer" && (
           <div className="space-y-3">
-            <div className="relative">
-              <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Tìm tên doanh nghiệp, sale..."
-                value={customerQuery}
-                onChange={(e) => setCustomerQuery(e.target.value)}
-                className="pl-9"
-              />
+            <div className="flex flex-col gap-2 min-[1024px]:flex-row">
+              <div className="relative min-w-0 flex-1">
+                <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Tìm tên doanh nghiệp, sale..."
+                  value={customerQuery}
+                  onChange={(e) => setCustomerQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <Input
+                  type="text"
+                  placeholder="Nhập mã SS cần tìm..."
+                  value={ssAccountInput}
+                  onChange={(e) => setSsAccountInput(e.target.value)}
+                />
+              </div>
             </div>
             <div className="max-h-[calc(100dvh-22rem)] space-y-2 overflow-y-auto pr-0.5">
               {customersLoading ? (
@@ -879,53 +965,55 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
         {step === "confirm" && (
           <div className="space-y-4">
             <div className="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
-              <div className="flex items-center gap-2 border-b border-gray-100 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-gray-800/50">
-                <FiCheckCircle className="text-brand-600 dark:text-brand-400" />
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                  Tóm tắt yêu cầu random
-                </p>
+              <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-gray-800/50">
+                <div className="flex items-center gap-3">
+                  <FiCheckCircle className="text-2xl text-brand-600 dark:text-brand-400" />
+                  <div>
+                    <div className="text-base font-semibold text-gray-900 dark:text-white">
+                      Tóm tắt yêu cầu random
+                    </div>
+                    <div className="text-xs font-medium text-gray-600 dark:text-gray-300 mt-0.5">
+                      Tổng{" "}
+                      <span className="text-brand-600 dark:text-brand-400 font-bold">
+                        {totalQuantity}
+                      </span>{" "}
+                      số &middot;{" "}
+                      <span className="text-brand-600 dark:text-brand-400 font-bold">
+                        {lines.length}
+                      </span>{" "}
+                      nhà cung cấp
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                <div className="flex items-start justify-between gap-3 px-4 py-3">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Số lượng
-                  </span>
-                  <span className="text-right text-sm font-medium text-gray-900 dark:text-white">
-                    {listNumber.quantity}
-                  </span>
-                </div>
-                <div className="flex items-start justify-between gap-3 px-4 py-3">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Nhà cung cấp
-                  </span>
-                  <span className="text-right text-sm font-medium text-gray-900 dark:text-white">
-                    {providerName}
-                  </span>
-                </div>
-                <div className="flex items-start justify-between gap-3 px-4 py-3">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Loại số
-                  </span>
-                  <span className="text-right text-sm font-medium text-gray-900 dark:text-white">
-                    {typeName}
-                  </span>
-                </div>
-                <div className="flex items-start justify-between gap-3 px-4 py-3">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Tên định danh
-                  </span>
-                  <span className="text-right text-sm font-medium text-gray-900 dark:text-white">
-                    {selectedBrand[0]?.label || "Không chọn"}
-                  </span>
-                </div>
-                <div className="flex items-start justify-between gap-3 px-4 py-3">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Số đẹp
-                  </span>
-                  <span className="text-right text-sm font-medium text-gray-900 dark:text-white">
-                    {listNumber.is_beautiful_number ? "Có" : "Không"}
-                  </span>
-                </div>
+
+              <div className="space-y-2 px-4 py-3 text-xs text-gray-600 dark:text-gray-300">
+                {lines.map((line) => (
+                  <div
+                    key={line.id}
+                    className="flex flex-nowrap items-center gap-x-6 px-1 py-1">
+                    <span className="flex items-center gap-x-2 font-medium text-gray-800 dark:text-gray-100">
+                      <LuCircleDot
+                        className="shrink-0 text-brand-500 dark:text-brand-400"
+                        size={14}
+                        aria-hidden
+                      />
+                      {providerLabel(line.provider_id)} ·{" "}
+                      {typeLabel(line.type_id)}
+                    </span>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      Số lượng: {line.quantity}
+                    </span>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      {line.brand_label || "Không định danh"}
+                    </span>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      {line.is_beautiful_number ? "Số đẹp" : "Số thường"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="divide-y divide-gray-100 border-t border-gray-100 dark:divide-gray-800 dark:border-gray-800">
                 <div className="flex items-start justify-between gap-3 px-4 py-3">
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                     Loại book
@@ -1068,7 +1156,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
       />
       <aside
         className={`fixed inset-y-0 right-0 z-[101] flex h-dvh max-h-dvh flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out dark:bg-gray-900 ${
-          isMobile ? "w-full max-w-full" : "w-full max-w-md"
+          isMobile ? "w-full max-w-full" : "w-full max-w-6xl"
         } ${isOpen ? "translate-x-0" : "pointer-events-none translate-x-full"}`}
         aria-hidden={!isOpen}>
         {panel}
