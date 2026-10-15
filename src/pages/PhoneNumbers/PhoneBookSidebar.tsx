@@ -11,12 +11,11 @@ import {
   FiUserPlus,
   FiX,
 } from "react-icons/fi";
-import { HiOutlineDocumentText } from "react-icons/hi";
-import { LuCircleDot } from "react-icons/lu";
+// Tạm ẩn cùng lựa chọn triển khai khách hàng
+// import { HiOutlineDocumentText } from "react-icons/hi";
 import { MdOutlinePhoneInTalk } from "react-icons/md";
 import Input from "../../components/form/input/InputField";
 import { useDebounce } from "../../hooks/useDebounce";
-import { useIsMobile } from "../../hooks/useScreenSize";
 import { useBookingV3 } from "../../hooks/api-hooks/v3/useBookingV3";
 import { useCustomerList } from "../../hooks/api-hooks/v3/useCustomer";
 import { formatPhoneNumber } from "../../helper/formatPhoneNumber";
@@ -110,7 +109,6 @@ export default function PhoneBookSidebar({
   onClose,
   onSuccess,
 }: PhoneBookSidebarProps) {
-  const isMobile = useIsMobile(768);
   const user = useSelector((state: RootState) => state.auth.user);
   const saleUsername = String(user?.sub || "");
   const { mutateAsync: bookV3, isPending } = useBookingV3();
@@ -372,12 +370,9 @@ export default function PhoneBookSidebar({
   if (typeof document === "undefined") return null;
 
   const panel = (
-    <div
-      className={`flex h-full min-h-0 w-full flex-col bg-white dark:bg-gray-900 ${
-        isMobile ? "" : "border-l border-gray-200 dark:border-gray-800"
-      }`}>
+    <div className="@container flex h-full min-h-0 w-full flex-col bg-white dark:bg-gray-900 sm:border-l sm:border-gray-200 dark:sm:border-gray-800">
       {/* Header */}
-      <div className="shrink-0 border-b border-gray-200 bg-gradient-to-br from-brand-50 via-white to-white px-4 pb-4 pt-4 dark:border-gray-800 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 sm:px-5">
+      <div className="shrink-0 border-b border-gray-200 bg-gradient-to-br from-brand-50 via-white to-white px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] dark:border-gray-800 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 sm:px-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
             {step !== "book_type" ? (
@@ -440,7 +435,7 @@ export default function PhoneBookSidebar({
       </div>
 
       {/* Body */}
-      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-5">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
         {/* Phone chips */}
         <div className="rounded-2xl border border-gray-100 bg-gray-50/80 p-3.5 dark:border-gray-800 dark:bg-gray-800/40">
           <div className="mb-2.5 flex items-center justify-between gap-2">
@@ -451,12 +446,21 @@ export default function PhoneBookSidebar({
               {displayPhones.length} số
             </span>
           </div>
-          <textarea
-            readOnly
-            rows={3}
-            value={displayPhones.join(", ") || "—"}
-            className="w-full resize-y rounded-xl border border-brand-100 bg-white px-3 py-2 font-mono text-xs font-medium leading-relaxed text-brand-700 shadow-sm outline-none dark:border-brand-900/50 dark:bg-gray-900 dark:text-brand-300"
-          />
+          <div className="max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-brand-100 bg-white px-2.5 py-2 shadow-sm dark:border-brand-900/50 dark:bg-gray-900">
+            {displayPhones.length === 0 ? (
+              <span className="text-xs text-gray-400">—</span>
+            ) : (
+              <ul className="flex flex-wrap gap-1.5">
+                {displayPhones.map((phone, index) => (
+                  <li
+                    key={`${phone}-${index}`}
+                    className="inline-flex max-w-full items-center break-all rounded-full bg-brand-50 px-2.5 py-1 font-mono text-xs font-medium text-brand-700 dark:bg-brand-950/50 dark:text-brand-300">
+                    {phone}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
 
         {step === "book_type" && (
@@ -466,14 +470,15 @@ export default function PhoneBookSidebar({
             </p>
             <OptionCard
               icon={<FiUserPlus size={20} />}
-              title="Khách hàng mới"
-              description="Đặt số cho khách hàng mới. Số sẽ ở trạng thái đã book."
+              title="Thực hiện book cho khách hàng"
+              description="Đặt số cho khách hàng. Số sẽ ở trạng thái đã book."
               onClick={() => {
                 setBookType("new_customer");
                 resetCustomerPick();
                 setStep("confirm");
               }}
             />
+            {/* Tạm ẩn book triển khai khách hàng
             <OptionCard
               icon={<HiOutlineDocumentText size={20} />}
               title="Triển khai khách hàng"
@@ -484,6 +489,7 @@ export default function PhoneBookSidebar({
                 setStep("pick_customer");
               }}
             />
+            */}
           </div>
         )}
 
@@ -506,7 +512,7 @@ export default function PhoneBookSidebar({
               onChange={(e) => setSsAccountInput(e.target.value)}
             />
 
-            <div className="max-h-[48vh] space-y-2 overflow-y-auto pr-0.5">
+            <div className="space-y-2">
               {customersLoading ? (
                 <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-gray-200 py-10 dark:border-gray-700">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
@@ -549,51 +555,40 @@ export default function PhoneBookSidebar({
                           <FiCheckCircle size={18} />
                         </span>
                       ) : null}
-                      <p className="flex min-w-0 items-center gap-1.5 pr-6 text-sm font-bold text-gray-900 dark:text-white">
-                        <span className="truncate">{account.name || "—"}</span>
-                        <LuCircleDot
-                          className="shrink-0 text-brand-500 dark:text-brand-400"
-                          size={14}
-                          aria-hidden
-                        />
-                        <span className="truncate">
+                      <div className="min-w-0 pr-7">
+                        <p className="break-words text-sm font-bold text-gray-900 dark:text-white">
+                          {account.name || "—"}
+                        </p>
+                        <p className="mt-0.5 break-words text-xs font-medium text-gray-500 dark:text-gray-400">
                           {account.description || "—"}
-                        </span>
-                      </p>
-                      <div className="mt-2 space-y-1.5 text-xs text-gray-700 dark:text-gray-200">
-                        <p>
-                          <span className="font-medium text-gray-500 dark:text-gray-400">
-                            Tên khách hàng:
-                          </span>{" "}
-                          <span className="font-bold text-gray-900 dark:text-white">
-                            {customer.customer_name || "—"}
-                          </span>
-                        </p>
-                        <p>
-                          <span className="font-medium text-gray-500 dark:text-gray-400">
-                            Mã SS:
-                          </span>{" "}
-                          <span className="font-bold text-gray-900 dark:text-white">
-                            {account.name || "—"}
-                          </span>
-                        </p>
-                        <p>
-                          <span className="font-medium text-gray-500 dark:text-gray-400">
-                            Chi tiết SS:
-                          </span>{" "}
-                          <span className="font-bold text-gray-900 dark:text-white">
-                            {account.description || "—"}
-                          </span>
-                        </p>
-                        <p>
-                          <span className="font-medium text-gray-500 dark:text-gray-400">
-                            Sale:
-                          </span>{" "}
-                          <span className="font-bold text-gray-900 dark:text-white">
-                            {salesLabel}
-                          </span>
                         </p>
                       </div>
+                      <dl className="mt-2 grid grid-cols-[5.25rem_minmax(0,1fr)] gap-x-2 gap-y-1.5 text-xs">
+                        <dt className="text-gray-500 dark:text-gray-400">
+                          Khách hàng
+                        </dt>
+                        <dd className="break-words font-semibold text-gray-900 dark:text-white">
+                          {customer.customer_name || "—"}
+                        </dd>
+                        <dt className="text-gray-500 dark:text-gray-400">
+                          Mã SS
+                        </dt>
+                        <dd className="break-words font-semibold text-gray-900 dark:text-white">
+                          {account.name || "—"}
+                        </dd>
+                        <dt className="text-gray-500 dark:text-gray-400">
+                          Chi tiết
+                        </dt>
+                        <dd className="break-words font-semibold text-gray-900 dark:text-white">
+                          {account.description || "—"}
+                        </dd>
+                        <dt className="text-gray-500 dark:text-gray-400">
+                          Sale
+                        </dt>
+                        <dd className="break-words font-semibold text-gray-900 dark:text-white">
+                          {salesLabel}
+                        </dd>
+                      </dl>
                     </button>
                   );
                 })
@@ -612,17 +607,17 @@ export default function PhoneBookSidebar({
                 </p>
               </div>
               <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                <div className="flex items-start justify-between gap-3 px-4 py-3">
+                <div className="flex items-start justify-between gap-3 px-3 py-3 sm:px-4">
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                     Loại book
                   </span>
-                  <span className="text-right text-sm font-medium text-gray-900 dark:text-white">
+                  <span className="min-w-0 break-words text-right text-sm font-medium text-gray-900 dark:text-white">
                     {bookType === "new_customer"
-                      ? "Book cho khách hàng"
+                      ? "Thực hiện book cho khách hàng"
                       : "Triển khai khách hàng"}
                   </span>
                 </div>
-                <div className="flex items-start justify-between gap-3 px-4 py-3">
+                <div className="flex items-start justify-between gap-3 px-3 py-3 sm:px-4">
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                     Trạng thái sau book
                   </span>
@@ -635,11 +630,11 @@ export default function PhoneBookSidebar({
                     {bookType === "new_customer" ? "Đã book" : "Chờ triển khai"}
                   </span>
                 </div>
-                <div className="flex items-start justify-between gap-3 px-4 py-3">
+                <div className="flex items-start justify-between gap-3 px-3 py-3 sm:px-4">
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                     Số lượng
                   </span>
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  <span className="min-w-0 break-words text-right text-sm font-medium text-gray-900 dark:text-white">
                     {phoneIds.length} số
                   </span>
                 </div>
@@ -678,11 +673,11 @@ export default function PhoneBookSidebar({
                       return rows.map((row) => (
                         <div
                           key={row.label}
-                          className="flex items-start justify-between gap-3 px-4 py-3">
+                          className="flex items-start justify-between gap-3 px-3 py-3 sm:px-4">
                           <span className="text-xs text-gray-500 dark:text-gray-400">
                             {row.label}
                           </span>
-                          <span className="text-right text-sm font-medium text-gray-900 dark:text-white">
+                          <span className="min-w-0 break-words text-right text-sm font-medium text-gray-900 dark:text-white">
                             {row.value}
                           </span>
                         </div>
@@ -699,12 +694,12 @@ export default function PhoneBookSidebar({
       </div>
 
       {/* Footer */}
-      <div className="flex shrink-0 gap-2 border-t border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+      <div className="flex shrink-0 gap-2 border-t border-gray-200 bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:border-gray-800 dark:bg-gray-900">
         <button
           type="button"
           disabled={isPending}
           onClick={goBack}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
+          className="flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-300 px-3 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
           {step === "book_type" ? "Hủy" : "Quay lại"}
         </button>
 
@@ -713,7 +708,7 @@ export default function PhoneBookSidebar({
             type="button"
             disabled={!canContinueCustomerPick || isPending}
             onClick={() => setStep("confirm")}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-500/25 transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">
+            className="flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-500 px-3 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-500/25 transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">
             Tiếp tục
           </button>
         )}
@@ -723,7 +718,7 @@ export default function PhoneBookSidebar({
             type="button"
             disabled={isPending}
             onClick={handleConfirmBook}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-500/25 transition hover:bg-brand-600 disabled:opacity-50">
+            className="flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-500 px-3 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-500/25 transition hover:bg-brand-600 disabled:opacity-50">
             {isPending ? (
               <>
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -751,9 +746,9 @@ export default function PhoneBookSidebar({
         aria-hidden={!isOpen}
       />
       <aside
-        className={`fixed inset-y-0 right-0 z-[101] flex flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out dark:bg-gray-900 ${
-          isMobile ? "w-full max-w-full" : "w-full max-w-md"
-        } ${isOpen ? "translate-x-0" : "pointer-events-none translate-x-full"}`}
+        className={`fixed inset-y-0 right-0 z-[101] flex h-dvh max-h-dvh w-full max-w-full flex-col overflow-hidden bg-white shadow-2xl transition-transform duration-300 ease-in-out dark:bg-gray-900 sm:max-w-md lg:max-w-lg ${
+          isOpen ? "translate-x-0" : "pointer-events-none translate-x-full"
+        }`}
         aria-hidden={!isOpen}>
         {panel}
       </aside>

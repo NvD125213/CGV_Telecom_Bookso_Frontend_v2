@@ -18,7 +18,8 @@ import {
   FiX,
 } from "react-icons/fi";
 import { FaRandom } from "react-icons/fa";
-import { HiOutlineDocumentText } from "react-icons/hi";
+// Tạm ẩn cùng lựa chọn triển khai khách hàng
+// import { HiOutlineDocumentText } from "react-icons/hi";
 import { IoIosAdd, IoIosRemove } from "react-icons/io";
 import { LuCircleDot } from "react-icons/lu";
 import Input from "../../components/form/input/InputField";
@@ -27,7 +28,6 @@ import Select from "../../components/form/Select";
 import Switch from "../../components/form/switch/Switch";
 import AutocompleteMultiple from "../../components/ui/autocomplete/auto-complete";
 import { useDebounce } from "../../hooks/useDebounce";
-import { useIsMobile } from "../../hooks/useScreenSize";
 import { useBookingRandomV3 } from "../../hooks/api-hooks/v3/useBookingV3";
 import { useCustomerList } from "../../hooks/api-hooks/v3/useCustomer";
 import { useBrandNameList } from "../../hooks/api-hooks/v3/useBrandname";
@@ -177,7 +177,6 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
   onCloseModal,
   onSuccess,
 }) => {
-  const isMobile = useIsMobile(768);
   const user = useSelector((state: RootState) => state.auth.user);
   const saleUsername = String(user?.sub || "");
   const { mutateAsync: bookRandomV3, isPending } = useBookingRandomV3();
@@ -563,11 +562,8 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
   if (typeof document === "undefined") return null;
 
   const panel = (
-    <div
-      className={`flex h-dvh min-h-0 w-full flex-col bg-white dark:bg-gray-900 ${
-        isMobile ? "" : "border-l border-gray-200 dark:border-gray-800"
-      }`}>
-      <div className="shrink-0 border-b border-gray-200 bg-gradient-to-br from-brand-50 via-white to-white px-4 pb-4 pt-4 dark:border-gray-800 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 sm:px-5">
+    <div className="@container flex h-full min-h-0 w-full flex-col bg-white dark:bg-gray-900 sm:border-l sm:border-gray-200 dark:sm:border-gray-800">
+      <div className="shrink-0 border-b border-gray-200 bg-gradient-to-br from-brand-50 via-white to-white px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] dark:border-gray-800 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 sm:px-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
             {step !== "criteria" ? (
@@ -624,7 +620,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
         </div>
       </div>
 
-      <div className="h-[calc(100dvh)] min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-5">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
         {step === "criteria" && (
           <div className="space-y-3">
             <p className="text-sm text-gray-600 dark:text-gray-300">
@@ -638,17 +634,26 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                 return (
                   <div
                     key={line.id}
-                    className="rounded-xl border border-gray-200 p-3 dark:border-gray-700 min-[1024px]:border-0 min-[1024px]:p-0">
-                    <div className="flex flex-col gap-3 min-[1024px]:flex-row min-[1024px]:items-start min-[1024px]:gap-2">
+                    className="rounded-xl border border-gray-200 p-3 dark:border-gray-700">
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                        Nhà cung cấp {index + 1}
+                      </p>
                       <button
                         type="button"
                         onClick={() => removeLine(line.id)}
                         disabled={lines.length <= 1}
-                        className="self-end rounded-full bg-red-100 p-2 text-red-600 hover:bg-red-200 disabled:cursor-not-allowed disabled:opacity-40 min-[1024px]:mt-1.5 min-[1024px]:self-auto"
+                        className="inline-flex min-h-9 items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-200 disabled:cursor-not-allowed disabled:opacity-40"
                         aria-label={`Xóa tuyến ${index + 1}`}>
-                        <IoIosRemove size={18} />
+                        <IoIosRemove size={16} />
+                        Xóa
                       </button>
-                      <div className="w-full min-w-0 min-[1024px]:flex-1">
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 @min-[40rem]:grid-cols-2">
+                      <div className="min-w-0">
+                        <p className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+                          Nhà cung cấp
+                        </p>
                         <Select
                           options={[
                             { label: "Chọn nhà cung cấp", value: "0" },
@@ -670,7 +675,10 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                           </p>
                         ) : null}
                       </div>
-                      <div className="w-full min-w-0 min-[1024px]:flex-1">
+                      <div className="min-w-0">
+                        <p className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+                          Loại số
+                        </p>
                         <Select
                           options={[
                             { label: "Chọn loại số", value: "0" },
@@ -692,7 +700,10 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                           </p>
                         ) : null}
                       </div>
-                      <div className="w-full min-w-0 min-[1024px]:flex-1">
+                      <div className="min-w-0 @min-[40rem]:col-span-2">
+                        <p className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+                          Tên định danh
+                        </p>
                         <AutocompleteMultiple
                           options={brandOptions}
                           value={
@@ -728,7 +739,10 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                           }}
                         />
                       </div>
-                      <div className="w-full shrink-0 min-[1024px]:w-24">
+                      <div className="min-w-0">
+                        <p className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">
+                          Số lượng
+                        </p>
                         <Input
                           type="number"
                           min="1"
@@ -743,7 +757,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                           hint={rowError?.quantity}
                         />
                       </div>
-                      <div className="flex h-11 w-full shrink-0 items-center rounded-xl border border-gray-200 px-3 dark:border-gray-700 min-[1024px]:w-auto">
+                      <div className="flex min-h-11 w-full items-center self-end rounded-xl border border-gray-200 px-3 dark:border-gray-700">
                         <Switch
                           label="Số đẹp"
                           checked={line.is_beautiful_number}
@@ -761,7 +775,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
               <button
                 type="button"
                 onClick={addLine}
-                className="mt-1 flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400">
+                className="mt-1 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-indigo-300 text-sm font-medium text-indigo-600 hover:bg-indigo-50 hover:text-indigo-800 dark:border-indigo-500/40 dark:text-indigo-400 dark:hover:bg-indigo-950/30">
                 <IoIosAdd size={20} />
                 Thêm nhà cung cấp
               </button>
@@ -772,9 +786,9 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
         {step === "book_type" && (
           <div className="space-y-3">
             <div className="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
-              <div className="flex items-center gap-3 border-b border-gray-100 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-gray-800/50">
-                <FaRandom className="text-2xl text-brand-600 dark:text-brand-400" />
-                <div>
+              <div className="flex items-center gap-3 border-b border-gray-100 bg-gray-50 px-3 py-3 dark:border-gray-800 dark:bg-gray-800/50 sm:px-4">
+                <FaRandom className="shrink-0 text-2xl text-brand-600 dark:text-brand-400" />
+                <div className="min-w-0">
                   <div className="text-base font-semibold text-gray-900 dark:text-white">
                     Điều kiện random
                   </div>
@@ -791,41 +805,41 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                   </div>
                 </div>
               </div>
-              <div className="space-y-2 px-4 py-3 text-xs text-gray-600 dark:text-gray-300">
+              <ul className="space-y-2 px-3 py-3 sm:px-4">
                 {lines.map((line) => (
-                  <div
+                  <li
                     key={line.id}
-                    className="flex items-center gap-x-6 px-1 py-1 flex-nowrap">
-                    <span className="flex items-center font-medium text-gray-800 dark:text-gray-100 gap-x-2">
+                    className="rounded-xl bg-gray-50 px-3 py-2.5 dark:bg-gray-800/60">
+                    <p className="flex items-start gap-2 break-words text-sm font-medium text-gray-800 dark:text-gray-100">
                       <LuCircleDot
-                        className="shrink-0 text-brand-500 dark:text-brand-400"
+                        className="mt-0.5 shrink-0 text-brand-500 dark:text-brand-400"
                         size={14}
                         aria-hidden
                       />
-                      {providerLabel(line.provider_id)} ·{" "}
-                      {typeLabel(line.type_id)}
-                    </span>
-                    <span className="text-gray-500 dark:text-gray-400">
-                      Số lượng: {line.quantity}
-                    </span>
-                    <span className="text-gray-500 dark:text-gray-400">
-                      {line.brand_label || "Không định danh"}
-                    </span>
-                    <span className="text-gray-500 dark:text-gray-400">
-                      {line.is_beautiful_number ? "Số đẹp" : "Số thường"}
-                    </span>
-                  </div>
+                      <span>
+                        {providerLabel(line.provider_id)} ·{" "}
+                        {typeLabel(line.type_id)}
+                      </span>
+                    </p>
+                    <p className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 pl-5 text-xs text-gray-500 dark:text-gray-400">
+                      <span>Số lượng: {line.quantity}</span>
+                      <span>{line.brand_label || "Không định danh"}</span>
+                      <span>
+                        {line.is_beautiful_number ? "Số đẹp" : "Số thường"}
+                      </span>
+                    </p>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
 
             <p className="text-sm text-gray-600 dark:text-gray-300">
               Chọn hình thức book phù hợp với khách hàng của bạn.
             </p>
-            <div className="grid grid-cols-1 gap-3 min-[1024px]:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 @min-[40rem]:grid-cols-2">
               <OptionCard
                 icon={<FiUserPlus size={20} />}
-                title="Book cho khách hàng"
+                title="Thực hiện book cho khách hàng"
                 description="Đặt số ngẫu nhiên cho khách hàng. Số sẽ ở trạng thái đã book."
                 onClick={() => {
                   setBookType("new_customer");
@@ -833,6 +847,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                   setStep("confirm");
                 }}
               />
+              {/* Tạm ẩn book triển khai khách hàng
               <OptionCard
                 icon={<HiOutlineDocumentText size={20} />}
                 title="Triển khai khách hàng"
@@ -843,13 +858,14 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                   setStep("pick_customer");
                 }}
               />
+              */}
             </div>
           </div>
         )}
 
         {step === "pick_customer" && (
           <div className="space-y-3">
-            <div className="flex flex-col gap-2 min-[1024px]:flex-row">
+            <div className="grid grid-cols-1 gap-2 @min-[40rem]:grid-cols-2">
               <div className="relative min-w-0 flex-1">
                 <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <Input
@@ -869,7 +885,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                 />
               </div>
             </div>
-            <div className="max-h-[calc(100dvh-22rem)] space-y-2 overflow-y-auto pr-0.5">
+            <div className="space-y-2">
               {customersLoading ? (
                 <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-gray-200 py-10 dark:border-gray-700">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
@@ -909,51 +925,40 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                           <FiCheckCircle size={18} />
                         </span>
                       ) : null}
-                      <p className="flex min-w-0 items-center gap-1.5 pr-6 text-sm font-bold text-gray-900 dark:text-white">
-                        <span className="truncate">{account.name || "—"}</span>
-                        <LuCircleDot
-                          className="shrink-0 text-brand-500 dark:text-brand-400"
-                          size={14}
-                          aria-hidden
-                        />
-                        <span className="truncate">
+                      <div className="min-w-0 pr-7">
+                        <p className="break-words text-sm font-bold text-gray-900 dark:text-white">
+                          {account.name || "—"}
+                        </p>
+                        <p className="mt-0.5 break-words text-xs font-medium text-gray-500 dark:text-gray-400">
                           {account.description || "—"}
-                        </span>
-                      </p>
-                      <div className="mt-2 space-y-1.5 text-xs text-gray-700 dark:text-gray-200">
-                        <p>
-                          <span className="font-medium text-gray-500 dark:text-gray-400">
-                            Tên khách hàng:
-                          </span>{" "}
-                          <span className="font-bold text-gray-900 dark:text-white">
-                            {customer.customer_name || "—"}
-                          </span>
-                        </p>
-                        <p>
-                          <span className="font-medium text-gray-500 dark:text-gray-400">
-                            Mã SS:
-                          </span>{" "}
-                          <span className="font-bold text-gray-900 dark:text-white">
-                            {account.name || "—"}
-                          </span>
-                        </p>
-                        <p>
-                          <span className="font-medium text-gray-500 dark:text-gray-400">
-                            Chi tiết SS:
-                          </span>{" "}
-                          <span className="font-bold text-gray-900 dark:text-white">
-                            {account.description || "—"}
-                          </span>
-                        </p>
-                        <p>
-                          <span className="font-medium text-gray-500 dark:text-gray-400">
-                            Sale:
-                          </span>{" "}
-                          <span className="font-bold text-gray-900 dark:text-white">
-                            {salesLabel}
-                          </span>
                         </p>
                       </div>
+                      <dl className="mt-2 grid grid-cols-[5.25rem_minmax(0,1fr)] gap-x-2 gap-y-1.5 text-xs">
+                        <dt className="text-gray-500 dark:text-gray-400">
+                          Khách hàng
+                        </dt>
+                        <dd className="break-words font-semibold text-gray-900 dark:text-white">
+                          {customer.customer_name || "—"}
+                        </dd>
+                        <dt className="text-gray-500 dark:text-gray-400">
+                          Mã SS
+                        </dt>
+                        <dd className="break-words font-semibold text-gray-900 dark:text-white">
+                          {account.name || "—"}
+                        </dd>
+                        <dt className="text-gray-500 dark:text-gray-400">
+                          Chi tiết
+                        </dt>
+                        <dd className="break-words font-semibold text-gray-900 dark:text-white">
+                          {account.description || "—"}
+                        </dd>
+                        <dt className="text-gray-500 dark:text-gray-400">
+                          Sale
+                        </dt>
+                        <dd className="break-words font-semibold text-gray-900 dark:text-white">
+                          {salesLabel}
+                        </dd>
+                      </dl>
                     </button>
                   );
                 })
@@ -965,10 +970,10 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
         {step === "confirm" && (
           <div className="space-y-4">
             <div className="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
-              <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-gray-800/50">
-                <div className="flex items-center gap-3">
-                  <FiCheckCircle className="text-2xl text-brand-600 dark:text-brand-400" />
-                  <div>
+              <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 px-3 py-3 dark:border-gray-800 dark:bg-gray-800/50 sm:px-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <FiCheckCircle className="shrink-0 text-2xl text-brand-600 dark:text-brand-400" />
+                  <div className="min-w-0">
                     <div className="text-base font-semibold text-gray-900 dark:text-white">
                       Tóm tắt yêu cầu random
                     </div>
@@ -987,44 +992,44 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                 </div>
               </div>
 
-              <div className="space-y-2 px-4 py-3 text-xs text-gray-600 dark:text-gray-300">
+              <ul className="space-y-2 px-3 py-3 sm:px-4">
                 {lines.map((line) => (
-                  <div
+                  <li
                     key={line.id}
-                    className="flex flex-nowrap items-center gap-x-6 px-1 py-1">
-                    <span className="flex items-center gap-x-2 font-medium text-gray-800 dark:text-gray-100">
+                    className="rounded-xl bg-gray-50 px-3 py-2.5 dark:bg-gray-800/60">
+                    <p className="flex items-start gap-2 break-words text-sm font-medium text-gray-800 dark:text-gray-100">
                       <LuCircleDot
-                        className="shrink-0 text-brand-500 dark:text-brand-400"
+                        className="mt-0.5 shrink-0 text-brand-500 dark:text-brand-400"
                         size={14}
                         aria-hidden
                       />
-                      {providerLabel(line.provider_id)} ·{" "}
-                      {typeLabel(line.type_id)}
-                    </span>
-                    <span className="text-gray-500 dark:text-gray-400">
-                      Số lượng: {line.quantity}
-                    </span>
-                    <span className="text-gray-500 dark:text-gray-400">
-                      {line.brand_label || "Không định danh"}
-                    </span>
-                    <span className="text-gray-500 dark:text-gray-400">
-                      {line.is_beautiful_number ? "Số đẹp" : "Số thường"}
-                    </span>
-                  </div>
+                      <span>
+                        {providerLabel(line.provider_id)} ·{" "}
+                        {typeLabel(line.type_id)}
+                      </span>
+                    </p>
+                    <p className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 pl-5 text-xs text-gray-500 dark:text-gray-400">
+                      <span>Số lượng: {line.quantity}</span>
+                      <span>{line.brand_label || "Không định danh"}</span>
+                      <span>
+                        {line.is_beautiful_number ? "Số đẹp" : "Số thường"}
+                      </span>
+                    </p>
+                  </li>
                 ))}
-              </div>
+              </ul>
               <div className="divide-y divide-gray-100 border-t border-gray-100 dark:divide-gray-800 dark:border-gray-800">
-                <div className="flex items-start justify-between gap-3 px-4 py-3">
+                <div className="flex items-start justify-between gap-3 px-3 py-3 sm:px-4">
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                     Loại book
                   </span>
-                  <span className="text-right text-sm font-medium text-gray-900 dark:text-white">
+                  <span className="min-w-0 break-words text-right text-sm font-medium text-gray-900 dark:text-white">
                     {bookType === "new_customer"
-                      ? "Book cho khách hàng"
+                      ? "Thực hiện book cho khách hàng"
                       : "Triển khai khách hàng"}
                   </span>
                 </div>
-                <div className="flex items-start justify-between gap-3 px-4 py-3">
+                <div className="flex items-start justify-between gap-3 px-3 py-3 sm:px-4">
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                     Trạng thái sau book
                   </span>
@@ -1072,11 +1077,11 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
                       return rows.map((row) => (
                         <div
                           key={row.label}
-                          className="flex items-start justify-between gap-3 px-4 py-3">
+                          className="flex items-start justify-between gap-3 px-3 py-3 sm:px-4">
                           <span className="text-xs text-gray-500 dark:text-gray-400">
                             {row.label}
                           </span>
-                          <span className="text-right text-sm font-medium text-gray-900 dark:text-white">
+                          <span className="min-w-0 break-words text-right text-sm font-medium text-gray-900 dark:text-white">
                             {row.value}
                           </span>
                         </div>
@@ -1093,12 +1098,12 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
         )}
       </div>
 
-      <div className="flex shrink-0 gap-2 border-t border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+      <div className="flex shrink-0 gap-2 border-t border-gray-200 bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:border-gray-800 dark:bg-gray-900">
         <button
           type="button"
           disabled={isPending}
           onClick={goBack}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
+          className="flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-300 px-3 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
           {step === "criteria" ? "Hủy" : "Quay lại"}
         </button>
 
@@ -1107,7 +1112,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
             type="button"
             disabled={isPending}
             onClick={handleContinueFromCriteria}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-500/25 transition hover:bg-brand-600 disabled:opacity-50">
+            className="flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-500 px-3 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-500/25 transition hover:bg-brand-600 disabled:opacity-50">
             Tiếp tục
           </button>
         )}
@@ -1117,7 +1122,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
             type="button"
             disabled={!canContinueCustomerPick || isPending}
             onClick={() => setStep("confirm")}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-500/25 transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">
+            className="flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-500 px-3 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-500/25 transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">
             Tiếp tục
           </button>
         )}
@@ -1127,7 +1132,7 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
             type="button"
             disabled={isPending}
             onClick={handleConfirmBook}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-500/25 transition hover:bg-brand-600 disabled:opacity-50">
+            className="flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-500 px-3 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-500/25 transition hover:bg-brand-600 disabled:opacity-50">
             {isPending ? (
               <>
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -1155,9 +1160,9 @@ const PhoneRandomModal: React.FC<PhoneNumberProps> = ({
         aria-hidden={!isOpen}
       />
       <aside
-        className={`fixed inset-y-0 right-0 z-[101] flex h-dvh max-h-dvh flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out dark:bg-gray-900 ${
-          isMobile ? "w-full max-w-full" : "w-full max-w-6xl"
-        } ${isOpen ? "translate-x-0" : "pointer-events-none translate-x-full"}`}
+        className={`fixed inset-y-0 right-0 z-[101] flex h-dvh max-h-dvh w-full max-w-full flex-col overflow-hidden bg-white shadow-2xl transition-transform duration-300 ease-in-out dark:bg-gray-900 md:max-w-2xl lg:max-w-3xl xl:max-w-4xl ${
+          isOpen ? "translate-x-0" : "pointer-events-none translate-x-full"
+        }`}
         aria-hidden={!isOpen}>
         {panel}
       </aside>
